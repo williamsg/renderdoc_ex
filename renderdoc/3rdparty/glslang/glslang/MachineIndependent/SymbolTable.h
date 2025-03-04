@@ -507,8 +507,9 @@ public:
     }
 
     void collectRetargetedSymbols(std::unordered_multimap<std::string, std::string> &out) const {
-        for (const auto &[fromName, toName] : retargetedSymbols)
-            out.insert({std::string{toName}, std::string{fromName}});
+        // RD modification - use normal pair access, use explicit constructor
+        for (const auto &sym : retargetedSymbols)
+            out.insert({std::string(sym.second.data(), sym.second.size()), std::string(sym.first.data(), sym.first.size())});
     }
 
     TSymbol* find(const TString& name) const

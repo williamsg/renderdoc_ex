@@ -2691,8 +2691,9 @@ public:
 
     TString getBasicTypeString() const
     {
+        // RD modification: use explicit constructor
         if (basicType == EbtSampler)
-            return TString{sampler.getString()};
+            return TString(sampler.getString().data(), sampler.getString().size());
         else
             return getBasicString();
     }

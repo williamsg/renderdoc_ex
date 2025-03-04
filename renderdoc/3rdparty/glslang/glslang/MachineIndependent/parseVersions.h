@@ -83,8 +83,9 @@ public:
         const char* featureDesc);
     virtual void ppRequireExtensions(const TSourceLoc&, int numExtensions, const char* const extensions[],
         const char* featureDesc);
+    // RD Modification - drop redundant constexpr (warning about it not implying const)
     template<typename Container>
-    constexpr void ppRequireExtensions(const TSourceLoc& loc, Container extensions, const char* featureDesc) {
+    void ppRequireExtensions(const TSourceLoc& loc, Container extensions, const char* featureDesc) {
         ppRequireExtensions(loc, static_cast<int>(extensions.size()), extensions.data(), featureDesc);
     }
 

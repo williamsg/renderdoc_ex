@@ -1020,7 +1020,8 @@ int TPpContext::readCPPline(TPpToken* ppToken)
             break;
         case PpAtomInclude:
             if(!parseContext.isReadingHLSL()) {
-                const std::array exts = { E_GL_GOOGLE_include_directive, E_GL_ARB_shading_language_include };
+                // RD Modification - explicitly type std::array
+                const std::array<const char* const, 2> exts = {{ E_GL_GOOGLE_include_directive, E_GL_ARB_shading_language_include }};
                 parseContext.ppRequireExtensions(ppToken->loc, exts, "#include");
             }
             token = CPPinclude(ppToken);

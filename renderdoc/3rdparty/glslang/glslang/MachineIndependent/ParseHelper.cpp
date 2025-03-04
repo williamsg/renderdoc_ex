@@ -1827,7 +1827,8 @@ void TParseContext::handleCoopMat2FunctionCall(const TSourceLoc& loc, const TFun
             // Validate that the matrix sizes are compatible for multiplication and addition
             const auto &sequence = arguments->getAsAggregate()->getSequence();
 
-            using ArrayDim = const TArraySize&;
+            // RD modification use no reference - the struct is small and fine to value copy
+            using ArrayDim = TArraySize;
             auto getDim = [](const TIntermSequence& seq, int idx) -> std::tuple<ArrayDim, ArrayDim, int> {
                 const auto &type = seq[idx]->getAsTyped()->getType();
                 const auto *size = type.getTypeParameters()->arraySizes;
@@ -1842,9 +1843,12 @@ void TParseContext::handleCoopMat2FunctionCall(const TSourceLoc& loc, const TFun
             };
 
             // sizes look like: [scope, rows, cols, use]
-            auto [aRows, aCols, aUse] = getDim(sequence, 0);
-            auto [bRows, bCols, bUse] = getDim(sequence, 1);
-            auto [cRows, cCols, cUse] = getDim(sequence, 2);
+            // RD modification - use std::tie
+            ArrayDim aRows, aCols, bRows, bCols, cRows, cCols;
+            int aUse, bUse, cUse;
+            std::tie(aRows, aCols, aUse) = getDim(sequence, 0);
+            std::tie(bRows, bCols, bUse) = getDim(sequence, 1);
+            std::tie(cRows, cCols, cUse) = getDim(sequence, 2);
 
             auto toString = [](ArrayDim dim) -> std::string {
                 std::stringstream buf;

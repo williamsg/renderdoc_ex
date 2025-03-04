@@ -142,17 +142,21 @@ struct Versioning {
 EProfile EDesktopProfile = static_cast<EProfile>(ENoProfile | ECoreProfile | ECompatibilityProfile);
 
 // Declare pointers to put into the table for versioning.
-    const std::array Es300Desktop130Version = { Versioning{ EEsProfile,      0, 300, 0, nullptr },
+// RD Modification - explicitly type std::array
+    const std::array<Versioning, 2> Es300Desktop130Version
+                                            = {{ Versioning{ EEsProfile,      0, 300, 0, nullptr },
                                                 Versioning{ EDesktopProfile, 0, 130, 0, nullptr },
-                                              };
+                                              }};
 
-    const std::array Es310Desktop400Version = { Versioning{ EEsProfile,      0, 310, 0, nullptr },
+    const std::array<Versioning, 2> Es310Desktop400Version
+                                            = {{ Versioning{ EEsProfile,      0, 310, 0, nullptr },
                                                 Versioning{ EDesktopProfile, 0, 400, 0, nullptr },
-                                              };
+                                              }};
 
-    const std::array Es310Desktop450Version = { Versioning{ EEsProfile,      0, 310, 0, nullptr },
+    const std::array<Versioning, 2> Es310Desktop450Version
+                                            = {{ Versioning{ EEsProfile,      0, 310, 0, nullptr },
                                                 Versioning{ EDesktopProfile, 0, 450, 0, nullptr },
-                                              };
+                                              }};
 
 // The main descriptor of what a set of function prototypes can look like, and
 // a pointer to extra versioning information, when needed.
@@ -174,7 +178,8 @@ struct BuiltInFunction {
 //
 // Table is terminated by an OpNull TOperator.
 
-const std::array BaseFunctions = {
+// RD Modification - explicitly type std::array
+const std::array<BuiltInFunction, 79> BaseFunctions = {{
 //    TOperator,           name,       arg-count,   ArgType,   ArgClass,     versioning
 //    ---------            ----        ---------    -------    --------      ----------
     BuiltInFunction{ EOpRadians,          "radians",          1,   TypeF,     ClassRegular, {} },
@@ -256,13 +261,14 @@ const std::array BaseFunctions = {
     BuiltInFunction{ EOpAtomicCompSwap,   "atomicCompSwap",   3,   TypeIU,    ClassV1FIOCVN, {Es310Desktop400Version} },
     BuiltInFunction{ EOpMix,              "mix",              3,   TypeB,     ClassRegular, {Es310Desktop450Version} },
     BuiltInFunction{ EOpMix,              "mix",              3,   TypeIU,    ClassLB,      {Es310Desktop450Version} },
-};
+}};
 
-const std::array DerivativeFunctions = {
+// RD Modification - explicitly type std::array
+const std::array<BuiltInFunction, 3> DerivativeFunctions = {{
     BuiltInFunction{ EOpDPdx,             "dFdx",             1,   TypeF,     ClassRegular, {} },
     BuiltInFunction{ EOpDPdy,             "dFdy",             1,   TypeF,     ClassRegular, {} },
     BuiltInFunction{ EOpFwidth,           "fwidth",           1,   TypeF,     ClassRegular, {} },
-};
+}};
 
 // For functions declared some other way, but still use the table to relate to operator.
 struct CustomFunction {
@@ -5069,7 +5075,8 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                     << t << " data[], uint tensorOperands = 0U, ...);\n";
         }
         ostream << "uint tensorSizeARM(readonly writeonly tensorARM t, uint dim);\n";
-        commonBuiltins.append(ostream.str());
+        // RD modification - remove incompatible string conversion
+        commonBuiltins.append(ostream.str().data(), ostream.str().size());
     }
 
     if (profile != EEsProfile && version >= 450) {
@@ -7269,7 +7276,8 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                                                                           false,
                                                                           ms      ? true : false);
 
-                        TString typeName = TString{sampler.getString()};
+                        // RD modification - explicit string conversion
+                        TString typeName = TString(sampler.getString().data(), sampler.getString().size());
 
                         addQueryFunctions(sampler, typeName, version, profile);
                         addImageFunctions(sampler, typeName, version, profile);
@@ -7371,8 +7379,8 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, c
                                                                              shadow  ? true : false,
                                                                              ms      ? true : false);
                             }
-
-                            TString typeName = TString{sampler.getString()};
+                            // RD modification - explicit string conversion
+                            TString typeName = TString(sampler.getString().data(), sampler.getString().size());
 
                             if (dim == EsdSubpass) {
                                 addSubpassSampling(sampler, typeName, version, profile);
@@ -7396,7 +7404,8 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, c
                                     // texture types.
                                     sampler.setTexture(sampler.type, sampler.dim, sampler.arrayed, sampler.shadow,
                                                        sampler.ms);
-                                    TString textureTypeName = TString{sampler.getString()};
+                                    // RD modification - explicit string conversion
+                                    TString textureTypeName = TString(sampler.getString().data(), sampler.getString().size());
                                     addSamplingFunctions(sampler, textureTypeName, version, profile);
                                     addQueryFunctions(sampler, textureTypeName, version, profile);
                                 }

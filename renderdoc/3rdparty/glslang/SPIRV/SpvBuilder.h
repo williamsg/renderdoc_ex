@@ -208,7 +208,9 @@ public:
 
     // Maps the given OpType Id to a Non-Semantic DebugType Id.
     Id getDebugType(Id type) {
-        if (auto it = debugTypeIdLookup.find(type); it != debugTypeIdLookup.end()) {
+        // RD Modification - remove use of new declaration-inside-if
+        auto it = debugTypeIdLookup.find(type);
+        if (it != debugTypeIdLookup.end()) {
             return it->second;
         }
         
@@ -217,7 +219,9 @@ public:
 
     // Maps the given OpFunction Id to a Non-Semantic DebugFunction Id.
     Id getDebugFunction(Id func) {
-        if (auto it = debugFuncIdLookup.find(func); it != debugFuncIdLookup.end()) {
+        // RD Modification - remove use of new declaration-inside-if
+        auto it = debugFuncIdLookup.find(func);
+        if (it != debugFuncIdLookup.end()) {
             return it->second;
         }
         
@@ -1115,7 +1119,8 @@ protected:
     struct ScalarConstantKeyHash {
         // 64/32 bit mix function from MurmurHash3
         inline std::size_t hash_mix(std::size_t h) const {
-            if constexpr (sizeof(std::size_t) == 8) {
+            // RD Modification - remove if constexpr
+            if (sizeof(std::size_t) == 8) {
                 h ^= h >> 33;
                 h *= UINT64_C(0xff51afd7ed558ccd);
                 h ^= h >> 33;

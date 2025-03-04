@@ -36,7 +36,8 @@
 #define _INFOSINK_INCLUDED_
 
 #include "../Include/Common.h"
-#include <filesystem>
+// RD Modification - remove std::filesystem use
+//#include <filesystem>
 #include <cmath>
 
 namespace glslang {
@@ -104,16 +105,17 @@ public:
             snprintf(locText, maxSize, ":%d", loc.line);
         }
 
-        if(loc.getFilename() == nullptr && shaderFileName != nullptr && absolute) {
-            append(std::filesystem::absolute(shaderFileName).string());
-        } else {
+        // RD Modification - absolute paths unsupported
+        //if(loc.getFilename() == nullptr && shaderFileName != nullptr && absolute) {
+        //    append(std::filesystem::absolute(shaderFileName).string());
+        //} else {
             std::string location = loc.getStringNameOrNum(false);
-            if (absolute) {
-                append(std::filesystem::absolute(location).string());
-            } else {
+            //if (absolute) {
+            //    append(std::filesystem::absolute(location).string());
+            //} else {
                 append(location);
-            }
-        }
+            //}
+        //}
 
         append(locText);
         append(": ");
