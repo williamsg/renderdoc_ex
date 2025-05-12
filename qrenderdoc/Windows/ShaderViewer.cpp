@@ -2636,9 +2636,18 @@ void ShaderViewer::applyBackwardsChange()
   if(IsFirstState())
     return;
 
+#if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
+  QSet<rdcstr> changedVariables;
+#endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
   const ShaderVariable nullChange;
   for(const ShaderVariableChange &c : GetCurrentState().changes)
   {
+#if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
+    rdcstr varName = c.before.name.empty() ? c.after.name : c.before.name;
+    if(changedVariables.contains(varName))
+      qCritical("Multiple ShaderVariableChange's for '%s'", varName.c_str());
+    changedVariables.insert(varName);
+#endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
     // if the before name is empty, this is a variable that came into scope/was created
     if(c.before.name.empty())
     {
@@ -2711,9 +2720,18 @@ void ShaderViewer::applyForwardsChange()
 
   rdcarray<AccessedResourceData> newAccessedResources;
 
+#if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
+  QSet<rdcstr> changedVariables;
+#endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
   const ShaderVariable nullChange;
   for(const ShaderVariableChange &c : GetCurrentState().changes)
   {
+#if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
+    rdcstr varName = c.after.name.empty() ? c.before.name : c.after.name;
+    if(changedVariables.contains(varName))
+      qCritical("Multiple ShaderVariableChange's for '%s'", varName.c_str());
+    changedVariables.insert(varName);
+#endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
     // if the after name is empty, this is a variable going out of scope/being deleted
     if(c.after.name.empty())
     {
