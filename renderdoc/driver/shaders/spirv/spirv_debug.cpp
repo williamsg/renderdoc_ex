@@ -371,13 +371,21 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
 
     // for every other pointer, evaluate its value now before
     for(size_t i = 0; i < pointers.size(); i++)
-      changes[i].before = debugger.GetPointerValue(ids[pointers[i]]);
+    {
+      Id id = pointers[i];
+      if(id != ptrid && live.contains(id))
+        changes[i].before = debugger.GetPointerValue(ids[id]);
+    }
 
     debugger.WriteThroughPointer(var, val);
 
     // now evaluate the value after
     for(size_t i = 0; i < pointers.size(); i++)
-      changes[i].after = debugger.GetPointerValue(ids[pointers[i]]);
+    {
+      Id id = pointers[i];
+      if(id != ptrid && live.contains(id))
+        changes[i].after = debugger.GetPointerValue(ids[id]);
+    }
 
     // if the pointer we're writing is one of the aliased pointers, be sure we add it even if
     // it's a no-op change
@@ -385,8 +393,11 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
 
     if(ptrIdx >= 0)
     {
-      m_State->changes.push_back(changes[ptrIdx]);
-      changes.erase(ptrIdx);
+      if(pointer != ptrid)
+      {
+        m_State->changes.push_back(changes[ptrIdx]);
+        changes.erase(ptrIdx);
+      }
     }
 
     // remove any no-op changes. Some pointers might point to the same ID but a child that
@@ -439,8 +450,14 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
 
   lastWrite[id] = m_State ? m_State->stepIndex : nextInstruction;
 
-  auto it = std::lower_bound(live.begin(), live.end(), id);
-  live.insert(it - live.begin(), id);
+  bool wasLive = false;
+  if(m_State)
+  {
+    auto it = std::lower_bound(live.begin(), live.end(), id);
+    wasLive = (it != live.end() && *it == id);
+    if(!wasLive)
+      live.insert(it - live.begin(), id);
+  }
 
   if(val.type == VarType::GPUPointer && !debugger.IsPhysicalPointer(val))
   {
@@ -455,7 +472,8 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   if(m_State)
   {
     ShaderVariableChange change;
-    change.before = debugger.GetPointerValue(prev);
+    if(wasLive)
+      change.before = debugger.GetPointerValue(prev);
     change.after = debugger.GetPointerValue(ids[id]);
     m_State->changes.push_back(change);
   }
