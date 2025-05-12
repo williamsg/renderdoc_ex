@@ -49,6 +49,61 @@
 #define SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS 0
 #else
 #define SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS 1
+
+bool ShaderVariableEqual(const ShaderVariable &a, const ShaderVariable &b)
+{
+  if(a.rows != b.rows)
+    return false;
+  if(a.columns != b.columns)
+    return false;
+  if(a.name != b.name)
+    return false;
+  if(a.type != b.type)
+    return false;
+  if(a.flags != b.flags)
+    return false;
+  if(a.members.size() != b.members.size())
+    return false;
+
+  for(int i = 0; i < a.rows * a.columns; ++i)
+  {
+    switch(a.type)
+    {
+      case VarType::UByte:
+      case VarType::SByte:
+        if(a.value.u8v[i] != b.value.u8v[i])
+          return false;
+        break;
+      case VarType::Half:
+      case VarType::UShort:
+      case VarType::SShort:
+        if(a.value.u16v[i] != b.value.u16v[i])
+          return false;
+        break;
+      case VarType::Float:
+      case VarType::UInt:
+      case VarType::SInt:
+      case VarType::Bool:
+      case VarType::Enum:
+        if(a.value.u32v[i] != b.value.u32v[i])
+          return false;
+        break;
+      case VarType::Double:
+      case VarType::ULong:
+      case VarType::SLong:
+      case VarType::GPUPointer:
+      default:
+        if(a.value.u64v[i] != b.value.u64v[i])
+          return false;
+        break;
+    }
+  }
+  for(size_t m = 0; m < a.members.size(); ++m)
+    if(!ShaderVariableEqual(a.members[m], b.members[m]))
+      return false;
+
+  return true;
+}
 #endif    // #if defined(RELEASE)
 
 static bool ResourceReferencesMatch(const ShaderVariable &a, const ShaderVariable &b)
@@ -2689,7 +2744,7 @@ void ShaderViewer::applyBackwardsChange()
       if(v)
       {
 #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
-        if(!(c.after == *v))
+        if(!ShaderVariableEqual(c.after, *v))
           qCritical("ShaderVariableChange for '%s' after does not match existing entry",
                     c.before.name.c_str());
 #endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
@@ -2773,7 +2828,7 @@ void ShaderViewer::applyForwardsChange()
       if(v)
       {
 #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
-        if(!(c.before == *v))
+        if(!ShaderVariableEqual(c.before, *v))
           qCritical("ShaderVariableChange for '%s' before does not match existing entry",
                     c.after.name.c_str());
 #endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
