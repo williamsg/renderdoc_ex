@@ -1025,46 +1025,76 @@ enum PIXEventType
   ePIXEvent_SetMarker_OnContext_NoArgs = 0x018,
 };
 
+enum PIXEventTypeV2
+{
+  ePIXEventV2_EndEvent = 0,
+  ePIXEventV2_BeginEvent = 1,
+  ePIXEventV2_SetMarker = 2,
+};
+
+enum PIXEventFlagsV2
+{
+  None = 0x0,
+  ePIXEventV2_OnContext = 0x1,
+  ePIXEventV2_FormatStrANSI = 0x2,
+  ePIXEventV2_HasColor = 0xf0,
+};
+
 inline void PIX3DecodeEventInfo(const UINT64 BlobData, UINT64 &Timestamp, PIXEventType &EventType)
 {
-  static const UINT64 PIXEventsBlockEndMarker = 0x00000000000FFF80;
-
-  static const UINT64 PIXEventsTypeReadMask = 0x00000000000FFC00;
-  static const UINT64 PIXEventsTypeWriteMask = 0x00000000000003FF;
+  static const UINT64 PIXEventsTypeMask = 0x00000000000003FF;
   static const UINT64 PIXEventsTypeBitShift = 10;
 
-  static const UINT64 PIXEventsTimestampReadMask = 0xFFFFFFFFFFF00000;
-  static const UINT64 PIXEventsTimestampWriteMask = 0x00000FFFFFFFFFFF;
+  static const UINT64 PIXEventsTimestampMask = 0x00000FFFFFFFFFFF;
   static const UINT64 PIXEventsTimestampBitShift = 20;
 
-  Timestamp = (BlobData >> PIXEventsTimestampBitShift) & PIXEventsTimestampWriteMask;
-  EventType = PIXEventType((BlobData >> PIXEventsTypeBitShift) & PIXEventsTypeWriteMask);
+  Timestamp = (BlobData >> PIXEventsTimestampBitShift) & PIXEventsTimestampMask;
+  EventType = PIXEventType((BlobData >> PIXEventsTypeBitShift) & PIXEventsTypeMask);
+}
+
+inline void PIX3DecodeEventInfoV2(const UINT64 BlobData, UINT64 &Timestamp, uint8_t &size,
+                                  PIXEventTypeV2 &type, PIXEventFlagsV2 &flags)
+{
+  static const UINT64 PIXEventsSizeMask = 0x000000000000007F;
+  static const UINT64 PIXEventsSizeBitShift = 0;
+
+  static const UINT64 PIXEventsTypeMask = 0x000000000000001F;
+  static const UINT64 PIXEventsTypeBitShift = 7;
+
+  static const UINT64 PIXEventsFlagsMask = 0x00000000000000FF;
+  static const UINT64 PIXEventsFlagsBitShift = 12;
+
+  static const UINT64 PIXEventsTimestampMask = 0x00000FFFFFFFFFFF;
+  static const UINT64 PIXEventsTimestampBitShift = 20;
+
+  Timestamp = (BlobData >> PIXEventsTimestampBitShift) & PIXEventsTimestampMask;
+  size = (BlobData >> PIXEventsSizeBitShift) & PIXEventsSizeMask;
+  type = PIXEventTypeV2((BlobData >> PIXEventsTypeBitShift) & PIXEventsTypeMask);
+  flags = PIXEventFlagsV2((BlobData >> PIXEventsFlagsBitShift) & PIXEventsTypeMask);
 }
 
 inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64 &Alignment, UINT64 &CopyChunkSize,
                                  bool &IsANSI, bool &IsShortcut)
 {
-  static const UINT64 PIXEventsStringAlignmentWriteMask = 0x000000000000000F;
-  static const UINT64 PIXEventsStringAlignmentReadMask = 0xF000000000000000;
+  static const UINT64 PIXEventsStringAlignmentMask = 0x000000000000000F;
   static const UINT64 PIXEventsStringAlignmentBitShift = 60;
 
-  static const UINT64 PIXEventsStringCopyChunkSizeWriteMask = 0x000000000000001F;
-  static const UINT64 PIXEventsStringCopyChunkSizeReadMask = 0x0F80000000000000;
+  static const UINT64 PIXEventsStringCopyChunkSizeMask = 0x000000000000001F;
   static const UINT64 PIXEventsStringCopyChunkSizeBitShift = 55;
 
-  static const UINT64 PIXEventsStringIsANSIWriteMask = 0x0000000000000001;
-  static const UINT64 PIXEventsStringIsANSIReadMask = 0x0040000000000000;
+  static const UINT64 PIXEventsStringIsANSIMask = 0x0000000000000001;
   static const UINT64 PIXEventsStringIsANSIBitShift = 54;
 
-  static const UINT64 PIXEventsStringIsShortcutWriteMask = 0x0000000000000001;
-  static const UINT64 PIXEventsStringIsShortcutReadMask = 0x0020000000000000;
+  static const UINT64 PIXEventsStringIsShortcutMask = 0x0000000000000001;
   static const UINT64 PIXEventsStringIsShortcutBitShift = 53;
 
-  Alignment = (BlobData >> PIXEventsStringAlignmentBitShift) & PIXEventsStringAlignmentWriteMask;
+  Alignment = (BlobData >> PIXEventsStringAlignmentBitShift) & PIXEventsStringAlignmentMask;
   CopyChunkSize =
-      (BlobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeWriteMask;
-  IsANSI = (BlobData >> PIXEventsStringIsANSIBitShift) & PIXEventsStringIsANSIWriteMask;
-  IsShortcut = (BlobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutWriteMask;
+      (BlobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeMask;
+  IsANSI = (BlobData >> PIXEventsStringIsANSIBitShift) & PIXEventsStringIsANSIMask;
+  IsShortcut = (BlobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutMask;
+}
+
 const void *PIX3GetStringPointer(bool isANSI, UINT64 copyChunkSize, const UINT64 *&pData,
                                  UINT &stringCharCount)
 {
@@ -1190,6 +1220,46 @@ rdcstr PIX3DecodeEventString(const UINT64 *pData, UINT64 &color)
 
   if(eventType == ePIXEvent_BeginEvent_NoArgs)
     return formatString;
+
+  // sprintf remaining args
+  PIX3FormatArgs args(pData);
+  return StringFormat::FmtArgs(formatString.c_str(), args);
+}
+
+rdcstr PIX3DecodeEventStringV2(const UINT64 *pData, UINT Size, UINT64 &color)
+{
+  // event header
+  UINT64 timestamp;
+  PIXEventTypeV2 eventType;
+  PIXEventFlagsV2 eventFlags;
+  uint8_t eventSize;
+
+  PIX3DecodeEventInfoV2(*pData, timestamp, eventSize, eventType, eventFlags);
+  ++pData;
+
+  if(eventType != ePIXEventV2_BeginEvent && eventType != ePIXEventV2_SetMarker)
+  {
+    RDCERR("Unexpected/unsupported PIX3Event v2 %u type in PIXDecodeMarkerEventString", eventType);
+    return "<UnknownV2EventType>";
+  }
+
+  if(eventSize > Size - sizeof(UINT64))
+  {
+    RDCERR("Invalid PIX3Event v2 %u encoded size with %u actual bytes", eventSize, Size);
+    return "";
+  }
+
+  // color
+  color = *pData;
+  ++pData;
+
+  // queue/list pointer?????
+  void *queueOrList = *(void **)pData;
+  (void)queueOrList;
+  ++pData;
+
+  // format string
+  rdcstr formatString = PIX3DecodeRawString((eventFlags & ePIXEventV2_FormatStrANSI) != 0, 8, pData);
 
   // sprintf remaining args
   PIX3FormatArgs args(pData);
