@@ -116,6 +116,7 @@ inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size, UI
   else
   {
     RDCERR("Unexpected/unsupported Metadata value %u in marker text", Metadata);
+    return "<UnknownMarkerType>";
   }
 
   return MarkerText;

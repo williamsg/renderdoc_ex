@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_common.h"
+#include "common/formatting.h"
 #include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/dxgi/dxgi_wrapped.h"
@@ -1064,6 +1065,38 @@ inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64 &Alignment, UINT6
       (BlobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeWriteMask;
   IsANSI = (BlobData >> PIXEventsStringIsANSIBitShift) & PIXEventsStringIsANSIWriteMask;
   IsShortcut = (BlobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutWriteMask;
+const void *PIX3GetStringPointer(bool isANSI, UINT64 copyChunkSize, const UINT64 *&pData,
+                                 UINT &stringCharCount)
+{
+  const void *ret = NULL;
+  UINT totalStringBytes = 0;
+  if(isANSI)
+  {
+    ret = pData;
+    stringCharCount = UINT(strlen((const char *)pData));
+    totalStringBytes = stringCharCount + 1;
+  }
+  else
+  {
+    ret = pData;
+    stringCharCount = UINT(wcslen((const wchar_t *)pData));
+    totalStringBytes = (stringCharCount + 1) * sizeof(wchar_t);
+  }
+
+  UINT64 byteChunks = ((totalStringBytes + copyChunkSize - 1) / copyChunkSize) * copyChunkSize;
+  UINT64 stringQWordCount = (byteChunks + 7) / 8;
+  pData += stringQWordCount;
+  return ret;
+}
+
+rdcstr PIX3DecodeRawString(bool isANSI, UINT64 copyChunkSize, const UINT64 *&pData)
+{
+  UINT stringCharCount = 0;
+  const void *ptr = PIX3GetStringPointer(isANSI, copyChunkSize, pData, stringCharCount);
+  if(isANSI)
+    return rdcstr((const char *)ptr, stringCharCount);
+  else
+    return StringFormat::Wide2UTF8(rdcwstr((const wchar_t *)ptr, stringCharCount));
 }
 
 const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, rdcstr &DecodedString)
@@ -1075,70 +1108,55 @@ const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, rdcstr &DecodedString)
   PIX3DecodeStringInfo(*pData, alignment, copyChunkSize, isANSI, isShortcut);
   ++pData;
 
-  UINT totalStringBytes = 0;
-  if(isANSI)
-  {
-    const char *c = (const char *)pData;
-    UINT formatStringCharCount = UINT(strlen((const char *)pData));
-    DecodedString = rdcstr(c, formatStringCharCount);
-    totalStringBytes = formatStringCharCount + 1;
-  }
-  else
-  {
-    const wchar_t *w = (const wchar_t *)pData;
-    UINT formatStringCharCount = UINT(wcslen((const wchar_t *)pData));
-    DecodedString = StringFormat::Wide2UTF8(rdcwstr(w, formatStringCharCount));
-    totalStringBytes = (formatStringCharCount + 1) * sizeof(wchar_t);
-  }
-
-  UINT64 byteChunks = ((totalStringBytes + copyChunkSize - 1) / copyChunkSize) * copyChunkSize;
-  UINT64 stringQWordCount = (byteChunks + 7) / 8;
-  pData += stringQWordCount;
+  DecodedString = PIX3DecodeRawString(isANSI, copyChunkSize, pData);
 
   return pData;
 }
 
-rdcstr PIX3SprintfParams(const rdcstr &Format, const UINT64 *pData)
+struct PIX3FormatArgs : public StringFormat::Args
 {
-  rdcstr finalString;
-  rdcstr formatPart;
-  int32_t lastFind = 0;
+public:
+  PIX3FormatArgs(const UINT64 *pData) : m_Data(pData), m_Start(pData) {}
 
-  for(int32_t found = Format.indexOf('%'); found >= 0;)
+  void reset() override { m_Data = m_Start; }
+  void error(const char *err) override { RDCERR("Error formatting PIX3 string: %s", err); }
+  uint64_t get_uint64() override
   {
-    finalString += Format.substr(lastFind, found - lastFind);
-
-    int32_t endOfFormat = Format.find_first_of("%diufFeEgGxXoscpaAn", found + 1);
-    if(endOfFormat < 0)
-    {
-      finalString += "<FORMAT_ERROR>";
-      break;
-    }
-
-    formatPart = Format.substr(found, (endOfFormat - found) + 1);
-
-    // strings
-    if(formatPart.back() == 's')
-    {
-      rdcstr stringParam;
-      pData = PIX3DecodeStringParam(pData, stringParam);
-      finalString += stringParam;
-    }
-    // numerical values
-    else
-    {
-      finalString += StringFormat::Fmt(formatPart.c_str(), *pData);
-      ++pData;
-    }
-
-    lastFind = endOfFormat + 1;
-    found = Format.indexOf('%', lastFind);
+    uint64_t ret = *m_Data;
+    m_Data++;
+    return ret;
   }
+  double get_double() override
+  {
+    double ret = *(double *)m_Data;
+    m_Data++;
+    return ret;
+  }
+  void *get_ptr() override
+  {
+    uint64_t *ret = *(uint64_t **)m_Data;
+    m_Data++;
+    return ret;
+  }
+  const char *get_str() override
+  {
+    UINT64 alignment;
+    UINT64 copyChunkSize;
+    bool isANSI;
+    bool isShortcut;
+    PIX3DecodeStringInfo(*m_Data, alignment, copyChunkSize, isANSI, isShortcut);
+    ++m_Data;
 
-  finalString += Format.substr(lastFind);
-
-  return finalString;
-}
+    UINT stringCharCount = 0;
+    return (const char *)PIX3GetStringPointer(isANSI, copyChunkSize, m_Data, stringCharCount);
+  }
+  int get_int() override { return int(get_uint64()); }
+  unsigned int get_uint() override { return (unsigned int)(get_uint64()); }
+private:
+  const UINT64 *m_Data;
+  const UINT64 *m_Start;
+  rdcstr tmpStr;
+};
 
 rdcstr PIX3DecodeEventString(const UINT64 *pData, UINT64 &color)
 {
@@ -1174,8 +1192,8 @@ rdcstr PIX3DecodeEventString(const UINT64 *pData, UINT64 &color)
     return formatString;
 
   // sprintf remaining args
-  formatString = PIX3SprintfParams(formatString, pData);
-  return formatString;
+  PIX3FormatArgs args(pData);
+  return StringFormat::FmtArgs(formatString.c_str(), args);
 }
 
 D3D12_SAMPLER_DESC2 ConvertStaticSampler(const D3D12_STATIC_SAMPLER_DESC1 &samp)

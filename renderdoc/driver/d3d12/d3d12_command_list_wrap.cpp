@@ -3042,7 +3042,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
       D3D12MarkerRegion::Set(pCommandList, MarkerText);
 
       ActionDescription action;
-      action.customName = MarkerText;
+      action.customName = MarkerText.empty() ? "<empty>" : MarkerText;
       if(Color != 0)
       {
         action.markerColor = DecodePIXColor(Color);
@@ -3115,7 +3115,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
       D3D12MarkerRegion::Begin(pCommandList, MarkerText);
 
       ActionDescription action;
-      action.customName = MarkerText;
+      action.customName = MarkerText.empty() ? "<empty>" : MarkerText;
       if(Color != 0)
       {
         action.markerColor = DecodePIXColor(Color);
