@@ -1701,6 +1701,9 @@ void WrappedID3D12Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT 
                                                     IUnknown *const *ppPresentQueue,
                                                     IUnknown **unwrappedQueues)
 {
+  if(m_LastSwap == swapper)
+    m_LastSwap = NULL;
+
   if(ppPresentQueue)
   {
     for(UINT i = 0; i < QueueCount; i++)
