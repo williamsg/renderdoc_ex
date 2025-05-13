@@ -145,6 +145,11 @@ public:
     m_Idx++;
     return NULL;
   }
+  const char *get_str() override
+  {
+    m_Idx++;
+    return NULL;
+  }
   uint64_t get_uint64() override
   {
     uint64_t ret = *(uint64_t *)m_Cur;
@@ -153,7 +158,6 @@ public:
     return ret;
   }
 
-  size_t get_size() override { return sizeof(size_t) == 8 ? (size_t)get_uint64() : get_uint(); }
   rdcstr get_error() { return m_Error; }
 private:
   const uint32_t *m_Cur;
