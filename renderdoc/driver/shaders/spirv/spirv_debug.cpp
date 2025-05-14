@@ -425,6 +425,11 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
 
     for(size_t i = 0; i < pointers.size(); i++)
       lastWrite[pointers[i]] = m_State ? m_State->stepIndex : nextInstruction;
+
+    // For GSM memory update the global data as well as the local cache, do not send the changes to the UI
+    auto gsmPtrIt = gsmPointers.find(pointer);
+    if(gsmPtrIt != gsmPointers.end())
+      debugger.WriteThroughPointer(gsmPtrIt->second, val);
   }
 }
 
@@ -850,8 +855,20 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(Id id : chain.indexes)
         indices.push_back(uintComp(GetSrc(id), 0));
 
-      SetDst(chain.result, debugger.MakeCompositePointer(
-                               ids[chain.base], debugger.GetPointerBaseId(ids[chain.base]), indices));
+      Id baseId = debugger.GetPointerBaseId(ids[chain.base]);
+      SetDst(chain.result, debugger.MakeCompositePointer(ids[chain.base], baseId, indices));
+
+      // create duplicate GSM pointers for the active thread which point to the global GSM not the local GSM cache
+      if(m_State)
+      {
+        auto gsmPtrIt = gsmPointers.find(chain.base);
+        if(gsmPtrIt != gsmPointers.end())
+        {
+          ShaderVariable gsmGlobal = debugger.MakeCompositePointer(gsmPtrIt->second, baseId, indices);
+          gsmGlobal.name = GetRawName(chain.result);
+          gsmPointers[chain.result] = gsmGlobal;
+        }
+      }
       break;
     }
     case Op::PtrAccessChain:
@@ -870,10 +887,26 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       int32_t element = intComp(GetSrc(chain.element), 0);
       // adjust the address by the element. We should have the array stride since the base pointer
       // must point into an array and we can't go outside it.
-      base.SetTypedPointer(val.pointer + element * debugger.GetPointerArrayStride(base), val.shader,
-                           val.pointerTypeID);
-      SetDst(chain.result,
-             debugger.MakeCompositePointer(base, debugger.GetPointerBaseId(base), indices));
+      uint64_t byteOffset = element * debugger.GetPointerArrayStride(base);
+      base.SetTypedPointer(val.pointer + byteOffset, val.shader, val.pointerTypeID);
+      Id baseId = debugger.GetPointerBaseId(ids[chain.base]);
+      SetDst(chain.result, debugger.MakeCompositePointer(base, baseId, indices));
+
+      // create duplicate GSM pointers for the active thread which point to the global GSM not the local GSM cache
+      if(m_State)
+      {
+        auto gsmPtrIt = gsmPointers.find(chain.base);
+        if(gsmPtrIt != gsmPointers.end())
+        {
+          ShaderVariable gsmBase = gsmPtrIt->second;
+          PointerVal gsmVal = gsmBase.GetPointer();
+          gsmBase.SetTypedPointer(gsmVal.pointer + byteOffset, gsmVal.shader, gsmVal.pointerTypeID);
+
+          ShaderVariable gsmGlobal = debugger.MakeCompositePointer(gsmBase, baseId, indices);
+          gsmGlobal.name = GetRawName(chain.result);
+          gsmPointers[chain.result] = gsmGlobal;
+        }
+      }
       break;
     }
     case Op::ArrayLength:
@@ -3780,11 +3813,14 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
     case Op::MemoryBarrier:
     {
-      // do nothing for now
+      OpMemoryBarrier barrier(it);
+      ExecuteMemoryBarrier(barrier.semantics);
       break;
     }
     case Op::ControlBarrier:
     {
+      OpControlBarrier barrier(it);
+      ExecuteMemoryBarrier(barrier.semantics);
       // For thread barriers the threads must be converged
       RDCASSERT(!WorkgroupIsDiverged(workgroup));
       break;
@@ -4935,4 +4971,44 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
   m_State = NULL;
 }
 
+void ThreadState::ExecuteMemoryBarrier(Id semanticsId)
+{
+  // ignore if not the acitve thread
+  if(!m_State)
+    return;
+
+  ShaderVariable var = GetSrc(semanticsId);
+  MemorySemantics semantics = (MemorySemantics)var.value.u32v[0];
+  // only workgroup memory barriers are supported
+  if(!(semantics & MemorySemantics::WorkgroupMemory))
+    return;
+
+  // copy the global GSM memory into the local GSM cache
+  for(const GSMIndex &gsmIndex : gsmIndexes)
+  {
+    const int32_t globalIndex = gsmIndex.global;
+    const int32_t localIndex = gsmIndex.local;
+    if(globalIndex < global.workgroups.count())
+    {
+      if(localIndex < privates.count())
+      {
+        ShaderVariableChange change;
+        const ShaderVariable &globalData = global.workgroups[globalIndex];
+        change.before = privates[localIndex];
+        AssignValue(privates[localIndex], globalData);
+        change.after = privates[localIndex];
+        if(!(change.after == change.before))
+          m_State->changes.push_back(change);
+      }
+      else
+      {
+        RDCERR("Invalid GSM local index %u MAX %u", localIndex, privates.count());
+      }
+    }
+    else
+    {
+      RDCERR("Invalid GSM index %u MAX %u", globalIndex, global.workgroups.count());
+    }
+  }
+}
 };    // namespace rdcspv

@@ -1006,30 +1006,48 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
   struct PointerId
   {
     PointerId(Id i, rdcarray<ShaderVariable> GlobalState::*th, rdcarray<ShaderVariable> &storage)
-        : id(i), globalStorage(th), index(storage.size() - 1)
+        : id(i), globalStorage(th), globalIndex(storage.size() - 1)
     {
     }
     PointerId(Id i, rdcarray<ShaderVariable> ThreadState::*th, rdcarray<ShaderVariable> &storage)
-        : id(i), threadStorage(th), index(storage.size() - 1)
+        : id(i), threadStorage(th), threadIndex(storage.size() - 1)
+    {
+    }
+    PointerId(Id i, rdcarray<ShaderVariable> GlobalState::*global,
+              rdcarray<ShaderVariable> &globalVars, rdcarray<ShaderVariable> ThreadState::*thread,
+              rdcarray<ShaderVariable> &threadVars)
+        : id(i),
+          globalStorage(global),
+          globalIndex(globalVars.size() - 1),
+          threadStorage(thread),
+          threadIndex(threadVars.size() - 1)
     {
     }
 
-    void Set(Debugger &d, const GlobalState &global, ThreadState &lane) const
+    void Set(Debugger &d, const GlobalState &global, ThreadState &lane, bool forceLocalGSM) const
     {
-      if(globalStorage)
-        lane.ids[id] = d.MakePointerVariable(id, &(global.*globalStorage)[index]);
+      const bool isGlobal = (globalIndex != UINT_MAX);
+      const bool isGSM = isGlobal && (threadIndex != UINT_MAX);
+      const bool useLocal = (forceLocalGSM && isGSM) || !isGlobal;
+
+      if(!useLocal)
+        lane.ids[id] = d.MakePointerVariable(id, &(global.*globalStorage)[globalIndex]);
       else
-        lane.ids[id] = d.MakePointerVariable(id, &(lane.*threadStorage)[index]);
+        lane.ids[id] = d.MakePointerVariable(id, &(lane.*threadStorage)[threadIndex]);
     }
 
     Id id;
     rdcarray<ShaderVariable> GlobalState::*globalStorage = NULL;
     rdcarray<ShaderVariable> ThreadState::*threadStorage = NULL;
-    size_t index;
+    size_t globalIndex = UINT_MAX;
+    size_t threadIndex = UINT_MAX;
   };
 
 #define GLOBAL_POINTER(id, list) PointerId(id, &GlobalState::list, global.list)
 #define THREAD_POINTER(id, list) PointerId(id, &ThreadState::list, active.list)
+#define GSM_POINTER(id, globalList, threadList)                                        \
+  PointerId(id, &GlobalState::globalList, global.globalList, &ThreadState::threadList, \
+            active.threadList)
 
   rdcarray<PointerId> pointerIDs;
 
@@ -1540,8 +1558,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
       }
       else if(v.storage == StorageClass::Workgroup)
       {
+        active.gsmIndexes.push_back({global.workgroups.count(), active.privates.count()});
+        active.privates.push_back(var);
         global.workgroups.push_back(var);
-        pointerIDs.push_back(GLOBAL_POINTER(v.id, workgroups));
+        pointerIDs.push_back(GSM_POINTER(v.id, workgroups, privates));
       }
 
       liveGlobals.push_back(v.id);
@@ -1572,9 +1592,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
   rdcarray<ThreadIndex> threadIds;
   for(uint32_t i = 0; i < threadsInWorkgroup; i++)
   {
+    bool isActiveLane = (i == activeLaneIndex);
     ThreadState &lane = workgroup[i];
     lane.workgroupIndex = i;
-    if(i != activeLaneIndex)
+    if(!isActiveLane)
     {
       lane.nextInstruction = active.nextInstruction;
       lane.outputs = active.outputs;
@@ -1597,7 +1618,21 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
     // now that the globals are allocated and their storage won't move, we can take pointers to them
     for(const PointerId &p : pointerIDs)
-      p.Set(*this, global, lane);
+      p.Set(*this, global, lane, isActiveLane);
+
+    if(isActiveLane)
+    {
+      for(const PointerId &p : pointerIDs)
+      {
+        // GSM pointers have a global and local index
+        // Create a GSM global pointer, used for writing back
+        if((p.globalIndex != UINT_MAX) && (p.threadIndex != UINT_MAX))
+        {
+          RDCASSERTEQUAL(lane.gsmPointers.count(p.id), 0);
+          lane.gsmPointers[p.id] = MakePointerVariable(p.id, &global.workgroups[p.globalIndex]);
+        }
+      }
+    }
 
     // Only add active lanes to control flow
     if(!lane.dead)
