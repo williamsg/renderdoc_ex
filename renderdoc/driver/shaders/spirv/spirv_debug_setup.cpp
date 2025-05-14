@@ -2585,9 +2585,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         ++countActiveThreads;
 
         ThreadState &thread = workgroup[lane];
-        const uint32_t currentPC = thread.nextInstruction;
         const uint32_t threadId = lane;
-        if(currentPC >= instructionOffsets.size())
+        if(thread.nextInstruction >= instructionOffsets.size())
         {
           if(lane == activeLaneIndex)
             ret.emplace_back();
@@ -2600,7 +2599,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         {
           ShaderDebugState state;
 
-          size_t instOffs = instructionOffsets[currentPC];
+          size_t instOffs = instructionOffsets[thread.nextInstruction];
 
           // see if we're retiring any IDs at this state
           for(size_t l = 0; l < thread.live.size();)
@@ -2639,7 +2638,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
           if(m_DebugInfo.valid)
           {
-            size_t endOffs = instructionOffsets[currentPC - 1];
+            size_t endOffs = instructionOffsets[thread.nextInstruction - 1];
 
             // append any inlined functions to the top of the stack
             InlineData *inlined = m_DebugInfo.lineInline[endOffs];
