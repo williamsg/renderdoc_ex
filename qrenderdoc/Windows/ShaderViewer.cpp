@@ -50,6 +50,37 @@
 #else
 #define SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS 1
 
+bool ValidationShaderVariable(const ShaderVariable &var)
+{
+  // A Stuct or array
+  if(var.members.size() != 0)
+  {
+    if(var.type != VarType::Struct && var.type != VarType::Unknown &&
+       var.type != VarType::ConstantBlock)
+      return false;
+    // base variable rows = 0 and columns = 0
+    if(var.rows != 0)
+      return false;
+    if(var.columns != 0)
+      return false;
+
+    for(size_t m = 0; m < var.members.size(); ++m)
+      if(!ValidationShaderVariable(var.members[m]))
+        return false;
+    return true;
+  }
+  if(var.type == VarType::Struct)
+    return false;
+
+  if(var.rows * var.columns == 0)
+    return false;
+
+  if(var.rows * var.columns > 16)
+    return false;
+
+  return true;
+}
+
 bool ShaderVariableEqual(const ShaderVariable &a, const ShaderVariable &b)
 {
   if(a.rows != b.rows)
@@ -2724,6 +2755,8 @@ void ShaderViewer::applyBackwardsChange()
       if(!found)
         qCritical("ShaderVariableChange for '%s' not found in existing variables",
                   c.after.name.c_str());
+      if(!ValidationShaderVariable(c.after))
+        qCritical("ShaderVariableChange for '%s' after is not well formed", c.after.name.c_str());
 #endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
     }
     else
@@ -2758,6 +2791,10 @@ void ShaderViewer::applyBackwardsChange()
 #endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
         m_Variables.insert(0, c.before);
       }
+#if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
+      if(!ValidationShaderVariable(c.before))
+        qCritical("ShaderVariableChange for '%s' before is not well formed", c.before.name.c_str());
+#endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
     }
   }
 
@@ -2808,6 +2845,8 @@ void ShaderViewer::applyForwardsChange()
       if(!found)
         qCritical("ShaderVariableChange for '%s' not found in existing variables",
                   c.before.name.c_str());
+      if(!ValidationShaderVariable(c.before))
+        qCritical("ShaderVariableChange for '%s' before is not well formed", c.before.name.c_str());
 #endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
     }
     else
@@ -2842,6 +2881,10 @@ void ShaderViewer::applyForwardsChange()
 #endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
         m_Variables.insert(0, c.after);
       }
+#if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
+      if(!ValidationShaderVariable(c.after))
+        qCritical("ShaderVariableChange for '%s' after is not well formed", c.after.name.c_str());
+#endif    // #if SHADER_VARIABLE_CHANGE_CONSISTENCY_CHECKS
 
       if(c.after.type == VarType::ReadOnlyResource || c.after.type == VarType::ReadWriteResource)
       {
