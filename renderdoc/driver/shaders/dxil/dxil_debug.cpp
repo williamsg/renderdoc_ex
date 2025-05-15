@@ -794,8 +794,8 @@ static void ConvertDXILTypeToShaderVariable(const Type *type, ShaderVariable &va
     }
     case Type::TypeKind::Array:
     {
-      var.rows = 1;
-      var.columns = 1;
+      var.rows = 0;
+      var.columns = 0;
       var.type = ConvertDXILTypeToVarType(type->inner);
       var.members.resize(type->elemCount);
       for(size_t i = 0; i < type->elemCount; i++)
@@ -1041,7 +1041,7 @@ static bool ConvertDXILConstantToShaderVariable(const Constant *constant, Shader
     return false;
   }
   // Struct: rows = 0, columns = 0 : var.members is structure members
-  // Array: rows >= 1, columns == 1 : var.members is array elements
+  // Array: rows = 0, columns == 0 : var.members is array elements
   if(constant->isCompound())
   {
     const rdcarray<DXIL::Value *> &members = constant->getMembers();
@@ -9022,8 +9022,8 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
     // Make fake ShaderVariable struct to hold all the inputs
     ShaderVariable &inStruct = state.m_Input;
     inStruct.name = DXIL_FAKE_INPUT_STRUCT_NAME;
-    inStruct.rows = 1;
-    inStruct.columns = 1;
+    inStruct.rows = 0;
+    inStruct.columns = 0;
     inStruct.type = VarType::Struct;
     inStruct.members.resize(countInParams);
 
@@ -9096,8 +9096,8 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
     SourceVariableMapping inputMapping;
     inputMapping.name = inStruct.name;
     inputMapping.type = VarType::Struct;
-    inputMapping.rows = 1;
-    inputMapping.columns = 1;
+    inputMapping.rows = 0;
+    inputMapping.columns = 0;
     inputMapping.variables.resize(1);
     inputMapping.variables.push_back(DebugVariableReference(DebugVariableType::Input, inStruct.name));
     ret->sourceVars.push_back(inputMapping);
@@ -9110,8 +9110,8 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
   // Make fake ShaderVariable struct to hold all the outputs
   ShaderVariable &outStruct = state.m_Output.var;
   outStruct.name = DXIL_FAKE_OUTPUT_STRUCT_NAME;
-  outStruct.rows = 1;
-  outStruct.columns = 1;
+  outStruct.rows = 0;
+  outStruct.columns = 0;
   outStruct.type = VarType::Struct;
   outStruct.members.resize(countOutputs);
   state.m_Output.id = outputSSAId;
@@ -9228,8 +9228,8 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
     SourceVariableMapping outputMapping;
     outputMapping.name = state.m_Output.var.name;
     outputMapping.type = VarType::Struct;
-    outputMapping.rows = 1;
-    outputMapping.columns = 1;
+    outputMapping.rows = 0;
+    outputMapping.columns = 0;
     outputMapping.variables.resize(1);
     outputMapping.variables[0].name = state.m_Output.var.name;
     outputMapping.variables[0].type = DebugVariableType::Variable;
