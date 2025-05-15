@@ -1111,6 +1111,10 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
             formatter = BufferFormatter::DeclareStruct(pack, ResourceId(), ptrType.name,
                                                        ptrType.members, ptrType.arrayByteStride);
           }
+          else if(!ptrType.name.empty() && ptrType.name[0] != '<')
+          {
+            formatter = ptrType.name;
+          }
 
           IBufferViewer *view = ctx.ViewBuffer(ptr->offset, ~0ULL, ptr->base, formatter);
 
