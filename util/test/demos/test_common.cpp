@@ -531,6 +531,12 @@ void GraphicsTest::Prepare(int argc, char **argv)
   if(prepared)
     return;
 
+#if USE_LINKED_SHADERC
+  TEST_LOG("Using linked shaderc");
+#else
+  TEST_LOG("Requires glslc/shaderc for Vulkan tests");
+#endif
+
   prepared = true;
 
   dataRoot = GetEnvVar("RENDERDOC_DEMOS_DATA");
