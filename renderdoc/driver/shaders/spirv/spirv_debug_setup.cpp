@@ -1272,8 +1272,14 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
                                                 var.value.u8v.data());
 
               if(type.type == DataType::PointerType)
+              {
                 var.SetTypedPointer(var.value.u64v[0], this->apiWrapper->GetShaderID(),
                                     idToPointerType[type.InnerType()]);
+
+                const Decorations &dec = decorations[type.id];
+                if(dec.flags & Decorations::HasArrayStride)
+                  setArrayStride(var, dec.arrayStride);
+              }
             }
             else
             {
