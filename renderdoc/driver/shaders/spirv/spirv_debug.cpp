@@ -2478,8 +2478,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       }
 
       ShaderVariable result;
-      result.rows = 1;
-      result.columns = 1;
+      result.rows = 0;
+      result.columns = 0;
       result.type = VarType::Struct;
       result.members = {lsb, msb};
       result.members[0].name = "lsb";
@@ -3499,8 +3499,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // we make a little struct out of the combination
 
       ShaderVariable result;
-      result.rows = 1;
-      result.columns = 1;
+      result.rows = 0;
+      result.columns = 0;
       result.type = VarType::Struct;
       result.members = {GetSrc(sampled.image), GetSrc(sampled.sampler)};
       result.members[0].name = "image";
@@ -4077,8 +4077,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       OpImageTexelPointer ptr(it);
 
       ShaderVariable result;
-      result.rows = 1;
-      result.columns = 1;
+      result.rows = 0;
+      result.columns = 0;
       result.type = VarType::Struct;
       result.members = {ReadPointerValue(ptr.image), GetSrc(ptr.coordinate), GetSrc(ptr.sample)};
       result.members[0].name = "image";
