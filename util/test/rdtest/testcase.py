@@ -619,7 +619,7 @@ class TestCase:
 
         log.success("Backbuffer is identical to reference")
 
-    def process_trace(self, trace: rd.ShaderDebugTrace, validate: bool = False):
+    def process_trace(self, trace: rd.ShaderDebugTrace, validate: bool = True):
         variables = {}
         cycles = 0
         allChanges = []
