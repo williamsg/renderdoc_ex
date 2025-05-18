@@ -4192,6 +4192,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
                   (pCountBuffer ? pCountBuffer->GetGPUVirtualAddress() : 0) + CountBufferOffset,
                   MaxCommandCount);
 
+          m_Cmd->m_IndirectData.commandSig = pCommandSignature;
           m_Cmd->m_IndirectData.argsBuffer = patched.first;
           m_Cmd->m_IndirectData.argsOffset = patched.second;
 
@@ -4223,7 +4224,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
           for(uint32_t i = 0; i < countToReplay; i++)
           {
-            m_Cmd->m_IndirectData.commandSig = pCommandSignature;
             ActionFlags drawType =
                 comSig->sig.graphics ? ActionFlags::Drawcall : ActionFlags::Dispatch;
 
@@ -4253,12 +4253,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
               }
             }
 
-            m_Cmd->m_IndirectData.commandSig = NULL;
-            m_Cmd->m_IndirectData.argsBuffer = NULL;
-            m_Cmd->m_IndirectData.argsOffset = 0;
-
             argOffset += comSig->sig.ByteStride;
+            m_Cmd->m_IndirectData.argsOffset += comSig->sig.ByteStride;
           }
+          m_Cmd->m_IndirectData.commandSig = NULL;
+          m_Cmd->m_IndirectData.argsBuffer = NULL;
+          m_Cmd->m_IndirectData.argsOffset = 0;
 
           D3D12MarkerRegion::End(list);
         }
