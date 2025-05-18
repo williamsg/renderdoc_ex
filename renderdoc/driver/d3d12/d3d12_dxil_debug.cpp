@@ -232,7 +232,7 @@ static void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset
     for(uint32_t reg = 0; reg < numRegisters; reg++)
     {
       outvars[outIdx + reg].rows = 1;
-      outvars[outIdx + reg].type = VarType::Unknown;
+      outvars[outIdx + reg].type = v.type;
       outvars[outIdx + reg].columns = v.columns;
       outvars[outIdx + reg].flags = v.flags;
     }

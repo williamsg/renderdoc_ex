@@ -2584,9 +2584,8 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
                           if(!result.members[arrayIndex].members.empty())
                           {
                             rdcstr name =
-                                StringFormat::Fmt("%s_%u_%u", result.name.c_str(), arrayIndex, 0);
+                                resRef->resourceBase.name + StringFormat::Fmt("[%u]", arrayIndex);
                             result = result.members[arrayIndex].members[0];
-                            result.type = VarType::Float;
                             result.name = name;
                           }
                         }
