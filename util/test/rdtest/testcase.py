@@ -619,19 +619,26 @@ class TestCase:
 
         log.success("Backbuffer is identical to reference")
 
-    def process_trace(self, trace: rd.ShaderDebugTrace):
+    def process_trace(self, trace: rd.ShaderDebugTrace, validate: bool = False):
         variables = {}
         cycles = 0
+        allChanges = []
+                
         while True:
             states = self.controller.ContinueDebug(trace.debugger)
             if len(states) == 0:
                 break
 
             for state in states:
+                if validate:
+                    allChanges.append(state.changes)
                 for change in state.changes:
                     variables[change.after.name] = change.after
 
             cycles = states[-1].stepIndex
+
+        if validate:
+            self.validate_trace(allChanges)
 
         return cycles, variables
 
@@ -903,3 +910,90 @@ class TestCase:
                     countAsserts += 1
         if countAsserts > 0:
             raise TestFailureException(f'Renderdoc log file contains {countAsserts} Asserts')
+
+    def validate_shadervariable(self, var: rd.ShaderVariable):
+        if len(var.members) != 0:
+            if var.type != rd.VarType.Struct and var.type != rd.VarType.Unknown and var.type != rd.VarType.ConstantBlock:
+                log.error(f"ShaderVariable {var.name} has members with invalid type {var.type}")
+                return False
+            if var.rows != 0:
+                log.error(f"ShaderVariable {var.name} has members with invalid rows {var.rows}")
+                return False
+            if var.columns != 0:
+                log.error(f"ShaderVariable {var.name} has members with invalid columns {var.columns}")
+                return False
+
+            for m in var.members:
+                if not self.validate_shadervariable(m):
+                    return False
+            return True
+
+        if var.type == rd.VarType.Struct:
+            log.error(f"ShaderVariable {var.name} has invalid type {var.type}")
+            return False
+
+        if var.rows * var.columns == 0:
+            log.error(f"ShaderVariable {var.name} has invalid rows * columns {var.rows} * {var.columns}")
+            return False
+
+        if var.rows * var.columns > 16:
+            log.error(f"ShaderVariable {var.name} has invalid rows * columns {var.rows} * {var.columns}")
+            return False
+
+        return True
+
+    def validate_trace(self, allChanges):
+        # Step Forwards
+        variables = {}
+        for i in range(len(allChanges)):
+            for c in allChanges[i]:
+                if len(c.after.name) == 0:
+                    if variables.get(c.before.name) is None:
+                        raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.before.name}' not found in existing variables")
+                    else:
+                        del variables[c.before.name]
+                    # Validate c.before
+                    if not self.validate_shadervariable(c.before):
+                        raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.before.name}' before is not well formed")
+
+                else:
+                    if c.after.name in variables:
+                        # Step Forwards: not-first appearance of a variable "before" must equal currently known value
+                        if not analyse.shadervariable_equal(c.before, variables[c.after.name]):
+                            raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.after.name}' before does not match existing entry")
+                    else:
+                        # Step Forwards: first appearance of a variable must have "before" = {}
+                        if c.before != rd.ShaderVariable():
+                            raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.after.name}' does not have NULL before")
+                    variables[c.after.name] = c.after
+                    # Validate c.after
+                    if not self.validate_shadervariable(c.after):
+                        raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.after.name}' after is not well formed")
+
+        # Step Backwards
+        for i in reversed(range(len(allChanges))):
+            for c in allChanges[i]:
+                if len(c.before.name) == 0:
+                    if variables.get(c.after.name) is None:
+                        raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.after.name}' not found in existing variables")
+                    else:
+                        del variables[c.after.name]
+                    # Validate c.after
+                    if not self.validate_shadervariable(c.after):
+                        raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.after.name}' after is not well formed")
+
+                else:
+                    if c.before.name in variables:
+                        # Step Backwards: not-first appearance of a variable "after" must equal currently known value
+                        if not analyse.shadervariable_equal(c.after, variables[c.before.name]):
+                            raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.before.name}' after does not match existing entry")
+                    else:
+                        # Step Backwards: first appearance of a variable must have "after" = {}
+                        if c.after != rd.ShaderVariable():
+                            raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.before.name}' does not have NULL after")
+                    variables[c.before.name] = c.before
+                    # Validate c.before
+                    if not self.validate_shadervariable(c.before):
+                        raise TestFailureException(f"Step {i} ShaderVariableChange for '{c.after.name}' before is not well formed")
+
+        return True

@@ -323,3 +323,40 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], displa
         ret.append(vertex)
 
     return ret
+
+def shadervariable_equal(a: rd.ShaderVariable, b : rd.ShaderVariable):
+    if a.rows != b.rows:
+        return False
+    if a.columns != b.columns:
+        return False
+    if a.name != b.name:
+        return False
+    if a.type != b.type:
+        return False
+    if a.flags != b.flags:
+        return False
+    if len(a.members) != len(b.members):
+        return False
+
+    for i in range(a.rows * a.columns):
+        if a.type == rd.VarType.UByte or a.type == rd.VarType.SByte:
+            if a.value.u8v[i] != b.value.u8v[i]:
+                return False
+        elif a.type == rd.VarType.Half or a.type == rd.VarType.UShort or a.type == rd.VarType.SShort:
+            if a.value.u16v[i] != b.value.u16v[i]:
+                return False
+        elif a.type == rd.VarType.Float or a.type == rd.VarType.UInt or a.type == rd.VarType.SInt or a.type == rd.VarType.Bool or a.type == rd.VarType.Enum:
+            if a.value.u32v[i] != b.value.u32v[i]:
+                return False
+        elif a.type == rd.VarType.Double or a.type == rd.VarType.ULong or a.type == rd.VarType.SLong or a.type == rd.VarType.GPUPointer:
+            if a.value.u64v[i] != b.value.u64v[i]:
+                return False
+        else:
+            if a.value.u64v[i] != b.value.u64v[i]:
+                return False
+
+    for m in range(len(a.members)):
+        if not shadervariable_equal(a.members[m], b.members[m]):
+            return False
+
+    return True
