@@ -238,6 +238,7 @@ struct ThreadState
   uint32_t convergenceInstruction;
   uint32_t functionReturnPoint;
   ShaderVariable returnValue;
+  bool hasReturnValueData;
   rdcarray<StackFrame *> callstack;
 
   // the list of IDs that are currently valid and live

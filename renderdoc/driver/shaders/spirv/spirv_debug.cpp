@@ -3994,8 +3994,10 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       }
       else
       {
-        SetDst(call.result, returnValue);
-        returnValue.name.clear();
+        if(hasReturnValueData)
+          SetDst(call.result, returnValue);
+        returnValue = ShaderVariable();
+        hasReturnValueData = false;
         // The instruction after a function call is defined to be a convergence point, mark that we entered it
         enteredPoints.push_back(nextInstruction);
       }
@@ -4040,10 +4042,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       else
       {
         returnValue.name = "<return value>";
+        hasReturnValueData = false;
         if(opdata.op == Op::ReturnValue)
         {
           OpReturnValue ret(it);
 
+          hasReturnValueData = true;
           returnValue = GetSrc(ret.value);
         }
 
