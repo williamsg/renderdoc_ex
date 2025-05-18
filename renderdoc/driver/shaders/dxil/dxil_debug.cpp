@@ -6578,7 +6578,7 @@ void ThreadState::SetResult(const Id &id, ShaderVariable &result, Operation op, 
 {
   RDCASSERT((result.rows > 0 && result.columns > 0) || !result.members.empty());
   RDCASSERT(result.columns <= 16);
-  RDCASSERTNOTEQUAL(result.type, VarType::Unknown);
+  RDCASSERT(result.type != VarType::Unknown || !result.members.empty());
 
   // Can only flush denorms for float types
   bool flushDenorm = OperationFlushing(op, dxOpCode) && (result.type == VarType::Float);
