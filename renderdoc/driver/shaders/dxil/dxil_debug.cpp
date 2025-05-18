@@ -648,6 +648,13 @@ static uint8_t GetElementByteSize(VarType type)
   return 0;
 }
 
+static uint8_t GetShaderVariableElementByteSize(const ShaderVariable &var)
+{
+  if(var.members.empty())
+    return GetElementByteSize(var.type);
+  return GetShaderVariableElementByteSize(var.members[0]);
+}
+
 static DXBC::ResourceRetType ConvertComponentTypeToResourceRetType(const ComponentType compType)
 {
   switch(compType)
@@ -796,7 +803,7 @@ static void ConvertDXILTypeToShaderVariable(const Type *type, ShaderVariable &va
     {
       var.rows = 0;
       var.columns = 0;
-      var.type = ConvertDXILTypeToVarType(type->inner);
+      var.type = VarType::Unknown;
       var.members.resize(type->elemCount);
       for(size_t i = 0; i < type->elemCount; i++)
       {
@@ -971,7 +978,7 @@ static bool ConvertDXILConstantToShaderVariable(const Constant *constant, Shader
         VarType baseType = ConvertDXILTypeToVarType(elementType);
         uint32_t elementSize = GetElementByteSize(baseType);
         uint32_t countElems = RDCMAX(1U, elementType->elemCount);
-        uint64_t size = countElems * GetElementByteSize(baseType);
+        uint64_t size = countElems * elementSize;
 
         DXILDebug::Id ptrId = gv->ssaId;
         // members[1..] : indices 1...N
@@ -5218,7 +5225,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
 
       const ShaderVariable &basePtr = m_Variables[ptrId];
       if(indexes.size() > 1)
-        offset += indexes[1] * GetElementByteSize(basePtr.type);
+        offset += indexes[1] * GetShaderVariableElementByteSize(basePtr);
       RDCASSERT(indexes.size() <= 2);
 
       VarType baseType = ConvertDXILTypeToVarType(resultType);
@@ -6640,7 +6647,7 @@ void ThreadState::UpdateMemoryVariableFromBackingMemory(Id memoryId, const void 
 {
   ShaderVariable &baseMemory = m_Variables[memoryId];
   // Memory copy from backing memory to base memory variable
-  size_t elementSize = GetElementByteSize(baseMemory.type);
+  size_t elementSize = GetShaderVariableElementByteSize(baseMemory);
   const uint8_t *src = (const uint8_t *)ptr;
   if(baseMemory.members.size() == 0)
   {
