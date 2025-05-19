@@ -41,6 +41,9 @@ using namespace rdcshaders;
 // TODO: Support UAVs with counter
 // TODO: Extend debug data parsing: DW_TAG_array_type for the base element type
 // TODO: Extend debug data parsing: N-dimensional arrays, mapping covers whole sub-array
+// TODO: Load's from Pointers should re-read the memory to get accurate values
+// TODO: Change Pointers to be GPUPointers : update pointers aliased to base pointers
+// TODO: Unify and share the code for reading and writing thru pointers
 
 // Notes:
 //   The phi node capture variables are not shown in the UI
@@ -96,6 +99,19 @@ using namespace DXDebug;
 
 const uint32_t POINTER_MAGIC = 0xBEAFDEAF;
 
+static bool IsEncodedPointer(const ShaderVariable &var)
+{
+  if(var.type != VarType::GPUPointer)
+  {
+    return false;
+  }
+  if(var.value.u32v[1] != POINTER_MAGIC)
+  {
+    return false;
+  }
+  return true;
+}
+
 static void EncodePointer(DXILDebug::Id ptrId, uint64_t offset, uint64_t size, ShaderVariable &var)
 {
   var.type = VarType::GPUPointer;
@@ -108,16 +124,12 @@ static void EncodePointer(DXILDebug::Id ptrId, uint64_t offset, uint64_t size, S
 static bool DecodePointer(DXILDebug::Id &ptrId, uint64_t &offset, uint64_t &size,
                           const ShaderVariable &var)
 {
-  if(var.type != VarType::GPUPointer)
+  if(!IsEncodedPointer(var))
   {
-    RDCERR("Calling DecodePointer on non-pointer type %s", ToStr(var.type).c_str());
+    RDCERR("Calling DecodePointer on non encoded pointer");
     return false;
   }
-  if(var.value.u32v[1] != POINTER_MAGIC)
-  {
-    RDCERR("Calling DecodePointer on non encoded pointer type %u", var.value.u32v[1]);
-    return false;
-  }
+
   ptrId = var.value.u32v[0];
   offset = var.value.u64v[1];
   size = var.value.u64v[2];
@@ -653,6 +665,35 @@ static uint8_t GetShaderVariableElementByteSize(const ShaderVariable &var)
   if(var.members.empty())
     return GetElementByteSize(var.type);
   return GetShaderVariableElementByteSize(var.members[0]);
+}
+
+static void UpdateShaderVariableFromBackingMemory(ShaderVariable &var, const void *ptr)
+{
+  // Memory copy from backing memory to base memory variable
+  size_t elementSize = GetShaderVariableElementByteSize(var);
+  const uint8_t *src = (const uint8_t *)ptr;
+  if(var.members.size() == 0)
+  {
+    RDCASSERTEQUAL(var.rows, 1);
+    RDCASSERTEQUAL(var.columns, 1);
+    if(elementSize <= sizeof(ShaderValue))
+      memcpy(&var.value, src, elementSize);
+    else
+      RDCERR("Updating MemoryVariable elementSize %u too large max %u", elementSize,
+             sizeof(ShaderValue));
+  }
+  else
+  {
+    for(uint32_t i = 0; i < var.members.size(); ++i)
+    {
+      if(elementSize <= sizeof(ShaderValue))
+        memcpy(&var.members[i].value, src, elementSize);
+      else
+        RDCERR("Updating MemoryVariable member %u elementSize %u too large max %u", i, elementSize,
+               sizeof(ShaderValue));
+      src += elementSize;
+    }
+  }
 }
 
 static DXBC::ResourceRetType ConvertComponentTypeToResourceRetType(const ComponentType compType)
@@ -1601,7 +1642,7 @@ void MemoryTracking::AllocateMemoryForType(const DXIL::Type *type, Id allocId, b
   size_t byteSize = ComputeDXILTypeByteSize(type->inner);
   void *backingMem = malloc(byteSize);
   memset(backingMem, 0, byteSize);
-  m_Allocations[allocId] = {backingMem, byteSize, global};
+  m_Allocations[allocId] = {backingMem, byteSize, global, !global};
 
   // Create a pointer to represent this allocation
   m_Pointers[allocId] = {allocId, backingMem, byteSize};
@@ -1622,7 +1663,7 @@ ThreadState::~ThreadState()
 {
   for(auto it : m_Memory.m_Allocations)
   {
-    if(!it.second.global)
+    if(it.second.localMemory)
       free(it.second.backingMemory);
   }
 }
@@ -3140,6 +3181,8 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             // For thread barriers the threads must be converged
             if(barrierMode & BarrierMode::SyncThreadGroup)
               RDCASSERT(!WorkgroupIsDiverged(workgroup));
+            if(barrierMode & BarrierMode::TGSMFence)
+              ExecuteMemoryBarrier();
             break;
           }
           case DXOp::Discard:
@@ -4811,7 +4854,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             // SV_StartInstanceLocation
             // StartInstanceLocation from Draw*Instanced
 
-          // Needed for debugger support of multi-threaded compute execution
+          // SM 6.8
           case DXOp::BarrierByMemoryType:
           case DXOp::BarrierByMemoryHandle:
 
@@ -5094,7 +5137,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       const MemoryTracking::Allocation &allocation = itAlloc->second;
       ShaderVariable arg;
-      if(allocation.global && !IsVariableAssigned(ptrId))
+      if(allocation.globalVarAlloc && !IsVariableAssigned(ptrId))
       {
         RDCASSERT(IsVariableAssigned(baseMemoryId));
         arg = m_Variables[baseMemoryId];
@@ -5151,6 +5194,24 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       const MemoryTracking::Allocation &allocation = itAlloc->second;
       UpdateMemoryVariableFromBackingMemory(baseMemoryId, allocation.backingMemory);
 
+      // active lane : writes to a GSM variable, write to local and global backing memory
+      if(m_State)
+      {
+        if(m_GlobalState.groupSharedMemoryIds.contains(baseMemoryId))
+        {
+          // Compute the local pointer offset and apply it to the global base memory
+          ptrdiff_t offset = (uintptr_t)memory - (uintptr_t)allocation.backingMemory;
+          auto globalMem = m_GlobalState.memory.m_Allocations.find(baseMemoryId);
+          if(globalMem == m_GlobalState.memory.m_Allocations.end())
+          {
+            RDCERR("Unknown global memory allocation Id %u", baseMemoryId);
+            break;
+          }
+          void *globalMemory = (void *)((uintptr_t)globalMem->second.backingMemory + offset);
+          allocSize = ptr.size;
+          UpdateBackingMemoryFromVariable(globalMemory, allocSize, val);
+        }
+      }
       // record the change to the base memory variable if it is not the ptrId variable
       if(recordBaseMemoryChange)
       {
@@ -5241,7 +5302,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
 
       // Ensure global variables use global memory
       // Ensure non-global variables do not use global memory
-      if(allocation.global)
+      if(allocation.globalVarAlloc)
         RDCASSERT(cast<GlobalVar>(inst.args[0]));
       else
         RDCASSERT(!cast<GlobalVar>(inst.args[0]));
@@ -6143,7 +6204,16 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
 
       RDCASSERTNOTEQUAL(resultId, DXILDebug::INVALID_ID);
       RDCASSERT(IsVariableAssigned(ptrId));
-      const ShaderVariable a = m_Variables[ptrId];
+      ShaderVariable a;
+      if(allocation.globalVarAlloc && !IsVariableAssigned(ptrId))
+      {
+        RDCASSERT(IsVariableAssigned(baseMemoryId));
+        a = m_Variables[baseMemoryId];
+      }
+      else
+      {
+        a = m_Variables[ptrId];
+      }
 
       size_t newValueArgIdx = (opCode == Operation::CompareExchange) ? 2 : 1;
       ShaderVariable b;
@@ -6263,6 +6333,25 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
         change.before = m_Variables[baseMemoryId];
 
       UpdateMemoryVariableFromBackingMemory(baseMemoryId, allocMemoryBackingPtr);
+
+      // active lane : writes to a GSM variable, write to local and global backing memory
+      if(m_State)
+      {
+        if(m_GlobalState.groupSharedMemoryIds.contains(baseMemoryId))
+        {
+          // Compute the local pointer offset and apply it to the global base memory
+          ptrdiff_t offset = (uintptr_t)memory - (uintptr_t)allocation.backingMemory;
+          auto globalMem = m_GlobalState.memory.m_Allocations.find(baseMemoryId);
+          if(globalMem == m_GlobalState.memory.m_Allocations.end())
+          {
+            RDCERR("Unknown global memory allocation Id %u", baseMemoryId);
+            break;
+          }
+          void *globalMemory = (void *)((uintptr_t)globalMem->second.backingMemory + offset);
+          allocSize = ptr.size;
+          UpdateBackingMemoryFromVariable(globalMemory, allocSize, res);
+        }
+      }
 
       // record the change to the base memory variable
       if(recordBaseMemoryChange)
@@ -6646,31 +6735,7 @@ void ThreadState::UpdateBackingMemoryFromVariable(void *ptr, uint64_t &allocSize
 void ThreadState::UpdateMemoryVariableFromBackingMemory(Id memoryId, const void *ptr)
 {
   ShaderVariable &baseMemory = m_Variables[memoryId];
-  // Memory copy from backing memory to base memory variable
-  size_t elementSize = GetShaderVariableElementByteSize(baseMemory);
-  const uint8_t *src = (const uint8_t *)ptr;
-  if(baseMemory.members.size() == 0)
-  {
-    RDCASSERTEQUAL(baseMemory.rows, 1);
-    RDCASSERTEQUAL(baseMemory.columns, 1);
-    if(elementSize <= sizeof(ShaderValue))
-      memcpy(&baseMemory.value, src, elementSize);
-    else
-      RDCERR("Updating MemoryVariable elementSize %u too large max %u", elementSize,
-             sizeof(ShaderValue));
-  }
-  else
-  {
-    for(uint32_t i = 0; i < baseMemory.members.size(); ++i)
-    {
-      if(elementSize <= sizeof(ShaderValue))
-        memcpy(&baseMemory.members[i].value, src, elementSize);
-      else
-        RDCERR("Updating MemoryVariable member %u elementSize %u too large max %u", i, elementSize,
-               sizeof(ShaderValue));
-      src += elementSize;
-    }
-  }
+  UpdateShaderVariableFromBackingMemory(baseMemory, ptr);
 }
 
 void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroup, Operation opCode,
@@ -7162,11 +7227,61 @@ ShaderValue ThreadState::DDY(bool fine, Operation opCode, DXOp dxOpCode,
   return ret;
 }
 
+void ThreadState::ExecuteMemoryBarrier()
+{
+  // ignore if not the active thread
+  if(!m_State)
+    return;
+
+  // copy the global GSM memory into the local GSM cache
+  for(Id id : m_GlobalState.groupSharedMemoryIds)
+  {
+    auto globalMem = m_GlobalState.memory.m_Allocations.find(id);
+    if(globalMem == m_GlobalState.memory.m_Allocations.end())
+    {
+      RDCERR("Unknown global memory allocation for GSM Id %u", id);
+      continue;
+    }
+    RDCASSERT(globalMem->second.globalVarAlloc);
+    RDCASSERT(!globalMem->second.localMemory);
+
+    auto localMem = m_Memory.m_Allocations.find(id);
+    if(localMem == m_Memory.m_Allocations.end())
+    {
+      RDCERR("Unknown local memory allocation for GSM Id %u", id);
+      continue;
+    }
+    RDCASSERT(localMem->second.globalVarAlloc);
+    RDCASSERT(localMem->second.localMemory);
+
+    auto localVar = m_Variables.find(id);
+    if(localVar == m_Variables.end())
+    {
+      RDCERR("Unknown local memory allocation for GSM Id %u", id);
+      continue;
+    }
+    ShaderVariableChange change;
+    ShaderVariable &local = localVar->second;
+    change.before = local;
+    const void *globalBackingMemory = globalMem->second.backingMemory;
+    UpdateMemoryVariableFromBackingMemory(id, globalBackingMemory);
+    change.after = local;
+    if(!(change.after == change.before))
+      m_State->changes.push_back(change);
+
+    // Update local backing memory from the local variable
+    RDCASSERTEQUAL(globalMem->second.size, localMem->second.size);
+    void *localBackingMemory = localMem->second.backingMemory;
+    const size_t allocSize = (size_t)globalMem->second.size;
+    memcpy(localBackingMemory, globalBackingMemory, allocSize);
+  }
+}
+
 GlobalState::~GlobalState()
 {
   for(auto it : memory.m_Allocations)
   {
-    RDCASSERT(it.second.global);
+    RDCASSERT(!it.second.localMemory);
     free(it.second.backingMemory);
   }
 }
@@ -8620,6 +8735,8 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
         }
       }
     }
+    if(gv->type->addrSpace == DXIL::Type::PointerAddrSpace::GroupShared)
+      m_GlobalState.groupSharedMemoryIds.push_back(globalVar.id);
     m_GlobalState.globals.push_back(globalVar);
     m_LiveGlobals[globalVar.id] = true;
   }
@@ -9406,6 +9523,18 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug(DebugAPIWrapper *apiWrapper)
       {
         thread.EnterEntryPoint(m_EntryPointFunction, NULL);
       }
+    }
+
+    // active lane : needs it own local backing memory, copied from global at the start
+    for(Id id : m_GlobalState.groupSharedMemoryIds)
+    {
+      MemoryTracking::Allocation &globalAlloc = active.m_Memory.m_Allocations[id];
+      RDCASSERT(globalAlloc.globalVarAlloc);
+      const size_t allocSize = (size_t)globalAlloc.size;
+      void *localBackingMem = malloc(allocSize);
+      memcpy(localBackingMem, globalAlloc.backingMemory, allocSize);
+      active.m_Memory.m_Allocations[id] = {localBackingMem, globalAlloc.size, true, true};
+      active.m_Memory.m_Pointers[id] = {id, localBackingMem, globalAlloc.size};
     }
 
     // globals won't be filled out by entering the entry point, ensure their change is registered.

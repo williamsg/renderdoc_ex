@@ -211,7 +211,8 @@ struct MemoryTracking
     // the allocated memory
     void *backingMemory;
     uint64_t size;
-    bool global;
+    bool globalVarAlloc;
+    bool localMemory;
   };
 
   // Represents pointers within a Allocation memory allocation (heap)
@@ -292,6 +293,7 @@ struct ThreadState
 
   void ProcessScopeChange(const rdcarray<bool> &oldLive, const rdcarray<bool> &newLive);
 
+  void ExecuteMemoryBarrier();
   static bool WorkgroupIsDiverged(const rdcarray<ThreadState> &workgroup);
   static bool QuadIsDiverged(const rdcarray<ThreadState> &workgroup,
                              const rdcfixedarray<uint32_t, 4> &quadNeighbours);
@@ -444,6 +446,7 @@ struct GlobalState
   rdcarray<ShaderVariable> constantBlocks;
   std::map<ConstantBlockReference, bytebuf> constantBlocksDatas;
 
+  rdcarray<Id> groupSharedMemoryIds;
   // resources may be read-write but the variable itself doesn't change
   rdcarray<ShaderVariable> readOnlyResources;
   rdcarray<ShaderVariable> readWriteResources;
