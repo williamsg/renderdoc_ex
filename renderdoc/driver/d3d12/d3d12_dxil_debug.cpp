@@ -208,6 +208,11 @@ static void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset
     // if we already have a variable in this slot, just copy the data for this variable and add
     // the source mapping. We should not overlap into the next register as that's not allowed.
     memcpy(&outvars[outIdx].value.u32v[outComp], &v.value.u32v[0], sizeof(uint32_t) * v.columns);
+    uint32_t oldColumns = outvars[outIdx].columns;
+    uint32_t newColumns = (uint32_t)(outComp + v.columns);
+    uint32_t numColumns = RDCMAX(oldColumns, newColumns);
+    numColumns = RDCMIN(4U, numColumns);
+    outvars[outIdx].columns = (uint8_t)numColumns;
 
     SourceVariableMapping mapping;
     mapping.name = basename;
