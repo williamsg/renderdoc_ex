@@ -7924,10 +7924,10 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresIndirectKHR(
     const uint32_t *const *ppMaxPrimitiveCounts)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(infoCount).Important();
-  SERIALISE_ELEMENT_ARRAY(pInfos, infoCount);
-  SERIALISE_ELEMENT_ARRAY(pIndirectDeviceAddresses, infoCount);
-  SERIALISE_ELEMENT_ARRAY(pIndirectStrides, infoCount);
+  SERIALISE_ELEMENT(infoCount).Hidden();
+  SERIALISE_ELEMENT_ARRAY(pInfos, infoCount).Hidden();
+  SERIALISE_ELEMENT_ARRAY(pIndirectDeviceAddresses, infoCount).Hidden();
+  SERIALISE_ELEMENT_ARRAY(pIndirectStrides, infoCount).Hidden();
 
   // Convert the array of arrays for easier serialisation
   rdcarray<rdcarray<uint32_t>> maxPrimitives;
@@ -7939,7 +7939,7 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresIndirectKHR(
       maxPrimitives.emplace_back(ppMaxPrimitiveCounts[i], pInfos[i].geometryCount);
   }
 
-  SERIALISE_ELEMENT(maxPrimitives);
+  SERIALISE_ELEMENT(maxPrimitives).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -8042,8 +8042,8 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresKHR(
     const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(infoCount).Important();
-  SERIALISE_ELEMENT_ARRAY(pInfos, infoCount);
+  SERIALISE_ELEMENT(infoCount).Hidden();
+  SERIALISE_ELEMENT_ARRAY(pInfos, infoCount).Hidden();
 
   // Convert the array of arrays for easier serialisation
   rdcarray<rdcarray<VkAccelerationStructureBuildRangeInfoKHR>> rangeInfos;
@@ -8055,7 +8055,7 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresKHR(
       rangeInfos.emplace_back(ppBuildRangeInfos[i], pInfos[i].geometryCount);
   }
 
-  SERIALISE_ELEMENT(rangeInfos);
+  SERIALISE_ELEMENT(rangeInfos).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -8183,7 +8183,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyAccelerationStructureKHR(
     const VkCopyAccelerationStructureInfoKHR *pInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(Info, *pInfo);
+  SERIALISE_ELEMENT_LOCAL(Info, *pInfo).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -8263,7 +8263,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyAccelerationStructureToMemoryKHR(
     const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(Info, *pInfo);
+  SERIALISE_ELEMENT_LOCAL(Info, *pInfo).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -8290,7 +8290,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyMemoryToAccelerationStructureKHR(
     const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(Info, *pInfo);
+  SERIALISE_ELEMENT_LOCAL(Info, *pInfo).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -8356,11 +8356,11 @@ bool WrappedVulkan::Serialise_vkCmdWriteAccelerationStructuresPropertiesKHR(
     VkQueryPool queryPool, uint32_t firstQuery)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(accelerationStructureCount);
-  SERIALISE_ELEMENT_ARRAY(pAccelerationStructures, accelerationStructureCount);
-  SERIALISE_ELEMENT(queryType).Important();
-  SERIALISE_ELEMENT(queryPool).Important();
-  SERIALISE_ELEMENT(firstQuery);
+  SERIALISE_ELEMENT(accelerationStructureCount).Hidden();
+  SERIALISE_ELEMENT_ARRAY(pAccelerationStructures, accelerationStructureCount).Hidden();
+  SERIALISE_ELEMENT(queryType).Hidden();
+  SERIALISE_ELEMENT(queryPool).Hidden();
+  SERIALISE_ELEMENT(firstQuery).Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
 

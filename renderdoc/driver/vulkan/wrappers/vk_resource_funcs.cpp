@@ -3456,8 +3456,8 @@ bool WrappedVulkan::Serialise_vkCreateAccelerationStructureKHR(
     const VkAllocationCallbacks *pAllocator, VkAccelerationStructureKHR *pAccelerationStructure)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
-  SERIALISE_ELEMENT_OPT(pAllocator);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Hidden();
+  SERIALISE_ELEMENT_OPT(pAllocator).Hidden();
   SERIALISE_ELEMENT_LOCAL(AccelerationStructure, GetResID(*pAccelerationStructure))
       .TypedAs("VkAccelerationStructureKHR"_lit);
 
