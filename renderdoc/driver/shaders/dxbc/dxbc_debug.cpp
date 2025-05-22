@@ -1254,7 +1254,7 @@ void ThreadState::GetGroupsharedSrc(uint32_t gsmIndex, const uint32_t byteOffset
 
   const uint32_t regIndex = byteOffset / gsmStride;
   const uint32_t component = AlignUp4(byteOffset % gsmStride) / 4;
-  RDCASSERT((component + countBytes / sizeof(uint32_t)) < 4, component, countBytes);
+  RDCASSERT((component + countBytes / sizeof(uint32_t)) <= 4, component, countBytes);
 
   uint32_t idx = program->GetRegisterIndex(TYPE_THREAD_GROUP_SHARED_MEMORY, gsmIndex);
   if(idx < variables.size())
