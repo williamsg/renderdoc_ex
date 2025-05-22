@@ -54,7 +54,16 @@ void main(uint3 gid : SV_GroupThreadID)
 {
   if(gid.x == 0)
   {
-    for(int i=0; i < MAX_THREADS; i++) gsmData[i] = 1.25f;
+    gsmData[0] = 1.25f;
+    gsmData[1] = 1.25f;
+    gsmData[2] = 1.25f;
+    gsmData[3] = 1.25f;
+    gsmData[4] = 1.25f;
+    gsmData[5] = 1.25f;
+    gsmData[6] = 1.25f;
+    gsmData[7] = 1.25f;
+    gsmData[8] = 1.25f;
+    for(int i=8; i < MAX_THREADS; i++) gsmData[i] = 1.25f;
   }
 
   GroupMemoryBarrierWithGroupSync();
