@@ -3333,7 +3333,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
               RDCASSERTNOTEQUAL(stride, 1);
 
             RDCASSERTEQUAL(result.columns, 1);
-            RDCASSERTEQUAL(fmt.numComps, result.columns);
+            RDCASSERTEQUAL(fmt.numComps * fmt.byteWidth, GetElementByteSize(result.type));
             RDCASSERTNOTEQUAL(stride, 0);
             RDCASSERTNOTEQUAL(fmt.compType, CompType::Typeless);
 
@@ -3515,7 +3515,8 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             // NULL resource or out of bounds
             if((!texData && elemIdx >= numElems) || (texData && dataOffset >= dataSize))
             {
-              RDCERR("Ignoring store to unbound resource %s", GetArgumentName(1).c_str());
+              RDCERR("Ignoring store to unbound resource or out of bounds store %s",
+                     GetArgumentName(1).c_str());
             }
             else
             {
