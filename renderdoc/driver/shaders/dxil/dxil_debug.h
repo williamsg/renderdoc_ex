@@ -279,6 +279,9 @@ struct ThreadState
   bool GetVariableHelper(DXIL::Operation op, DXIL::DXOp dxOpCode, ShaderVariable &var) const;
   void UpdateBackingMemoryFromVariable(void *ptr, uint64_t &allocSize, const ShaderVariable &var);
   void UpdateMemoryVariableFromBackingMemory(Id memoryId, const void *ptr);
+  void UpdateGlobalBackingMemory(Id ptrId, const MemoryTracking::Pointer &ptr,
+                                 const MemoryTracking::Allocation &allocation,
+                                 const ShaderVariable &val);
 
   void PerformGPUResourceOp(const rdcarray<ThreadState> &workgroup, DXIL::Operation opCode,
                             DXIL::DXOp dxOpCode, const ResourceReferenceInfo &resRef,
