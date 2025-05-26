@@ -936,12 +936,19 @@ struct VkDevDispatchTable
   PFN_vkGetPrivateDataEXT GetPrivateDataEXT;
 
   // VK_NV_cuda_kernel_launch
+#ifdef VK_ENABLE_BETA_EXTENSIONS
   PFN_vkCreateCudaModuleNV CreateCudaModuleNV;
   PFN_vkGetCudaModuleCacheNV GetCudaModuleCacheNV;
   PFN_vkCreateCudaFunctionNV CreateCudaFunctionNV;
   PFN_vkDestroyCudaModuleNV DestroyCudaModuleNV;
   PFN_vkDestroyCudaFunctionNV DestroyCudaFunctionNV;
   PFN_vkCmdCudaLaunchKernelNV CmdCudaLaunchKernelNV;
+#endif // VK_ENABLE_BETA_EXTENSIONS
+
+  // VK_QCOM_tile_shading
+  PFN_vkCmdDispatchTileQCOM CmdDispatchTileQCOM;
+  PFN_vkCmdBeginPerTileExecutionQCOM CmdBeginPerTileExecutionQCOM;
+  PFN_vkCmdEndPerTileExecutionQCOM CmdEndPerTileExecutionQCOM;
 
   // VK_EXT_metal_objects
 #ifdef VK_USE_PLATFORM_METAL_EXT
@@ -1139,6 +1146,14 @@ struct VkDevDispatchTable
   PFN_vkGetScreenBufferPropertiesQNX GetScreenBufferPropertiesQNX;
 #endif // VK_USE_PLATFORM_SCREEN_QNX
 
+  // VK_QCOM_tile_memory_heap
+  PFN_vkCmdBindTileMemoryQCOM CmdBindTileMemoryQCOM;
+
+  // VK_NV_external_compute_queue
+  PFN_vkCreateExternalComputeQueueNV CreateExternalComputeQueueNV;
+  PFN_vkDestroyExternalComputeQueueNV DestroyExternalComputeQueueNV;
+  PFN_vkGetExternalComputeQueueDataNV GetExternalComputeQueueDataNV;
+
   // VK_NV_cluster_acceleration_structure
   PFN_vkGetClusterAccelerationStructureBuildSizesNV GetClusterAccelerationStructureBuildSizesNV;
   PFN_vkCmdBuildClusterAccelerationStructureIndirectNV CmdBuildClusterAccelerationStructureIndirectNV;
@@ -1163,6 +1178,9 @@ struct VkDevDispatchTable
   PFN_vkGetMemoryMetalHandleEXT GetMemoryMetalHandleEXT;
   PFN_vkGetMemoryMetalHandlePropertiesEXT GetMemoryMetalHandlePropertiesEXT;
 #endif // VK_USE_PLATFORM_METAL_EXT
+
+  // VK_EXT_fragment_density_map_offset
+  PFN_vkCmdEndRendering2EXT CmdEndRendering2EXT;
 
   // for consistency with macros, we declare the CreateDevice pointer here
   // even though it won't actually ever get used and is on the instance dispatch chain

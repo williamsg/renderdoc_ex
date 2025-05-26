@@ -1687,6 +1687,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_RELAXED_BLOCK_LAYOUT_SPEC_VERSION,
     },
     {
+        VK_KHR_ROBUSTNESS_2_EXTENSION_NAME,
+        VK_KHR_ROBUSTNESS_2_SPEC_VERSION,
+    },
+    {
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION,
     },

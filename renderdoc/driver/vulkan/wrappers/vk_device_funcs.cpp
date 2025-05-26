@@ -2936,8 +2936,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceRobustness2FeaturesEXT,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceRobustness2FeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_KHR);
       {
         CHECK_PHYS_EXT_FEATURE(robustBufferAccess2);
         CHECK_PHYS_EXT_FEATURE(robustImageAccess2);

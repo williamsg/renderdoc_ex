@@ -194,6 +194,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_ray_tracing_pipeline`
 * `VK_KHR_ray_tracing_position_fetch`
 * `VK_KHR_relaxed_block_layout`
+* `VK_KHR_robustness2`
 * `VK_KHR_sampler_mirror_clamp_to_edge`
 * `VK_KHR_sampler_ycbcr_conversion`
 * `VK_KHR_separate_depth_stencil_layouts`
@@ -263,6 +264,7 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 * `VK_KHR_maintenance8`
 * `VK_KHR_map_memory2`
 * `VK_KHR_pipeline_binary`
+* `VK_KHR_shader_bfloat16`
 
 ## KHR Portability
 
@@ -285,6 +287,7 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_EXT_external_memory_acquire_unmodified`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_external_memory_metal`
+* `VK_EXT_fragment_density_map_offset`
 * `VK_EXT_host_image_copy`
 * `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_image_sliced_view_of_3d`
@@ -305,6 +308,7 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_EXT_shader_tile_image`
 * `VK_EXT_subpass_merge_feedback`
 * `VK_EXT_vertex_attribute_robustness`
+* `VK_EXT_zero_initialize_device_memory`
 
 ## Platform/IHV Extensions
 
@@ -419,7 +423,9 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_QCOM_multiview_per_view_viewports`
 * `VK_QCOM_render_pass_transform`
 * `VK_QCOM_rotated_copy_commands`
+* `VK_QCOM_tile_memory_heap`
 * `VK_QCOM_tile_properties`
+* `VK_QCOM_tile_shading`
 * `VK_QCOM_ycbcr_degamma`
 
 ### Samsung

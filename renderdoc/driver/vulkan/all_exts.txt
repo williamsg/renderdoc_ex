@@ -113,6 +113,7 @@
 138    VK_AMD_shader_fragment_mask
 139    VK_EXT_inline_uniform_block
 141    VK_EXT_shader_stencil_export
+142    VK_KHR_shader_bfloat16
 144    VK_EXT_sample_locations
 145    VK_KHR_relaxed_block_layout
 147    VK_KHR_get_memory_requirements2
@@ -240,6 +241,7 @@
 301    VK_NV_device_diagnostics_config
 302    VK_QCOM_render_pass_store_ops
 308    VK_NV_cuda_kernel_launch
+310    VK_QCOM_tile_shading
 311    VK_NV_low_latency
 312    VK_EXT_metal_objects
 315    VK_KHR_synchronization2
@@ -373,9 +375,11 @@
 545    VK_KHR_shader_expect_assume
 546    VK_KHR_maintenance6
 547    VK_NV_descriptor_pool_overallocation
+548    VK_QCOM_tile_memory_heap
 552    VK_NV_display_stereo
 554    VK_KHR_video_encode_quantization_map
 556    VK_NV_raw_access_chains
+557    VK_NV_external_compute_queue
 559    VK_KHR_shader_relaxed_extended_instruction
 560    VK_NV_command_buffer_inheritance
 563    VK_KHR_maintenance7
@@ -395,4 +399,7 @@
 603    VK_EXT_external_memory_metal
 605    VK_KHR_depth_clamp_zero_one
 609    VK_EXT_vertex_attribute_robustness
+613    VK_KHR_robustness2
 614    VK_NV_present_metering
+620    VK_EXT_fragment_density_map_offset
+621    VK_EXT_zero_initialize_device_memory
