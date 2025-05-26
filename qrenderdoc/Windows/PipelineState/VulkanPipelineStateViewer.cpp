@@ -790,10 +790,13 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const Des
 
   if(descriptor.byteOffset + dynamicOffset > 0 || descriptor.byteSize < buf->length)
   {
+    uint64_t effectiveSize = descriptor.byteSize;
+    if(descriptor.byteSize == UINT64_MAX)
+      effectiveSize = buf->length - (descriptor.byteOffset + dynamicOffset);
     text +=
         tr("The view covers bytes %1-%2.\nThe buffer is %3 bytes in length.\n")
             .arg(Formatter::HumanFormat(descriptor.byteOffset + dynamicOffset, Formatter::OffsetSize))
-            .arg(Formatter::HumanFormat(descriptor.byteOffset + dynamicOffset + descriptor.byteSize,
+            .arg(Formatter::HumanFormat(descriptor.byteOffset + dynamicOffset + effectiveSize,
                                         Formatter::OffsetSize))
             .arg(Formatter::HumanFormat(buf->length, Formatter::OffsetSize));
   }
