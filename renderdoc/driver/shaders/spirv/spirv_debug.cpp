@@ -4921,6 +4921,17 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::CooperativeVectorMatrixMulNV:
     case Op::CooperativeVectorOuterProductAccumulateNV:
     case Op::CooperativeVectorReduceSumAccumulateNV:
+    case Op::TypeTensorARM:
+    case Op::TensorReadARM:
+    case Op::TensorWriteARM:
+    case Op::TensorQuerySizeARM:
+    case Op::TaskSequenceAsyncINTEL:
+    case Op::TaskSequenceCreateINTEL:
+    case Op::TaskSequenceGetINTEL:
+    case Op::TaskSequenceReleaseINTEL:
+    case Op::TypeTaskSequenceINTEL:
+    case Op::BitwiseFunctionINTEL:
+    case Op::RoundFToTF32INTEL:
     {
       // these are kernel only
       RDCERR("Encountered unexpected kernel SPIR-V operation %s", ToStr(opdata.op).c_str());

@@ -723,6 +723,15 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
         break;
       }
 
+      // bfloat16
+      case Capability::BFloat16TypeKHR:
+      case Capability::BFloat16DotProductKHR:
+      case Capability::BFloat16CooperativeMatrixKHR:
+      {
+        supported = false;
+        break;
+      }
+
       // no plans to support these - mostly Kernel/OpenCL related or vendor extensions
       case Capability::Addresses:
       case Capability::Linkage:
@@ -842,6 +851,15 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::TensorAddressingNV:
       case Capability::OptNoneEXT:
       case Capability::ArithmeticFenceEXT:
+      case Capability::TensorsARM:
+      case Capability::StorageTensorArrayDynamicIndexingARM:
+      case Capability::StorageTensorArrayNonUniformIndexingARM:
+      case Capability::TileShadingQCOM:
+      case Capability::Int4TypeINTEL:
+      case Capability::Int4CooperativeMatrixINTEL:
+      case Capability::TaskSequenceINTEL:
+      case Capability::TernaryBitwiseFunctionINTEL:
+      case Capability::TensorFloat32RoundingINTEL:
       case Capability::Max:
       case Capability::Invalid:
       {
