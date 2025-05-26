@@ -1045,6 +1045,12 @@ void VulkanGraphicsTest::setName(VkBuffer obj, const std::string &name)
 }
 
 template <>
+void VulkanGraphicsTest::setName(VkBufferView obj, const std::string &name)
+{
+  setName(VK_OBJECT_TYPE_BUFFER_VIEW, (uint64_t)obj, name);
+}
+
+template <>
 void VulkanGraphicsTest::setName(VkSemaphore obj, const std::string &name)
 {
   setName(VK_OBJECT_TYPE_SEMAPHORE, (uint64_t)obj, name);

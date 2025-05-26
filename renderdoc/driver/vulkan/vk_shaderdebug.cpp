@@ -347,7 +347,33 @@ public:
     ShaderVariable input;
     input.columns = data.fmt.compCount;
 
-    if(data.fmt.compType == CompType::UInt)
+    // the only 'irregular' format we need to worry about handling for integer types is 10:10:10:2.
+    // All others are float/uint
+    if(data.fmt.type == ResourceFormatType::R10G10B10A2)
+    {
+      PixelValue val;
+      DecodePixelData(data.fmt, data.texel(coords, sample), val);
+
+      if(data.fmt.compType == CompType::UInt)
+        input.type = VarType::UInt;
+      else if(data.fmt.compType == CompType::SInt)
+        input.type = VarType::SInt;
+      else
+        input.type = VarType::Float;
+
+      memcpy(input.value.u32v.data(), val.uintValue.data(), val.uintValue.byteSize());
+
+      for(uint8_t c = 0; c < RDCMIN(output.columns, input.columns); c++)
+      {
+        if(data.fmt.compType == CompType::UInt)
+          setUintComp(output, c, uintComp(input, c));
+        else if(data.fmt.compType == CompType::SInt)
+          setIntComp(output, c, intComp(input, c));
+        else
+          setFloatComp(output, c, input.value.f32v[c]);
+      }
+    }
+    else if(data.fmt.compType == CompType::UInt)
     {
       RDCASSERT(varComp == CompType::UInt, varComp);
 
@@ -435,7 +461,28 @@ public:
     ShaderVariable output;
     output.columns = data.fmt.compCount;
 
-    if(data.fmt.compType == CompType::UInt)
+    // the only 'irregular' format we need to worry about handling for integer types is 10:10:10:2.
+    // All others are float/uint
+    if(data.fmt.type == ResourceFormatType::R10G10B10A2)
+    {
+      // image writes are required to write a whole texel so we know we should have 4 components
+      RDCASSERTEQUAL(input.columns, 4);
+
+      uint32_t encoded = 0;
+
+      if(data.fmt.compType == CompType::SNorm)
+        encoded = ConvertToR10G10B10A2SNorm(Vec4f(input.value.f32v[0], input.value.f32v[1],
+                                                  input.value.f32v[2], input.value.f32v[3]));
+      else if(data.fmt.compType == CompType::UInt)
+        encoded = ConvertToR10G10B10A2(Vec4u(input.value.u32v[0], input.value.u32v[1],
+                                             input.value.u32v[2], input.value.u32v[3]));
+      else
+        encoded = ConvertToR10G10B10A2(Vec4f(input.value.f32v[0], input.value.f32v[1],
+                                             input.value.f32v[2], input.value.f32v[3]));
+
+      memcpy(data.texel(coords, sample), &encoded, sizeof(uint32_t));
+    }
+    else if(data.fmt.compType == CompType::UInt)
     {
       RDCASSERT(varComp == CompType::UInt, varComp);
 
@@ -1692,7 +1739,33 @@ private:
           m_ResourcesDirty = false;
         }
 
-        if(imgData.view != ResourceId())
+        if(imgData.type == DescriptorType::TypedBuffer ||
+           imgData.type == DescriptorType::ReadWriteTypedBuffer)
+        {
+          const VulkanCreationInfo::BufferView &viewProps =
+              m_Creation.m_BufferView[m_pDriver->GetResourceManager()->GetLiveID(imgData.view)];
+          const VulkanCreationInfo::Buffer &bufferProps = m_Creation.m_Buffer[viewProps.buffer];
+
+          data.fmt = MakeResourceFormat(viewProps.format);
+          data.texelSize = (uint32_t)GetByteSize(1, 1, 1, viewProps.format, 0);
+
+          // width in bytes, either from the view or from the remainder of the buffer
+          VkDeviceSize byteWidth = viewProps.size;
+          if(viewProps.size == VK_WHOLE_SIZE)
+            byteWidth = bufferProps.size - viewProps.offset;
+
+          // convert to a texel width, rounding down as per spec (only possible from VK_WHOLE_SIZE)
+          data.width = uint32_t(byteWidth / data.texelSize);
+          data.height = 1;
+          data.depth = 1;
+
+          data.samplePitch = data.slicePitch = data.rowPitch = data.width * data.texelSize;
+
+          m_pDriver->GetReplay()->GetBufferData(
+              m_pDriver->GetResourceManager()->GetLiveID(imgData.resource), viewProps.offset,
+              data.rowPitch, data.bytes);
+        }
+        else if(imgData.view != ResourceId())
         {
           const VulkanCreationInfo::ImageView &viewProps =
               m_Creation.m_ImageView[m_pDriver->GetResourceManager()->GetLiveID(imgData.view)];
