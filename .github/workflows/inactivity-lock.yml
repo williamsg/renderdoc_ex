@@ -23,7 +23,3 @@ jobs:
           days-inactive-prs: 70
           lock-reason-issues: "resolved"
           lock-reason-prs: "resolved"
-      - name: 🔍 Display locked issues and PRs
-        run: |
-          echo "Locked issues: $(echo '${{ steps.lock.outputs.locked-issues }}' | jq)"
-          echo "Locked PRs: $(echo '${{ steps.lock.outputs.locked-prs }}' | jq)"
