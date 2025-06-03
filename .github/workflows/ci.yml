@@ -101,42 +101,46 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ VS2015 x86 Development, VS2015 x64 Development, VS2015 x64 Release, VS2019 x64 Development, VS2022 x64 Development ]
+        name: [ VS2015 x86 Development, VS2015 x64 Development, VS2015 x64 Release, VS2022 x64 Development, VS2022 x64 Release ]
         include:
           - name: VS2015 x86 Development
-            os: windows-2019
+            os: windows-2025
             compiler: VS2015
             toolset: v140
             platform: x86
             configuration: Development
           - name: VS2015 x64 Development
-            os: windows-2019
+            os: windows-2025
             compiler: VS2015
             toolset: v140
             platform: x64
             configuration: Development
           - name: VS2015 x64 Release
-            os: windows-2019
+            os: windows-2025
             compiler: VS2015
             toolset: v140
             platform: x64
             configuration: Release
-          - name: VS2019 x64 Development
-            os: windows-2019
-            compiler: VS2019
-            toolset: v142
-            platform: x64
-            configuration: Development
           - name: VS2022 x64 Development
-            os: windows-2022
+            os: windows-2025
             compiler: VS2022
             toolset: v143
             platform: x64
             configuration: Development
+          - name: VS2022 x64 Release
+            os: windows-2025
+            compiler: VS2015
+            toolset: v143
+            platform: x64
+            configuration: Release
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 5
+    - name: Install missing VC tools
+      run: |
+        "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.VC.140 --quiet --norestart --nocache
+      shell: cmd
     - name: Download optional 3rdparty extras
       run: |
         curl https://renderdoc.org/qrenderdoc_3rdparty.zip -O
