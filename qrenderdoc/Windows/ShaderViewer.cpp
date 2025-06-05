@@ -1292,33 +1292,43 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
 
   for(ScintillaEdit *edit : m_Scintillas)
   {
-    // C# LightCoral
-    edit->markerSetBack(CURRENT_MARKER, SCINTILLA_COLOUR(240, 128, 128));
-    edit->markerSetBack(CURRENT_MARKER + 1, SCINTILLA_COLOUR(240, 128, 128));
+    long current, finished;
+
+    if(IsDarkTheme())
+    {
+      current = SCINTILLA_COLOUR(100, 50, 50);
+      finished = SCINTILLA_COLOUR(50, 52, 64);
+    }
+    else
+    {
+      current = SCINTILLA_COLOUR(240, 128, 128);
+      finished = SCINTILLA_COLOUR(119, 136, 153);
+    }
+
+    edit->markerSetBack(CURRENT_MARKER, current);
+    edit->markerSetBack(CURRENT_MARKER + 1, current);
     edit->markerDefine(CURRENT_MARKER, SC_MARK_SHORTARROW);
     edit->markerDefine(CURRENT_MARKER + 1, SC_MARK_BACKGROUND);
-    edit->indicSetFore(CURRENT_INDICATOR, SCINTILLA_COLOUR(240, 128, 128));
+    edit->indicSetFore(CURRENT_INDICATOR, current);
     edit->indicSetAlpha(CURRENT_INDICATOR, 220);
     edit->indicSetOutlineAlpha(CURRENT_INDICATOR, 255);
     edit->indicSetUnder(CURRENT_INDICATOR, true);
     edit->indicSetStyle(CURRENT_INDICATOR, INDIC_STRAIGHTBOX);
-    edit->indicSetHoverFore(CURRENT_INDICATOR, SCINTILLA_COLOUR(240, 128, 128));
+    edit->indicSetHoverFore(CURRENT_INDICATOR, current);
     edit->indicSetHoverStyle(CURRENT_INDICATOR, INDIC_STRAIGHTBOX);
 
-    // C# LightSlateGray
-    edit->markerSetBack(FINISHED_MARKER, SCINTILLA_COLOUR(119, 136, 153));
-    edit->markerSetBack(FINISHED_MARKER + 1, SCINTILLA_COLOUR(119, 136, 153));
+    edit->markerSetBack(FINISHED_MARKER, finished);
+    edit->markerSetBack(FINISHED_MARKER + 1, finished);
     edit->markerDefine(FINISHED_MARKER, SC_MARK_ROUNDRECT);
     edit->markerDefine(FINISHED_MARKER + 1, SC_MARK_BACKGROUND);
-    edit->indicSetFore(FINISHED_INDICATOR, SCINTILLA_COLOUR(119, 136, 153));
+    edit->indicSetFore(FINISHED_INDICATOR, finished);
     edit->indicSetAlpha(FINISHED_INDICATOR, 220);
     edit->indicSetOutlineAlpha(FINISHED_INDICATOR, 255);
     edit->indicSetUnder(FINISHED_INDICATOR, true);
     edit->indicSetStyle(FINISHED_INDICATOR, INDIC_STRAIGHTBOX);
-    edit->indicSetHoverFore(FINISHED_INDICATOR, SCINTILLA_COLOUR(119, 136, 153));
+    edit->indicSetHoverFore(FINISHED_INDICATOR, finished);
     edit->indicSetHoverStyle(FINISHED_INDICATOR, INDIC_STRAIGHTBOX);
 
-    // C# Red
     edit->markerSetBack(BREAKPOINT_MARKER, SCINTILLA_COLOUR(255, 0, 0));
     edit->markerSetBack(BREAKPOINT_MARKER + 1, SCINTILLA_COLOUR(255, 0, 0));
     edit->markerDefine(BREAKPOINT_MARKER, SC_MARK_CIRCLE);
