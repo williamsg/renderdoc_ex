@@ -166,6 +166,11 @@ void VkMarkerRegion::End(VkQueue q)
 }
 
 template <>
+VkObjectType objType<VkSampler>()
+{
+  return VK_OBJECT_TYPE_SAMPLER;
+}
+template <>
 VkObjectType objType<VkBuffer>()
 {
   return VK_OBJECT_TYPE_BUFFER;

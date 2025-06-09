@@ -3915,6 +3915,8 @@ void VulkanReplay::GeneralMisc::Init(WrappedVulkan *driver, VkDescriptorPool des
   CHECK_VKR(driver, vkr);
 
   CREATE_OBJECT(PointSampler, VK_FILTER_NEAREST);
+
+  NameVulkanObject(PointSampler, "General PointSampler");
 }
 
 void VulkanReplay::GeneralMisc::Destroy(WrappedVulkan *driver)
@@ -3934,6 +3936,9 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
   CREATE_OBJECT(PointSampler, VK_FILTER_NEAREST);
   CREATE_OBJECT(LinearSampler, VK_FILTER_LINEAR);
+
+  NameVulkanObject(PointSampler, "Texture PointSampler");
+  NameVulkanObject(LinearSampler, "Texture LinearSampler");
 
   CREATE_OBJECT(DescSetLayout,
                 {
@@ -4127,6 +4132,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                       "dummy image arrays mismatched sizes");
 
     CREATE_OBJECT(DummySampler, VK_FILTER_NEAREST);
+
+    NameVulkanObject(DummySampler, "DummySampler");
 
     for(size_t fmt = 0; fmt < ARRAY_COUNT(formats); fmt++)
     {
@@ -4441,6 +4448,8 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   CREATE_OBJECT(SRGBA8MSRP, VK_FORMAT_R8G8B8A8_SRGB, VULKAN_MESH_VIEW_SAMPLES);
 
   CREATE_OBJECT(m_PointSampler, VK_FILTER_NEAREST);
+
+  NameVulkanObject(m_PointSampler, "Overlay PointSampler");
 
   CREATE_OBJECT(m_CheckerDescSetLayout,
                 {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL}});

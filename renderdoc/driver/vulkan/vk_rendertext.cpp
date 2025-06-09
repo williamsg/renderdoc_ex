@@ -66,6 +66,8 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
   vkr = ObjDisp(dev)->CreateSampler(Unwrap(dev), &sampInfo, NULL, &m_LinearSampler);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  NameUnwrappedVulkanObject(m_LinearSampler, "m_LinearSampler");
+
   // just need enough for text rendering
   VkDescriptorPoolSize captureDescPoolTypes[] = {
       {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
