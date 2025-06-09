@@ -278,7 +278,8 @@
   HookInit(GetPhysicalDeviceSparseImageFormatProperties); \
   HookInit(GetPhysicalDeviceProperties);                  \
   HookInit(GetPhysicalDeviceQueueFamilyProperties);       \
-  HookInit(GetPhysicalDeviceMemoryProperties);
+  HookInit(GetPhysicalDeviceMemoryProperties);            \
+  HookInit(CreateDevice);
 
 #define HookInitVulkanInstance_PhysDev()                  \
   HookInit(GetPhysicalDeviceFeatures);                    \
@@ -290,7 +291,6 @@
   HookInit(GetPhysicalDeviceMemoryProperties);
 
 #define HookInitVulkanDevice()                \
-  HookInit(CreateDevice);                     \
   HookInit(DestroyDevice);                    \
   HookInit(GetDeviceQueue);                   \
   HookInit(QueueSubmit);                      \
