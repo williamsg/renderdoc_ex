@@ -1078,7 +1078,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   }
   else
   {
-    createFlags.flags = (uint32_t)flags;
+    ret.flags = (uint32_t)flags;
   }
 
   pipeCreateInfo = ret;
