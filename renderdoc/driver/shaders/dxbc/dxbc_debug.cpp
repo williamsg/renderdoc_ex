@@ -3402,6 +3402,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           fmt.stride = 0;
         }
         texData = false;
+
+        if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
+          stride = 1;
       }
       else
       {
