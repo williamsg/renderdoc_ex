@@ -188,6 +188,9 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       // enable debug utils when possible
       optInstExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
+      // ditto validation features
+      optInstExts.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+
       CHECK_VKR(vkh::enumerateInstanceLayerProperties(availInstLayers));
 
       if(debugDevice)
@@ -286,6 +289,30 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
         if(found)
           enabledInstExts.push_back(search);
+      }
+
+      VkValidationFeaturesEXT featuresEXT = {VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+      VkValidationFeatureEnableEXT enableFeatures[] = {
+          VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+          VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+      };
+      featuresEXT.enabledValidationFeatureCount = ARRAY_COUNT(enableFeatures);
+      featuresEXT.pEnabledValidationFeatures = enableFeatures;
+
+      // allow command line override
+      for(int i = 0; i < argc; i++)
+      {
+        if(!strcmp(argv[i], "--gpuva"))
+        {
+          for(const char *a : enabledInstExts)
+          {
+            if(std::string(a) == VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME)
+            {
+              featuresEXT.pNext = instInfoNext;
+              instInfoNext = &featuresEXT;
+            }
+          }
+        }
       }
 
       vulkanVersion = volkGetInstanceVersion();
