@@ -338,7 +338,6 @@ void ControlFlow::ActivateIndependentTangles()
       tangle.SetActive(true);
       tangle.SetConverged(false);
       tangle.SetDiverged(false);
-      RDCASSERTEQUAL(tangle.GetExecutionPoint(), tangle.GetMergePoint());
       RDCASSERTNOTEQUAL(tangle.GetMergePoint(), INVALID_EXECUTION_POINT);
       tangle.PopMergePoint();
       tangle.SetStateChanged(true);
@@ -411,7 +410,6 @@ void ControlFlow::MergeConvergedTangles()
              tangle.GetMergePoint());
     }
     tangle.SetActive(false);
-    RDCASSERT(tangle.GetExecutionPoint(), tangle.GetMergePoint());
 
     // loop over all tangles which are converged
     for(Tangle &convTangle : m_Tangles)
@@ -422,12 +420,13 @@ void ControlFlow::MergeConvergedTangles()
         continue;
       if(!convTangle.IsConverged())
         continue;
+      // This can happen if the outside simulation does multiple simulation steps in a single control flow update
+      if(convTangle.GetExecutionPoint() != tangle.GetExecutionPoint())
+        continue;
 
-      RDCASSERT(convTangle.GetExecutionPoint(), convTangle.GetMergePoint());
       // merge tangles if they have the same merge stack
       if(convTangle.GetMergePoints() == tangle.GetMergePoints())
       {
-        RDCASSERTEQUAL(tangle.GetExecutionPoint(), convTangle.GetExecutionPoint());
         if(Shader_Debug_ControlFlow_Logging())
         {
           RDCLOG(
