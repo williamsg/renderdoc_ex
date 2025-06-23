@@ -45,6 +45,7 @@ const uint32_t INVALID_THREAD_INDEX = (uint32_t)-1;
 struct ThreadReference
 {
   ExecutionPoint execPoint = INVALID_EXECUTION_POINT;
+  ExecutionPoint mergePoint = INVALID_EXECUTION_POINT;
   ThreadIndex id = INVALID_THREAD_INDEX;
   bool m_Alive = true;
 };
@@ -69,12 +70,15 @@ public:
     SetThreadAlive(threadId, false);
     m_StateChanged = true;
   }
+  void SetThreadMergePoint(ThreadIndex threadId, ExecutionPoint execPoint);
+  void AddMergePointFromThreads();
   void AddMergePoint(ExecutionPoint execPoint)
   {
     // only add a new merge point
     if(!m_MergePoints.contains(execPoint))
       m_MergePoints.push_back(execPoint);
     m_StateChanged = true;
+    ClearThreadMergePoints();
   }
   void AddFunctionReturnPoint(ExecutionPoint execPoint)
   {
@@ -141,6 +145,11 @@ private:
     m_StateChanged = true;
   }
   ExecutionPoint GetMergePoint() const { return m_MergePoints.back(); }
+  void ClearThreadMergePoints()
+  {
+    for(ThreadReference &threadRef : m_ThreadRefs)
+      threadRef.mergePoint = INVALID_EXECUTION_POINT;
+  }
   void PopMergePoint(void)
   {
     m_MergePoints.pop_back();
@@ -151,11 +160,13 @@ private:
   {
     m_MergePoints.clear();
     m_StateChanged = true;
+    ClearThreadMergePoints();
   }
   void SetMergePoints(const rdcarray<ExecutionPoint> &points)
   {
     m_MergePoints = points;
     m_StateChanged = true;
+    ClearThreadMergePoints();
   }
   ExecutionPoint GetFunctionReturnPoint() const { return m_FunctionReturnPoints.back(); }
   void PopFunctionReturnPoint(void)

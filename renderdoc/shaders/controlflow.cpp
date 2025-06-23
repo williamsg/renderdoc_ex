@@ -133,6 +133,18 @@ void Tangle::SetThreadExecutionPoint(ThreadIndex threadId, ExecutionPoint execPo
   RDCASSERTMSG("Thread not found", threadId);
 }
 
+void Tangle::SetThreadMergePoint(ThreadIndex threadId, ExecutionPoint execPoint)
+{
+  for(ThreadReference &threadRef : m_ThreadRefs)
+  {
+    if(threadRef.id == threadId)
+    {
+      threadRef.mergePoint = execPoint;
+      return;
+    }
+  }
+}
+
 void Tangle::SetThreadAlive(ThreadIndex threadId, bool value)
 {
   for(ThreadReference &threadRef : m_ThreadRefs)
@@ -197,6 +209,30 @@ void Tangle::PruneMergePoints(ExecutionPoint execPoint)
   m_MergePoints.erase(index + 1, m_MergePoints.size() - index);
 }
 
+// Get the merge point from the threads in the tangle and add it to the merge point stack
+void Tangle::AddMergePointFromThreads()
+{
+  ExecutionPoint threadMergePoint = INVALID_EXECUTION_POINT;
+  size_t countNewMergePoints = 0;
+  for(ThreadReference &threadRef : m_ThreadRefs)
+  {
+    if(threadRef.mergePoint != INVALID_EXECUTION_POINT)
+    {
+      ++countNewMergePoints;
+      if(threadMergePoint == INVALID_EXECUTION_POINT)
+        threadMergePoint = threadRef.mergePoint;
+
+      RDCASSERTEQUAL(threadMergePoint, threadRef.mergePoint);
+      threadRef.mergePoint = INVALID_EXECUTION_POINT;
+    }
+  }
+  if(threadMergePoint == INVALID_EXECUTION_POINT)
+    return;
+
+  RDCASSERTEQUAL(countNewMergePoints, m_ThreadRefs.size());
+  AddMergePoint(threadMergePoint);
+}
+
 // Define tangles to be entangled if the merge point stack of one tangle is contained within the other
 bool Tangle::Entangled(const Tangle &other) const
 {
@@ -236,7 +272,6 @@ TangleGroup ControlFlow::DivergeTangle(Tangle &tangle)
     {
       Tangle newTangle;
       newTangle.SetId(GetNewTangleId());
-      newTangle.AddThreadReference(threadRef);
       newTangle.SetMergePoints(tangle.GetMergePoints());
       newTangle.SetFunctionReturnPoints(tangle.GetFunctionReturnPoints());
       newTangle.SetDiverged(false);
@@ -244,12 +279,14 @@ TangleGroup ControlFlow::DivergeTangle(Tangle &tangle)
       newTangle.SetActive(!tangle.IsConverged());
       newTangle.SetAlive(true);
       newTangle.SetStateChanged(true);
+      newTangle.AddThreadReference(threadRef);
       newTangles.push_back(newTangle);
     }
   }
 
   for(Tangle &newTangle : newTangles)
   {
+    newTangle.AddMergePointFromThreads();
     for(const ThreadReference &threadRef : newTangle.GetThreadRefs())
       tangle.RemoveThreadReference(threadRef.id);
   }
@@ -280,6 +317,8 @@ void ControlFlow::ProcessTangleDivergence()
     tangle.CheckForDivergence();
     if(tangle.IsDiverged())
       newTangles.append(DivergeTangle(tangle));
+    else
+      tangle.AddMergePointFromThreads();
   }
 
   m_Tangles.append(newTangles);
