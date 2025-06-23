@@ -2608,7 +2608,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
       if(!tangle.IsAliveActive())
         continue;
 
-      rdcarray<ThreadReference> threadRefs = tangle.GetThreadRefs();
+      const rdcarray<ThreadReference> &threadRefs = tangle.GetThreadRefs();
       // calculate the current active thread mask from the threads in the tangle
       {
         // one bool per workgroup thread
@@ -2633,7 +2633,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
       ExecutionPoint newFunctionReturnPoint = INVALID_EXECUTION_POINT;
       uint32_t countActiveThreads = 0;
       uint32_t countDivergedThreads = 0;
-      uint32_t countConvergePointThreads = 0;
+      uint32_t countIdentialConvergePointThreads = 0;
       uint32_t countFunctionReturnThreads = 0;
 
       // step all active members of the workgroup
@@ -2748,6 +2748,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         threadExecutionStates[threadId] = thread.enteredPoints;
 
         uint32_t threadConvergeInstruction = thread.convergenceInstruction;
+        tangle.SetThreadMergePoint(threadId, threadConvergeInstruction);
         // the thread activated a new convergence point
         if(threadConvergeInstruction != INVALID_EXECUTION_POINT)
         {
@@ -2756,13 +2757,10 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             newConvergeInstruction = threadConvergeInstruction;
             RDCASSERTNOTEQUAL(newConvergeInstruction, INVALID_EXECUTION_POINT);
           }
-          else
-          {
-            // All the threads in the tangle should set the same convergence point
-            RDCASSERTEQUAL(threadConvergeInstruction, newConvergeInstruction);
-          }
-          ++countConvergePointThreads;
+          if(newConvergeInstruction == threadConvergeInstruction)
+            ++countIdentialConvergePointThreads;
         }
+
         uint32_t threadFunctionReturnPoint = thread.functionReturnPoint;
         // the thread activated a new function return point
         if(threadFunctionReturnPoint != INVALID_EXECUTION_POINT)
@@ -2791,12 +2789,11 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         if(activeMask[lane])
           workgroup[lane].currentInstruction = workgroup[lane].nextInstruction;
       }
-      if(countConvergePointThreads)
-      {
-        // all the active threads should have a convergence point if any have one
-        RDCASSERTEQUAL(countConvergePointThreads, countActiveThreads);
+      // If the tangle has a common merge point set it here (this will clear the thread merge point)
+      // otherwise the convergence point will come from the threads during control flow divergence porcessing
+      if(countIdentialConvergePointThreads == countActiveThreads)
         tangle.AddMergePoint(newConvergeInstruction);
-      }
+
       if(countFunctionReturnThreads)
       {
         // all the active threads should have a function return point if any have one
