@@ -1614,7 +1614,7 @@ void main()
     }
     case 183:
     {
-      imageStore(storeTexBuffer1010102unorm, 5, vec4(200.5f/1023.0f, 400.5f/1023.0f, 800.5f/1023.0f, 1.0f));
+      imageStore(storeTexBuffer1010102unorm, 5, vec4(200.1f/1023.0f, 400.1f/1023.0f, 800.1f/1023.0f, 1.0f));
       Color = imageLoad(storeTexBuffer1010102unorm, int(1)) + imageLoad(storeTexBuffer1010102unorm, int(5));
       break;
     }
