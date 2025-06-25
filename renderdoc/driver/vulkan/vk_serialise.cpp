@@ -11453,6 +11453,10 @@ void DoSerialise(SerialiserType &ser, VkDependencyInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEPENDENCY_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
+  // Resources in this struct are optional, because if we decided a resource wasn't used - we
+  // might still have recorded some barriers on it
+  OPTIONAL_RESOURCES();
+
   // mark this as unimportant so even if somehow there are no barriers at all, we won't in-line all
   // the struct overhead
   SERIALISE_MEMBER_VKFLAGS(VkDependencyFlags, dependencyFlags).Unimportant();
