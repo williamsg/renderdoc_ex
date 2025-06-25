@@ -1177,8 +1177,8 @@ public:
     PIX3DecodeStringInfo(*m_Data, alignment, copyChunkSize, isANSI, isShortcut);
     ++m_Data;
 
-    UINT stringCharCount = 0;
-    return (const char *)PIX3GetStringPointer(isANSI, copyChunkSize, m_Data, stringCharCount);
+    tmpStr = PIX3DecodeRawString(isANSI, copyChunkSize, m_Data);
+    return tmpStr.c_str();
   }
   int get_int() override { return int(get_uint64()); }
   unsigned int get_uint() override { return (unsigned int)(get_uint64()); }
