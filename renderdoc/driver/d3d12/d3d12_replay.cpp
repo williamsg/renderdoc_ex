@@ -3819,6 +3819,13 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   if(wasms && (isDepth || isStencil))
     resolve = false;
 
+  // don't resolve integer textures.
+  if(resolve && IsIntFormat(resDesc.Format) || IsUIntFormat(resDesc.Format))
+  {
+    resolve = false;
+    s.sample = 0;
+  }
+
   uint32_t slice3DCopy = 0;
 
   // arrayIdx isn't used for anything except copying the slice out at the end, so save the index we
