@@ -3820,7 +3820,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     resolve = false;
 
   // don't resolve integer textures.
-  if(resolve && IsIntFormat(resDesc.Format) || IsUIntFormat(resDesc.Format))
+  if(resolve && (IsIntFormat(resDesc.Format) || IsUIntFormat(resDesc.Format)))
   {
     resolve = false;
     s.sample = 0;
