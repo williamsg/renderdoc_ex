@@ -1199,6 +1199,17 @@ private:
   void StartFrameCapture(DeviceOwnedWindow devWnd);
   bool EndFrameCapture(DeviceOwnedWindow devWnd);
   bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
+  uint32_t SetObjectAnnotation(void *object, const char *key, RENDERDOC_AnnotationType valueType,
+                               uint32_t valueVectorWidth, const RENDERDOC_AnnotationValue *value)
+  {
+    return 2;
+  }
+  uint32_t SetCommandAnnotation(void *queueOrCommandBuffer, const char *key,
+                                RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
+                                const RENDERDOC_AnnotationValue *value)
+  {
+    return 2;
+  }
 
   void AdvanceFrame();
   void Present(DeviceOwnedWindow devWnd);

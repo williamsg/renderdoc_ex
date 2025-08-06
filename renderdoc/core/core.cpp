@@ -301,6 +301,39 @@ rdcstr DoStringise(const SystemChunk &el)
   END_ENUM_STRINGISE();
 }
 
+template <>
+rdcstr DoStringise(const RENDERDOC_AnnotationType &el)
+{
+  BEGIN_ENUM_STRINGISE(RENDERDOC_AnnotationType);
+  {
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Bool, "bool");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Int32, "int32");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_UInt32, "uint32");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Int64, "int64");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_UInt64, "uint64");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Float, "float");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Double, "double");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_String, "string");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_APIObject, "object");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, RENDERDOC_AnnotationValue &el)
+{
+  if(ser.GetStructArg() == eRENDERDOC_String)
+  {
+    SERIALISE_MEMBER(string).Hidden();
+  }
+  else
+  {
+    SERIALISE_MEMBER(vector.uint64).Hidden();
+  }
+}
+
+INSTANTIATE_SERIALISE_TYPE(RENDERDOC_AnnotationValue);
+
 RenderDoc &RenderDoc::Inst()
 {
   static RenderDoc realInst;
