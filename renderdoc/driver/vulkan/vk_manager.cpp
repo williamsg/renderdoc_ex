@@ -593,6 +593,11 @@ void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
   }
 }
 
+void VulkanResourceManager::RemoveAnnotations(ResourceId id)
+{
+  m_Core->RemoveAnnotations(id);
+}
+
 void VulkanResourceManager::MarkSparseMapReferenced(const ResourceInfo *sparse)
 {
   if(sparse == NULL)

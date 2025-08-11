@@ -70,6 +70,12 @@ bool IsDispatchableRes(WrappedVkRes *ptr)
           WrappedVkCommandBuffer::IsAlloc(ptr));
 }
 
+bool IsDispatchableRes(VkResourceType type)
+{
+  return (type == eResInstance || type == eResPhysicalDevice || type == eResDevice ||
+          type == eResQueue || type == eResCommandBuffer);
+}
+
 bool IsPostponableRes(const WrappedVkRes *ptr)
 {
   // only memory and images are postponed
@@ -84,7 +90,7 @@ bool IsPostponableRes(const WrappedVkRes *ptr)
   return false;
 }
 
-VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
+VkResourceType TryIdentifyTypeByPtr(WrappedVkRes *ptr)
 {
   if(WrappedVkPhysicalDevice::IsAlloc(ptr))
     return eResPhysicalDevice;
@@ -149,9 +155,17 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
   if(WrappedVkShaderEXT::IsAlloc(ptr))
     return eResShaderEXT;
 
-  RDCERR("Unknown type for ptr 0x%p", ptr);
-
   return eResUnknown;
+}
+
+VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
+{
+  VkResourceType ret = TryIdentifyTypeByPtr(ptr);
+
+  if(ret == eResUnknown)
+    RDCERR("Unknown type for ptr 0x%p", ptr);
+
+  return ret;
 }
 
 bool IsBlockFormat(VkFormat f)

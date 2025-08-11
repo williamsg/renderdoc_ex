@@ -433,6 +433,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0x18 -> 0x19 - added serialised annotations
+  if(ver == 0x18)
+    return true;
+
   // 0x17 -> 0x18 - added IDs generated at capture time for inline shaders
   if(ver == 0x17)
     return true;

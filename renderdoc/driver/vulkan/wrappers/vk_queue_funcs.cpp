@@ -636,6 +636,12 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
 
 void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 {
+  SDObject *localAnnotations = NULL;
+  if(m_RootAnnotation)
+    localAnnotations = m_RootAnnotation->Duplicate();
+
+  size_t curAnnot = 0;
+
   rdcarray<VulkanActionTreeNode> &cmdBufNodes = cmdBufInfo.action->children;
 
   // assign new action IDs
@@ -887,6 +893,29 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 
     for(APIEvent &ev : n.action.events)
     {
+      if(localAnnotations)
+      {
+        for(; curAnnot < cmdBufInfo.annotations.size(); curAnnot++)
+        {
+          const PendingAnnotation &annot = cmdBufInfo.annotations[curAnnot];
+          if(annot.eventId == ev.eventId)
+          {
+            if(annot.valueType == eRENDERDOC_Empty)
+              localAnnotations->EraseChildByKeyPath(annot.key);
+            else
+              WriteAnnotation(localAnnotations->CreateChildByKeyPath(annot.key), annot.valueType,
+                              annot.valueVectorWidth, annot.value);
+          }
+          else if(annot.eventId > ev.eventId)
+          {
+            break;
+          }
+        }
+
+        ev.annotations = localAnnotations->Duplicate();
+        m_EventAnnotations.push_back(ev.annotations);
+      }
+
       ev.eventId += m_RootEventID;
       m_Events.resize(ev.eventId + 1);
       m_Events[ev.eventId] = ev;
@@ -921,6 +950,8 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
     if((cmdBufNodes[i].action.flags & ActionFlags::PopMarker) && GetActionStack().size() > 1)
       GetActionStack().pop_back();
   }
+
+  delete localAnnotations;
 }
 
 void WrappedVulkan::AddReferencesForSecondaries(VkResourceRecord *record,

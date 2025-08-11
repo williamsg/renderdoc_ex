@@ -365,10 +365,14 @@ public:
     }
   }
 
+  void RemoveAnnotations(ResourceId id);
+
   template <typename realtype>
   void ReleaseWrappedResource(realtype obj, bool clearID = false)
   {
     ResourceId id = GetResID(obj);
+
+    RemoveAnnotations(id);
 
     if(IsReplayMode(m_State))
     {

@@ -1402,6 +1402,8 @@ enum class VulkanChunk : uint32_t
   vkCmdPushDescriptorSet2,
   vkCmdPushDescriptorSetWithTemplate2,
   vkCmdEndRendering2EXT,
+  SetQueueAnnotation,
+  SetCommandAnnotation,
   Max,
 };
 

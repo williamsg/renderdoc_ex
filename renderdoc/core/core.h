@@ -47,6 +47,15 @@ struct SDObject;
 void WriteAnnotation(SDObject *obj, RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
                      RENDERDOC_AnnotationValue value);
 
+struct PendingAnnotation
+{
+  uint32_t eventId;
+  rdcstr key;
+  RENDERDOC_AnnotationType valueType;
+  uint32_t valueVectorWidth;
+  RENDERDOC_AnnotationValue value;
+};
+
 // not provided by tinyexr, just do by hand
 bool is_exr_file(const byte *headerBuffer, size_t size);
 void LogReplayOptions(const ReplayOptions &opts);

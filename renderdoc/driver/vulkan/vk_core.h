@@ -61,7 +61,7 @@ struct VkInitParams
   uint64_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x18;
+  static const uint64_t CurrentVersion = 0x19;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -597,6 +597,11 @@ private:
 
   InstanceDeviceInfo m_EnabledExtensions;
 
+  const void *m_UserInstance = NULL;
+  const void *m_UserDevice = NULL;
+  std::unordered_map<const void *, VkQueue> m_UserQueues;
+  std::unordered_map<const void *, VkPhysicalDevice> m_UserPhysicalDevices;
+
   // the instance corresponding to this WrappedVulkan
   VkInstance m_Instance;
   // the instance's dbg msg callback handle
@@ -812,6 +817,7 @@ private:
     rdcarray<APIEvent> curEvents;
     rdcarray<DebugMessage> debugMessages;
     rdcarray<VulkanActionTreeNode *> actionStack;
+    rdcarray<PendingAnnotation> annotations;
 
     rdcarray<VkIndirectRecordData> indirectCopies;
 
@@ -1128,6 +1134,10 @@ private:
   GPUAddressRangeTracker m_AddressTracker;
   GPUAddressRange CreateAddressRange(VkDevice device, VkBuffer buffer);
 
+  Threading::CriticalSection m_AnnotationsLock;
+  std::unordered_map<ResourceId, SDObject *> m_Annotations;
+  rdcarray<SDObject *> m_EventAnnotations;
+
   // on replay we may need to allocate several bits of temporary memory, so the single-region
   // doesn't work as well. We're not quite as performance-sensitive so we allocate 4MB per thread
   // and use it in a ring-buffer fashion. This allows multiple allocations to live at once as long
@@ -1199,17 +1209,21 @@ private:
   void StartFrameCapture(DeviceOwnedWindow devWnd);
   bool EndFrameCapture(DeviceOwnedWindow devWnd);
   bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
+
+  ResourceId GetIDForUserObject(void *object);
   uint32_t SetObjectAnnotation(void *object, const char *key, RENDERDOC_AnnotationType valueType,
-                               uint32_t valueVectorWidth, const RENDERDOC_AnnotationValue *value)
-  {
-    return 2;
-  }
+                               uint32_t valueVectorWidth, const RENDERDOC_AnnotationValue *value);
+  template <typename SerialiserType>
+  bool Serialise_SetCommandAnnotation(SerialiserType &ser, VkCommandBuffer cmd, rdcstr key,
+                                      RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
+                                      RENDERDOC_AnnotationValue value);
+  template <typename SerialiserType>
+  bool Serialise_SetQueueAnnotation(SerialiserType &ser, VkQueue queue, rdcstr key,
+                                    RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
+                                    RENDERDOC_AnnotationValue value);
   uint32_t SetCommandAnnotation(void *queueOrCommandBuffer, const char *key,
                                 RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
-                                const RENDERDOC_AnnotationValue *value)
-  {
-    return 2;
-  }
+                                const RENDERDOC_AnnotationValue *value);
 
   void AdvanceFrame();
   void Present(DeviceOwnedWindow devWnd);
@@ -1229,6 +1243,8 @@ private:
 
   rdcarray<APIEvent> m_RootEvents, m_Events;
   bool m_AddedAction;
+
+  SDObject *m_RootAnnotation = NULL;
 
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
@@ -1647,6 +1663,12 @@ public:
     }
 
     return NULL;
+  }
+
+  void RemoveAnnotations(ResourceId id)
+  {
+    SCOPED_LOCK(m_AnnotationsLock);
+    m_Annotations.erase(id);
   }
 
   // Device initialization
