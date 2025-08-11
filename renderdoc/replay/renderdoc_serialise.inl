@@ -442,8 +442,9 @@ void DoSerialise(SerialiserType &ser, ResourceDescription &el)
   SERIALISE_MEMBER(initialisationChunks);
   SERIALISE_MEMBER(derivedResources);
   SERIALISE_MEMBER(parentResources);
+  // SERIALISE_MEMBER(annotations);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(120);
 }
 
 template <typename SerialiserType>
@@ -539,8 +540,9 @@ void DoSerialise(SerialiserType &ser, APIEvent &el)
   SERIALISE_MEMBER(eventId);
   SERIALISE_MEMBER(chunkIndex);
   SERIALISE_MEMBER(fileOffset);
+  // SERIALISE_MEMBER(annotations);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(24);
 }
 
 template <typename SerialiserType>
@@ -773,8 +775,9 @@ void DoSerialise(SerialiserType &ser, FrameDescription &el)
   SERIALISE_MEMBER(captureTime);
   SERIALISE_MEMBER(stats);
   SERIALISE_MEMBER(debugMessages);
+  SERIALISE_MEMBER(containsAnnotations);
 
-  SIZE_CHECK(504);
+  SIZE_CHECK(512);
 }
 
 template <typename SerialiserType>
@@ -783,7 +786,7 @@ void DoSerialise(SerialiserType &ser, FrameRecord &el)
   SERIALISE_MEMBER(frameInfo);
   SERIALISE_MEMBER(actionList);
 
-  SIZE_CHECK(528);
+  SIZE_CHECK(536);
 }
 
 template <typename SerialiserType>

@@ -669,6 +669,13 @@ typically it is one parent to many derived.
 )");
   rdcarray<ResourceId> parentResources;
 
+  DOCUMENT(R"(An optional set of annotations associated with this resource, may be ``None`` if
+annotations are not used.
+
+:type: SDObject
+)");
+  SDObject *annotations = NULL;
+
   DOCUMENT(R"(Utility function for setting up a custom name to overwrite the auto-generated one.
 
 :param str givenName: The custom name to use.
@@ -963,6 +970,13 @@ markers added to the capture after load.
 :type: int
 )");
   uint64_t fileOffset = 0;
+
+  DOCUMENT(R"(An optional set of annotations associated with this event, may be ``None`` if
+annotations are not used.
+
+:type: SDObject
+)");
+  SDObject *annotations = NULL;
 
   static const uint32_t NoChunk = ~0U;
 };
@@ -1854,6 +1868,12 @@ this counts the frame number when the capture was made.
 :type: List[DebugMessage]
 )");
   rdcarray<DebugMessage> debugMessages;
+
+  DOCUMENT(R"(Whether or not the capture contains any annotations.
+
+:type: bool
+)");
+  bool containsAnnotations = false;
 
   static const uint32_t NoFrameNumber = ~0U;
 };
