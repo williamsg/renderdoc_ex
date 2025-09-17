@@ -23,7 +23,9 @@
  ******************************************************************************/
 
 #include "AnnotationDisplay.h"
+#include <QAction>
 #include <QHeaderView>
+#include <QMenu>
 #include <QVBoxLayout>
 
 AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWidget *parent)
@@ -48,6 +50,9 @@ AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWid
   }
 
   setWindowTitle(tr("Annotation Viewer"));
+
+  QObject::connect(m_Tree, &RDTreeWidget::customContextMenu, this,
+                   &AnnotationDisplay::customContextMenu);
 
   if(m_Standalone)
     m_Ctx.AddCaptureViewer(this);
@@ -140,4 +145,34 @@ void AnnotationDisplay::setAnnotationObject(const SDObject *annotation)
   }
 
   m_Tree->applyExpansion(m_Expansion, 0);
+}
+
+void AnnotationDisplay::customContextMenu(QModelIndex index, QMenu *menu)
+{
+  RDTreeWidgetItem *item = m_Tree->itemForIndex(index);
+  const SDObject *obj = (const SDObject *)item->tag().value<void *>();
+
+  rdcstr path;
+  // don't include the root node, it's not part of the path, so only iterate over nodes that have
+  // parents themselves
+  while(obj && obj->GetParent())
+  {
+    if(path.empty())
+      path = obj->name;
+    else
+      path = obj->name + rdcstr(".") + path;
+    obj = obj->GetParent();
+  }
+
+  if(path.empty())
+    return;
+
+  QAction *sep = menu->insertSeparator(menu->actions()[0]);
+
+  QAction *showInEventBrowser = new QAction(tr("&Highlight in Event Browser"), menu);
+
+  QObject::connect(showInEventBrowser, &QAction::triggered,
+                   [this, path]() { m_Ctx.GetEventBrowser()->SetHighlightedAnnotation(path); });
+
+  menu->insertAction(sep, showInEventBrowser);
 }

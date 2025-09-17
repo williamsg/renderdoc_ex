@@ -48,7 +48,8 @@ public:
 
   void setAnnotationObject(const SDObject *annotation);
 
-signals:
+private slots:
+  void customContextMenu(QModelIndex index, QMenu *menu);
 
 protected:
 
