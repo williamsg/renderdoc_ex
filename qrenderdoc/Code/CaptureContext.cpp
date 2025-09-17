@@ -38,6 +38,7 @@
 #include <QTimer>
 #include "Code/Resources.h"
 #include "Code/pyrenderdoc/PythonContext.h"
+#include "Widgets/AnnotationDisplay.h"
 #include "Windows/APIInspector.h"
 #include "Windows/BufferViewer.h"
 #include "Windows/CommentView.h"
@@ -2261,6 +2262,18 @@ IAPIInspector *CaptureContext::GetAPIInspector()
   return m_APIInspector;
 }
 
+IAnnotationViewer *CaptureContext::GetAnnotationViewer()
+{
+  if(m_AnnotationViewer)
+    return m_AnnotationViewer;
+
+  m_AnnotationViewer = new AnnotationDisplay(*this, true, m_MainWindow);
+  m_AnnotationViewer->setObjectName(lit("annotationViewer"));
+  setupDockWindow(m_AnnotationViewer, true);
+
+  return m_AnnotationViewer;
+}
+
 ITextureViewer *CaptureContext::GetTextureViewer()
 {
   if(m_TextureViewer)
@@ -2424,6 +2437,11 @@ void CaptureContext::ShowEventBrowser()
 void CaptureContext::ShowAPIInspector()
 {
   m_MainWindow->showAPIInspector();
+}
+
+void CaptureContext::ShowAnnotationViewer()
+{
+  m_MainWindow->showAnnotationViewer();
 }
 
 void CaptureContext::ShowTextureViewer()
@@ -2691,6 +2709,10 @@ QWidget *CaptureContext::CreateBuiltinWindow(const rdcstr &objectName)
   else if(objectName == "apiInspector")
   {
     return GetAPIInspector()->Widget();
+  }
+  else if(objectName == "annotationViewer")
+  {
+    return GetAnnotationViewer()->Widget();
   }
   else if(objectName == "capDialog")
   {

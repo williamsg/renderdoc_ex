@@ -593,6 +593,16 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, QString, rdcstr, ExternalTool_RadeonGPUProfiler, "")                  \
                                                                                                    \
   DOCUMENT(                                                                                        \
+      "``True`` if the user has had the annotation viewer displayed when hidden upon loading a"    \
+      "capture that contains annotations. After this is set to true, we won't auto-show the \n"    \
+      "annotation viewer automatically.\n"                                                         \
+      "\n"                                                                                         \
+      "Defaults to ``False``."                                                                     \
+      ""                                                                                           \
+      ":type: bool");                                                                              \
+  CONFIG_SETTING_VAL(public, bool, bool, Annotations_HasAutoShown, false)                          \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
       "``True`` if the user has seen the first tip, which should always be shown first before "    \
       "randomising.\n"                                                                             \
       "\n"                                                                                         \

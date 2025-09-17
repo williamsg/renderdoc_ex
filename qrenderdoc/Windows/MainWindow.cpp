@@ -2271,6 +2271,15 @@ void MainWindow::OnCaptureLoaded()
 
   if(m_Ctx.HasEventBrowser())
     ToolWindowManager::raiseToolWindow(m_Ctx.GetEventBrowser()->Widget());
+
+  // the first time we load a capture with annotations, show/bring the annotation viewer to the
+  // front. After that, if the user hides it we won't show it again.
+  if(!m_Ctx.Config().Annotations_HasAutoShown && m_Ctx.FrameInfo().containsAnnotations)
+  {
+    m_Ctx.ShowAnnotationViewer();
+    m_Ctx.Config().Annotations_HasAutoShown = true;
+    ToolWindowManager::raiseToolWindow(m_Ctx.GetAnnotationViewer()->Widget());
+  }
 }
 
 void MainWindow::OnCaptureClosed()
@@ -2496,6 +2505,38 @@ void MainWindow::on_action_API_Inspector_triggered()
     else
     {
       ui->toolWindowManager->addToolWindow(apiInspector, leftToolArea());
+    }
+  }
+}
+
+void MainWindow::on_action_Annotation_Viewer_triggered()
+{
+  QWidget *annotViewer = m_Ctx.GetAnnotationViewer()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(annotViewer))
+  {
+    ToolWindowManager::raiseToolWindow(annotViewer);
+  }
+  else
+  {
+    if(m_Ctx.HasAPIInspector() &&
+       ui->toolWindowManager->toolWindows().contains(m_Ctx.GetAPIInspector()->Widget()))
+    {
+      ToolWindowManager::AreaReference ref(
+          ToolWindowManager::AddTo, ui->toolWindowManager->areaOf(m_Ctx.GetAPIInspector()->Widget()));
+      ui->toolWindowManager->addToolWindow(annotViewer, ref);
+    }
+    else if(m_Ctx.HasEventBrowser() &&
+            ui->toolWindowManager->toolWindows().contains(m_Ctx.GetEventBrowser()->Widget()))
+    {
+      ToolWindowManager::AreaReference ref(
+          ToolWindowManager::BottomOf,
+          ui->toolWindowManager->areaOf(m_Ctx.GetEventBrowser()->Widget()));
+      ui->toolWindowManager->addToolWindow(annotViewer, ref);
+    }
+    else
+    {
+      ui->toolWindowManager->addToolWindow(annotViewer, leftToolArea());
     }
   }
 }

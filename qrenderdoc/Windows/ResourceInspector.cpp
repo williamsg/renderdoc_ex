@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include "Code/Resources.h"
+#include "Widgets/AnnotationDisplay.h"
 #include "Widgets/Extended/RDHeaderView.h"
 #include "toolwindowmanager/ToolWindowManagerArea.h"
 #include "ui_ResourceInspector.h"
@@ -366,6 +367,9 @@ void ResourceInspector::Inspect(ResourceId id)
   {
     ANALYTIC_SET(UIFeatures.ResourceInspect, true);
 
+    if(m_AnnotationView)
+      m_AnnotationView->setAnnotationObject(desc->annotations);
+
     SetResourceNameDisplay(m_Ctx.GetResourceName(id));
 
     ui->relatedResources->beginUpdate();
@@ -414,6 +418,8 @@ void ResourceInspector::Inspect(ResourceId id)
   {
     m_Resource = ResourceId();
     SetResourceNameDisplay(tr("No Resource Selected"));
+    if(m_AnnotationView)
+      m_AnnotationView->setAnnotationObject(NULL);
   }
 
   ui->initChunks->setUpdatesEnabled(true);
@@ -478,6 +484,18 @@ void ResourceInspector::RevealParameter(SDObject *param)
 void ResourceInspector::OnCaptureLoaded()
 {
   ui->renameResource->setEnabled(true);
+
+  if(m_Ctx.FrameInfo().containsAnnotations && m_AnnotationView == NULL)
+  {
+    m_AnnotationView = new AnnotationDisplay(m_Ctx, false, this);
+    m_AnnotationView->setWindowTitle(tr("Resource Annotations"));
+
+    ui->dockarea->addToolWindow(
+        m_AnnotationView,
+        ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
+                                         ui->dockarea->areaOf(ui->relatedResources), 0.5f));
+    ui->dockarea->setToolWindowProperties(m_AnnotationView, ToolWindowManager::HideCloseButton);
+  }
 
   m_ResourceModel->reset();
   m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
