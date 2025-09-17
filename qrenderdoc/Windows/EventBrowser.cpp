@@ -170,6 +170,7 @@ enum
   COL_EID,
   COL_ACTION,
   COL_DURATION,
+  COL_ANNOTATION,
   COL_COUNT,
 };
 
@@ -298,6 +299,15 @@ struct EventItemModel : public QAbstractItemModel
 
     m_RenameCacheID = m_Ctx.ResourceNameCacheID();
   }
+
+  void SetAnnotationPath(const rdcstr &keyPath)
+  {
+    m_AnnotationPath = keyPath;
+    emit headerDataChanged(Qt::Horizontal, COL_ANNOTATION, COL_ANNOTATION);
+
+    m_View->viewport()->update();
+  }
+  rdcstr GetAnnotationPath() { return m_AnnotationPath; }
 
   bool HasTimes() { return !m_Times.empty(); }
   void SetTimes(const rdcarray<CounterResult> &times)
@@ -720,6 +730,9 @@ struct EventItemModel : public QAbstractItemModel
         case COL_EID: return lit("EID");
         case COL_ACTION: return lit("Action #");
         case COL_DURATION: return tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit));
+        case COL_ANNOTATION:
+          return m_AnnotationPath.empty() ? tr("Annotation")
+                                          : tr("Annotation (%1)").arg(m_AnnotationPath);
         default: break;
       }
     }
@@ -746,6 +759,9 @@ struct EventItemModel : public QAbstractItemModel
     if(index.column() == COL_DURATION && role == Qt::TextAlignmentRole)
       return int(Qt::AlignRight | Qt::AlignVCenter);
 
+    if(index.column() == COL_ANNOTATION && role == Qt::ToolTipRole)
+      return m_AnnotationPath.empty() ? lit("-") : QString(m_AnnotationPath);
+
     if(index.internalId() == TagRoot)
     {
       if(role == Qt::DisplayRole && index.column() == COL_NAME)
@@ -762,6 +778,9 @@ struct EventItemModel : public QAbstractItemModel
 
       if(index.column() == COL_DURATION && role == Qt::DisplayRole)
         return FormatDuration(0);
+
+      if(index.column() == COL_ANNOTATION && role == Qt::DisplayRole)
+        return QString();
     }
     else if(index.internalId() == TagCaptureStart)
     {
@@ -781,6 +800,9 @@ struct EventItemModel : public QAbstractItemModel
 
       if(index.column() == COL_DURATION && role == Qt::DisplayRole)
         return FormatDuration(~0U);
+
+      if(index.column() == COL_ANNOTATION && role == Qt::DisplayRole)
+        return QString();
     }
     else
     {
@@ -814,6 +836,34 @@ struct EventItemModel : public QAbstractItemModel
 
       if(index.column() == COL_DURATION && role == Qt::DisplayRole)
         return FormatDuration(eid);
+
+      if(index.column() == COL_ANNOTATION && role == Qt::DisplayRole)
+      {
+        const ActionDescription *action = m_Actions[eid];
+
+        auto eidit =
+            std::lower_bound(action->events.begin(), action->events.end(), eid,
+                             [](const APIEvent &e, uint32_t eid) { return e.eventId < eid; });
+
+        if(!m_AnnotationPath.empty() && eidit != action->events.end() && eidit->eventId == eid)
+        {
+          const APIEvent &e = *eidit;
+
+          const SDObject *annot =
+              e.annotations ? e.annotations->FindChildByKeyPath(m_AnnotationPath) : NULL;
+
+          if(annot)
+          {
+            if(annot->type.basetype == SDBasic::Chunk || annot->type.basetype == SDBasic::Struct ||
+               annot->type.basetype == SDBasic::Array)
+              return lit("{...}");
+
+            return SDObject2Variant(annot, false);
+          }
+        }
+
+        return QString();
+      }
 
       if(role == Qt::DisplayRole)
       {
@@ -907,6 +957,7 @@ private:
   static const quintptr TagRoot = quintptr(UINTPTR_MAX);
   static const quintptr TagCaptureStart = quintptr(0);
 
+  rdcstr m_AnnotationPath;
   rdcarray<double> m_Times;
   TimeUnit m_TimeUnit = TimeUnit::Count;
 
@@ -3449,6 +3500,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_ACTION, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_DURATION, QHeaderView::Interactive);
+  ui->events->header()->setSectionResizeMode(COL_ANNOTATION, QHeaderView::Interactive);
 
   ui->events->header()->setMinimumSectionSize(40);
 
@@ -3466,9 +3518,11 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->header()->resizeSection(COL_ACTION, 60);
   ui->events->header()->resizeSection(COL_NAME, 200);
   ui->events->header()->resizeSection(COL_DURATION, 80);
+  ui->events->header()->resizeSection(COL_ANNOTATION, 100);
 
   ui->events->header()->hideSection(COL_ACTION);
   ui->events->header()->hideSection(COL_DURATION);
+  ui->events->header()->hideSection(COL_ANNOTATION);
 
   ui->events->header()->moveSection(COL_NAME, 2);
 
@@ -3669,6 +3723,32 @@ EventBrowser::~EventBrowser()
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveCaptureViewer(this);
   delete ui;
+}
+
+rdcstr EventBrowser::GetHighlightedAnnotation()
+{
+  return m_Model->GetAnnotationPath();
+}
+
+void EventBrowser::SetDurationColumnVisible(bool show)
+{
+  if(show)
+    ui->events->header()->showSection(COL_DURATION);
+  else
+    ui->events->header()->hideSection(COL_DURATION);
+}
+
+void EventBrowser::SetAnnotationColumnVisible(bool show)
+{
+  if(show)
+    ui->events->header()->showSection(COL_ANNOTATION);
+  else
+    ui->events->header()->hideSection(COL_ANNOTATION);
+}
+
+void EventBrowser::SetHighlightedAnnotation(const rdcstr &annotationPath)
+{
+  m_Model->SetAnnotationPath(annotationPath);
 }
 
 void EventBrowser::OnCaptureLoaded()

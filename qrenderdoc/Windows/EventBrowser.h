@@ -141,6 +141,12 @@ public:
   void SetShowAllParameters(bool show) override;
   void SetEmptyRegionsVisible(bool show) override;
 
+  void SetHighlightedAnnotation(const rdcstr &annotationPath) override;
+  rdcstr GetHighlightedAnnotation() override;
+
+  void SetDurationColumnVisible(bool show) override;
+  void SetAnnotationColumnVisible(bool show) override;
+
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;

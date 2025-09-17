@@ -440,6 +440,32 @@ the most significant parameters are shown.
 )");
   virtual void SetEmptyRegionsVisible(bool show) = 0;
 
+  DOCUMENT(R"(Sets the current annotation key path. This will not display the annotation column if
+it is not already visible.
+
+:param str annotationPath: The new annotation path.
+)");
+  virtual void SetHighlightedAnnotation(const rdcstr &annotationPath) = 0;
+
+  DOCUMENT(R"(Returns the current annotation key path as being highlighted in the annotation column.
+
+:return: The current annotation path.
+:rtype: str
+)");
+  virtual rdcstr GetHighlightedAnnotation() = 0;
+
+  DOCUMENT(R"(Sets whether or not the duration column is visible.
+
+:param bool show: If the duration column should be shown.
+)");
+  virtual void SetDurationColumnVisible(bool show) = 0;
+
+  DOCUMENT(R"(Sets whether or not the annotation column is visible.
+
+:param bool show: If the duration column should be shown.
+)");
+  virtual void SetAnnotationColumnVisible(bool show) = 0;
+
 protected:
   IEventBrowser() = default;
   ~IEventBrowser() = default;
