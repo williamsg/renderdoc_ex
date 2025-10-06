@@ -30,6 +30,7 @@
 namespace ResourceIDGen
 {
 static int64_t globalIDCounter = 1;
+static ResourceId baseReplayID;
 
 ResourceId GetNewUniqueID()
 {
@@ -38,16 +39,22 @@ ResourceId GetNewUniqueID()
   return ret;
 }
 
+bool IsReplayOnlyID(ResourceId id)
+{
+  return baseReplayID < id;
+}
+
 void SetReplayResourceIDs()
 {
-  // separate replay IDs from live IDs by adding a value when replaying.
-  // 1000000000000000000 live IDs before we overlap replay IDs gives
+  // separate replay-only IDs from captured IDs by adding a value when replaying.
+  // 1000000000000000000 capture-time IDs before we overlap replay IDs gives
   // almost 32 years generating 100000 IDs per frame at 10000 FPS.
 
   // only add this value once (since we're not |'ing on a bit)
   if(globalIDCounter < 1000000000000000000LL)
     globalIDCounter =
         RDCMAX(int64_t(globalIDCounter), int64_t(globalIDCounter + 1000000000000000000LL));
+  baseReplayID = GetNewUniqueID();
 }
 };
 

@@ -45,10 +45,8 @@ DOCUMENT(R"(This is an opaque identifier that uniquely locates a resource.
 
 .. note::
   These IDs do not overlap ever - textures, buffers, shaders and samplers will all have unique IDs
-  and do not reuse the namespace. Likewise the IDs assigned for resources during capture  are not
-  re-used on replay - the corresponding resources created on replay to stand-in for capture-time
-  resources are given unique IDs and a mapping is stored to between the capture-time resource and
-  the replay-time one.
+  and do not reuse the namespace. The IDs assigned for resources during capture are also used
+  during replay. Any internal/synthesised resources created during replay will have distinct IDs.
 )");
 struct ResourceId
 {

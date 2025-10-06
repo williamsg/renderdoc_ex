@@ -104,7 +104,7 @@ rdcstr DoStringise(const ResourceId &el)
   // hardcode empty/null ResourceId to both avoid special case below and fast-path a common case as
   // a string literal.
   if(num == 0)
-    return PREFIX "0";
+    return PREFIX "0"_lit;
 
   // enough for prefix and a 64-bit value in decimal
   char str[48] = {};

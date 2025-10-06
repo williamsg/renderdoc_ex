@@ -296,6 +296,7 @@ inline bool MarkReferenced(std::unordered_map<ResourceId, FrameRefType> &refs, R
 namespace ResourceIDGen
 {
 ResourceId GetNewUniqueID();
+bool IsReplayOnlyID(ResourceId id);
 void SetReplayResourceIDs();
 };
 
