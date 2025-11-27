@@ -499,6 +499,7 @@ public:
     void setBindingsPerResourceType();
     void addUniformLocationOverride(const char* name, int loc);
     void setUniformLocationBase(int base);
+    void setIOLocationBase(int base);
     void setInvertY(bool invert);
     void setDxPositionW(bool dxPosW);
     void setEnhancedMsgs();
