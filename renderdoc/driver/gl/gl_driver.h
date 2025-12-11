@@ -587,7 +587,7 @@ private:
   void RenderText(float x, float y, const rdcstr &text);
   void RenderTextInternal(float x, float y, const rdcstr &text);
 
-  void CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId, GLuint &fbo,
+  void CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboId, GLuint &fbo,
                               rdcstr bbname);
 
   RenderDoc::FramePixels *SaveBackbufferImage();

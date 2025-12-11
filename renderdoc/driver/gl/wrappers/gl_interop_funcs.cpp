@@ -559,7 +559,7 @@ bool WrappedOpenGL::Serialise_glCreateMemoryObjectsEXT(SerialiserType &ser, GLsi
 
     GLResource res = ExtMemRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(memory, res);
     GetResourceManager()->AddLiveResource(memory, res);
 
     AddResource(memory, ResourceType::Memory, "Memory Object");
@@ -575,7 +575,7 @@ void WrappedOpenGL::glCreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = ExtMemRes(GetCtx(), memoryObjects[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -834,7 +834,7 @@ bool WrappedOpenGL::Serialise_glGenSemaphoresEXT(SerialiserType &ser, GLsizei n,
 
     GLResource res = ExtSemRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(semaphore, res);
     GetResourceManager()->AddLiveResource(semaphore, res);
 
     AddResource(semaphore, ResourceType::Sync, "Semaphore");
@@ -850,7 +850,7 @@ void WrappedOpenGL::glGenSemaphoresEXT(GLsizei n, GLuint *semaphores)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = ExtSemRes(GetCtx(), semaphores[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {

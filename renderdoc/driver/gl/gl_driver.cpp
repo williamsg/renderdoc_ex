@@ -676,10 +676,10 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
   m_ScratchSerialiser.SetUserData(GetResourceManager());
 
-  m_DeviceResourceID =
-      GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResDevice));
-  m_ContextResourceID =
-      GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResContext));
+  m_DeviceResourceID = GetResourceManager()->RegisterResource(
+      ResourceId(), GLResource(NULL, eResSpecial, eSpecialResDevice));
+  m_ContextResourceID = GetResourceManager()->RegisterResource(
+      ResourceId(), GLResource(NULL, eResSpecial, eSpecialResContext));
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
@@ -700,7 +700,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     ResourceIDGen::SetReplayResourceIDs();
 
     m_DescriptorsID = GetResourceManager()->RegisterResource(
-        GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
+        ResourceId(), GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
 
     GetResourceManager()->AddLiveResource(
         m_DescriptorsID, GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
@@ -739,7 +739,7 @@ void WrappedOpenGL::MarkReferencedWhileCapturing(GLResourceRecord *record, Frame
   GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), refType);
 }
 
-void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId,
+void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboId,
                                            GLuint &fbo, rdcstr bbname)
 {
   GLuint col = 0, depth = 0;
@@ -750,8 +750,9 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
   GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
-  drv.glGenFramebuffers(1, &fbo);
-  drv.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+  GL.glGenFramebuffers(1, &fbo);
+  GetResourceManager()->RegisterResource(fboId, FramebufferRes(GetCtx(), fbo));
+  GL.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
 
   m_CurrentDefaultFBO = fbo;
 
@@ -886,9 +887,9 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   if(params.depthBits > 0 || params.stencilBits > 0)
     drv.glClearBufferfi(eGL_DEPTH_STENCIL, 0, 1.0f, 0);
 
-  GetResourceManager()->AddLiveResource(fboOrigId, FramebufferRes(GetCtx(), fbo));
-  AddResource(fboOrigId, ResourceType::SwapchainImage, "");
-  GetReplay()->GetResourceDesc(fboOrigId).SetCustomName(bbname + " FBO");
+  GetResourceManager()->AddLiveResource(fboId, FramebufferRes(GetCtx(), fbo));
+  AddResource(fboId, ResourceType::SwapchainImage, "");
+  GetReplay()->GetResourceDesc(fboId).SetCustomName(bbname + " FBO");
 
   ResourceId colorId = GetResourceManager()->GetResID(TextureRes(GetCtx(), col));
   rdcstr name = bbname + " Color";
@@ -899,8 +900,8 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   AddResource(colorId, ResourceType::SwapchainImage, name.c_str());
   GetReplay()->GetResourceDesc(colorId).SetCustomName(name);
 
-  GetReplay()->GetResourceDesc(fboOrigId).derivedResources.push_back(colorId);
-  GetReplay()->GetResourceDesc(colorId).parentResources.push_back(fboOrigId);
+  GetReplay()->GetResourceDesc(fboId).derivedResources.push_back(colorId);
+  GetReplay()->GetResourceDesc(colorId).parentResources.push_back(fboId);
 
   if(depth)
   {
@@ -913,14 +914,14 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
     AddResource(depthId, ResourceType::SwapchainImage, name.c_str());
     GetReplay()->GetResourceDesc(depthId).SetCustomName(name);
 
-    GetReplay()->GetResourceDesc(fboOrigId).derivedResources.push_back(depthId);
-    GetReplay()->GetResourceDesc(depthId).parentResources.push_back(fboOrigId);
+    GetReplay()->GetResourceDesc(fboId).derivedResources.push_back(depthId);
+    GetReplay()->GetResourceDesc(depthId).parentResources.push_back(fboId);
   }
 
   if(fbo == m_Global_FBO0)
   {
-    GetReplay()->GetResourceDesc(fboOrigId).initialisationChunks.clear();
-    GetReplay()->GetResourceDesc(fboOrigId).initialisationChunks.push_back(m_InitChunkIndex);
+    GetReplay()->GetResourceDesc(fboId).initialisationChunks.clear();
+    GetReplay()->GetResourceDesc(fboId).initialisationChunks.push_back(m_InitChunkIndex);
 
     GetReplay()->GetResourceDesc(colorId).initialisationChunks.clear();
     GetReplay()->GetResourceDesc(colorId).initialisationChunks.push_back(m_InitChunkIndex);
@@ -1202,7 +1203,7 @@ void WrappedOpenGL::ContextData::CreateResourceRecord(WrappedOpenGL *driver, voi
      !driver->GetResourceManager()->HasResourceRecord(m_ContextDataResourceID))
   {
     m_ContextDataResourceID = driver->GetResourceManager()->RegisterResource(
-        GLResource(suppliedCtx, eResSpecial, eSpecialResContext));
+        ResourceId(), GLResource(suppliedCtx, eResSpecial, eSpecialResContext));
 
     m_ContextDataRecord = driver->GetResourceManager()->AddResourceRecord(m_ContextDataResourceID);
     m_ContextDataRecord->DataInSerialiser = false;
@@ -1527,7 +1528,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
       if(!GetResourceManager()->HasCurrentResource(vao0))
       {
-        ResourceId id = GetResourceManager()->RegisterResource(vao0);
+        ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), vao0);
 
         GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
         RDCASSERT(record);
@@ -1560,7 +1561,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       GLResource fbo0 = FramebufferRes({GetCtx().ctx, GetCtx().ctx}, 0);
 
       if(!GetResourceManager()->HasCurrentResource(fbo0))
-        ctxdata.m_ContextFBOID = GetResourceManager()->RegisterResource(fbo0);
+        ctxdata.m_ContextFBOID = GetResourceManager()->RegisterResource(ResourceId(), fbo0);
     }
   }
 
@@ -1698,7 +1699,7 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
       toresource = ProgramRes(GetCtx(), GL.glCreateShaderProgramv(shaderType, 1, &str));
 
       // re-register the programshader in the place of where the shader used to be
-      GetResourceManager()->RegisterResource(toresource, targetId);
+      GetResourceManager()->RegisterResource(targetId, toresource);
 
       ProgramData &progDetails = m_Programs[targetId];
 
@@ -3029,7 +3030,7 @@ void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum
     // register this texture and set up its texture details, so it's available for emulation
     // readback.
     GLResource res = TextureRes(GetCtx(), tex);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     WrappedOpenGL::TextureData &details = m_Textures[id];
 
@@ -3651,7 +3652,11 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
         // it can be bound and have initial contents applied to it
         if(vao != ResourceId())
         {
-          glGenVertexArrays(1, &m_Global_VAO0);
+          GL.glGenVertexArrays(1, &m_Global_VAO0);
+
+          GetResourceManager()->RegisterResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
+          GetResourceManager()->AddLiveResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
+
           glBindVertexArray(m_Global_VAO0);
           GetResourceManager()->AddLiveResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
           AddResource(vao, ResourceType::StateObject, "Vertex Array");

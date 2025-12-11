@@ -102,7 +102,7 @@ bool WrappedOpenGL::Serialise_glGenTextures(SerialiserType &ser, GLsizei n, GLui
 
     GLResource res = TextureRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(texture, res);
     GetResourceManager()->AddLiveResource(texture, res);
 
     AddResource(texture, ResourceType::Texture, "Texture");
@@ -121,7 +121,7 @@ void WrappedOpenGL::glGenTextures(GLsizei n, GLuint *textures)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = TextureRes(GetCtx(), textures[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -167,7 +167,7 @@ bool WrappedOpenGL::Serialise_glCreateTextures(SerialiserType &ser, GLenum targe
 
     GLResource res = TextureRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(texture, res);
     GetResourceManager()->AddLiveResource(texture, res);
 
     AddResource(texture, ResourceType::Texture, "Texture");
@@ -187,7 +187,7 @@ void WrappedOpenGL::glCreateTextures(GLenum target, GLsizei n, GLuint *textures)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = TextureRes(GetCtx(), textures[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -584,7 +584,7 @@ bool WrappedOpenGL::Serialise_glBindImageTexture(SerialiserType &ser, GLuint uni
   {
     GL.glBindImageTexture(unit, texture.name, level, layered, layer, access, format);
 
-    if(IsLoading(m_State))
+    if(IsLoading(m_State) && texture.name)
       m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
           TextureCategory::ShaderReadWrite;
   }
@@ -654,8 +654,9 @@ bool WrappedOpenGL::Serialise_glBindImageTextures(SerialiserType &ser, GLuint fi
     if(IsLoading(m_State))
     {
       for(GLsizei i = 0; i < count; i++)
-        m_Textures[GetResourceManager()->GetResID(textures[i])].creationFlags |=
-            TextureCategory::ShaderReadWrite;
+        if(textures[i].name)
+          m_Textures[GetResourceManager()->GetResID(textures[i])].creationFlags |=
+              TextureCategory::ShaderReadWrite;
     }
   }
 

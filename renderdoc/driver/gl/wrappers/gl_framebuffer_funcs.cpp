@@ -71,7 +71,7 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, 
 
     GLResource res = FramebufferRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(framebuffer, res);
     GetResourceManager()->AddLiveResource(framebuffer, res);
 
     AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
@@ -87,7 +87,7 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -131,7 +131,7 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei 
 
     GLResource res = FramebufferRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(framebuffer, res);
     GetResourceManager()->AddLiveResource(framebuffer, res);
 
     AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
@@ -147,7 +147,7 @@ void WrappedOpenGL::glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -2260,23 +2260,29 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
 
         if(dstattachment == srcattachment && srctype == dsttype)
         {
-          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+          if(srcid != ResourceId())
+            m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
         }
         else
         {
           // MS to non-MS is a resolve
-          if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
+          if(srcid != ResourceId() &&
+             (m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
               m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY) &&
-             m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
+             dstid != ResourceId() && m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
              m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
           {
-            m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveSrc));
-            m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveDst));
+            if(srcid != ResourceId())
+              m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveSrc));
+            if(dstid != ResourceId())
+              m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveDst));
           }
           else
           {
-            m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
-            m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+            if(srcid != ResourceId())
+              m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+            if(dstid != ResourceId())
+              m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
           }
         }
       }
@@ -2402,7 +2408,7 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n,
 
     GLResource res = RenderbufferRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(renderbuffer, res);
     GetResourceManager()->AddLiveResource(renderbuffer, res);
 
     AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
@@ -2421,7 +2427,7 @@ void WrappedOpenGL::glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -2466,7 +2472,7 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei
 
     GLResource res = RenderbufferRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(renderbuffer, res);
     GetResourceManager()->AddLiveResource(renderbuffer, res);
 
     AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
@@ -2485,7 +2491,7 @@ void WrappedOpenGL::glCreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {

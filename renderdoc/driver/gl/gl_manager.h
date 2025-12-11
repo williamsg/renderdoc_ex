@@ -145,7 +145,7 @@ public:
     ResourceManager::RemoveResourceRecord(id);
   }
 
-  ResourceId RegisterResource(GLResource res, ResourceId id = ResourceId())
+  ResourceId RegisterResource(ResourceId id, GLResource res)
   {
     if(id == ResourceId())
       id = ResourceIDGen::GetNewUniqueID();
@@ -286,13 +286,15 @@ public:
     ResourceManager::MarkDirtyResource(it.first);
   }
 
-  void RegisterSync(ContextPair &ctx, GLsync sync, GLuint &name, ResourceId &id)
+  ResourceId RegisterSync(ResourceId id, ContextPair &ctx, GLsync sync, GLuint &name)
   {
     name = (GLuint)Atomic::Inc64(&m_SyncName);
-    id = RegisterResource(SyncRes(ctx, name));
+    id = RegisterResource(id, SyncRes(ctx, name));
 
     m_SyncIDs[sync] = id;
     m_CurrentSyncs[name] = sync;
+
+    return id;
   }
 
   GLsync GetSync(GLuint name) { return m_CurrentSyncs[name]; }

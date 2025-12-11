@@ -739,7 +739,7 @@ rdcarray<BufferDescription> GLReplay::GetBuffers()
   for(auto it = m_pDriver->m_Buffers.begin(); it != m_pDriver->m_Buffers.end(); ++it)
   {
     // skip buffers that aren't from the log
-    if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     ret.push_back(GetBuffer(it->first));
@@ -758,8 +758,7 @@ rdcarray<TextureDescription> GLReplay::GetTextures()
     WrappedOpenGL::TextureData &res = m_pDriver->m_Textures[it->first];
 
     // skip textures that aren't from the log (except the 'default backbuffer' textures)
-    if(!(res.creationFlags & TextureCategory::SwapBuffer) &&
-       m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    if(!(res.creationFlags & TextureCategory::SwapBuffer) && ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     CacheTexture(it->first);
@@ -3282,7 +3281,8 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     m_pDriver->CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
 
     // CopyTex2DMSToArray is unwrapped, so register the resource here now
-    m_pDriver->GetResourceManager()->RegisterResource(TextureRes(m_pDriver->GetCtx(), tempTex));
+    m_pDriver->GetResourceManager()->RegisterResource(ResourceId(),
+                                                      TextureRes(m_pDriver->GetCtx(), tempTex));
 
     // rewrite the variables to temporary texture
     texType = eGL_TEXTURE_2D_ARRAY;

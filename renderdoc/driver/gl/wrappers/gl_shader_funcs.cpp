@@ -613,11 +613,10 @@ bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLenum type, G
 
     GLResource res = ShaderRes(GetCtx(), real);
 
-    ResourceId liveId = GetResourceManager()->RegisterResource(res);
+    ResourceId liveId = GetResourceManager()->RegisterResource(Shader, res);
+    GetResourceManager()->AddLiveResource(Shader, res);
 
     m_Shaders[liveId].type = type;
-
-    GetResourceManager()->AddLiveResource(Shader, res);
 
     AddResource(Shader, ResourceType::Shader, "Shader");
   }
@@ -631,7 +630,7 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
   SERIALISE_TIME_CALL(real = GL.glCreateShader(type));
 
   GLResource res = ShaderRes(GetCtx(), real);
-  ResourceId id = GetResourceManager()->RegisterResource(res);
+  ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
   if(IsCaptureMode(m_State))
   {
@@ -975,7 +974,8 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
 
     GLResource res = ProgramRes(GetCtx(), real);
 
-    ResourceId liveId = m_ResourceManager->RegisterResource(res);
+    ResourceId liveId = m_ResourceManager->RegisterResource(Program, res);
+    GetResourceManager()->AddLiveResource(Program, res);
 
     WrappedOpenGL::ProgramData &progDetails = m_Programs[liveId];
 
@@ -990,8 +990,6 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
     shadDetails.sources.swap(src);
 
     shadDetails.ProcessCompilation(*this, Program, 0);
-
-    GetResourceManager()->AddLiveResource(Program, res);
 
     AddResource(Program, ResourceType::StateObject, "Program");
   }
@@ -1008,7 +1006,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
     return real;
 
   GLResource res = ProgramRes(GetCtx(), real);
-  ResourceId id = GetResourceManager()->RegisterResource(res);
+  ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
   if(IsCaptureMode(m_State))
   {
@@ -1062,11 +1060,10 @@ bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint progra
 
     GLResource res = ProgramRes(GetCtx(), real);
 
-    ResourceId liveId = m_ResourceManager->RegisterResource(res);
+    ResourceId liveId = m_ResourceManager->RegisterResource(Program, res);
+    GetResourceManager()->AddLiveResource(Program, res);
 
     m_Programs[liveId].linked = false;
-
-    GetResourceManager()->AddLiveResource(Program, res);
 
     AddResource(Program, ResourceType::StateObject, "Program");
   }
@@ -1080,7 +1077,7 @@ GLuint WrappedOpenGL::glCreateProgram()
   SERIALISE_TIME_CALL(real = GL.glCreateProgram());
 
   GLResource res = ProgramRes(GetCtx(), real);
-  ResourceId id = GetResourceManager()->RegisterResource(res);
+  ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
   if(IsCaptureMode(m_State))
   {
@@ -1931,7 +1928,7 @@ bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei
 
     GLResource res = ProgramPipeRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(pipeline, res);
     GetResourceManager()->AddLiveResource(pipeline, res);
 
     AddResource(pipeline, ResourceType::StateObject, "Pipeline");
@@ -1947,7 +1944,7 @@ void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -1991,7 +1988,7 @@ bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsi
 
     GLResource res = ProgramPipeRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(pipeline, res);
     GetResourceManager()->AddLiveResource(pipeline, res);
 
     AddResource(pipeline, ResourceType::StateObject, "Pipeline");
@@ -2007,7 +2004,7 @@ void WrappedOpenGL::glCreateProgramPipelines(GLsizei n, GLuint *pipelines)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {

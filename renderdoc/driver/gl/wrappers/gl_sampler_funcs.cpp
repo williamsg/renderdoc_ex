@@ -50,7 +50,7 @@ bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLui
 
     GLResource res = SamplerRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(sampler, res);
     GetResourceManager()->AddLiveResource(sampler, res);
 
     AddResource(sampler, ResourceType::Sampler, "Sampler");
@@ -66,7 +66,7 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
   for(GLsizei i = 0; i < count; i++)
   {
     GLResource res = SamplerRes(GetCtx(), samplers[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -108,7 +108,7 @@ bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, G
 
     GLResource res = SamplerRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(sampler, res);
     GetResourceManager()->AddLiveResource(sampler, res);
 
     AddResource(sampler, ResourceType::Sampler, "Sampler");
@@ -124,7 +124,7 @@ void WrappedOpenGL::glCreateSamplers(GLsizei count, GLuint *samplers)
   for(GLsizei i = 0; i < count; i++)
   {
     GLResource res = SamplerRes(GetCtx(), samplers[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {

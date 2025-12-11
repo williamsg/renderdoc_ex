@@ -69,18 +69,15 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
       GL.glDeleteSync(oldSyncObj);
 
       GetResourceManager()->UnregisterResource(res);
-      GetResourceManager()->EraseLiveResource(sync);
     }
 
     real = GL.glFenceSync(condition, flags);
 
     GLuint name = 0;
-    ResourceId liveid = ResourceId();
-    GetResourceManager()->RegisterSync(GetCtx(), real, name, liveid);
+    GetResourceManager()->RegisterSync(sync, GetCtx(), real, name);
 
     GLResource res = SyncRes(GetCtx(), name);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(sync, res);
 
     AddResource(sync, ResourceType::Sync, "Sync");
@@ -95,8 +92,7 @@ GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
   SERIALISE_TIME_CALL(sync = GL.glFenceSync(condition, flags));
 
   GLuint name = 0;
-  ResourceId id = ResourceId();
-  GetResourceManager()->RegisterSync(GetCtx(), sync, name, id);
+  ResourceId id = GetResourceManager()->RegisterSync(ResourceId(), GetCtx(), sync, name);
   GLResource res = SyncRes(GetCtx(), name);
 
   if(IsActiveCapturing(m_State))
@@ -216,7 +212,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
 
     GLResource res = QueryRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(query, res);
     GetResourceManager()->AddLiveResource(query, res);
 
     AddResource(query, ResourceType::Query, "Query");
@@ -232,7 +228,7 @@ void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
   for(GLsizei i = 0; i < count; i++)
   {
     GLResource res = QueryRes(GetCtx(), ids[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
@@ -276,7 +272,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
 
     GLResource res = QueryRes(GetCtx(), real);
 
-    ResourceId live = m_ResourceManager->RegisterResource(res);
+    ResourceId live = m_ResourceManager->RegisterResource(query, res);
     GetResourceManager()->AddLiveResource(query, res);
 
     AddResource(query, ResourceType::Query, "Query");
@@ -292,7 +288,7 @@ void WrappedOpenGL::glCreateQueries(GLenum target, GLsizei count, GLuint *ids)
   for(GLsizei i = 0; i < count; i++)
   {
     GLResource res = QueryRes(GetCtx(), ids[i]);
-    ResourceId id = GetResourceManager()->RegisterResource(res);
+    ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), res);
 
     if(IsCaptureMode(m_State))
     {
