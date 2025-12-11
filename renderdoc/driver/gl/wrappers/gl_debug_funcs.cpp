@@ -226,8 +226,8 @@ void WrappedOpenGL::glObjectPtrLabel(const void *ptr, GLsizei length, const GLch
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     ResourceId id = GetResourceManager()->GetSyncID((GLsync)ptr);
-    Serialise_glObjectLabel(ser, eGL_SYNC_FENCE, GetResourceManager()->GetCurrentResource(id).name,
-                            length, label);
+    Serialise_glObjectLabel(ser, eGL_SYNC_FENCE, GetResourceManager()->GetResource(id).name, length,
+                            label);
 
     GetResourceManager()->SetName(id, DecodeLabel(length, label));
 

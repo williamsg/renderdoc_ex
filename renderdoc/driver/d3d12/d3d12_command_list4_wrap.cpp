@@ -735,7 +735,7 @@ bool WrappedID3D12GraphicsCommandList::ProcessASBuildAfterSubmission(
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  WrappedID3D12Resource *dstASB = rm->GetCurrentAs<WrappedID3D12Resource>(destASBId);
+  WrappedID3D12Resource *dstASB = rm->GetResAs<WrappedID3D12Resource>(destASBId);
 
   // unconditionally create a new AS at this location, never allow re-use even in the case of
   // in-place update builds. This makes it easier to track ASs and we will not run out of
@@ -806,7 +806,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
         WrappedID3D12Resource::GetResIDFromAddr(accStructInput.Inputs.InstanceDescs);
 
     ID3D12Resource *instanceResource =
-        GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(instanceResourceId)->GetReal();
+        GetResourceManager()->GetResAs<WrappedID3D12Resource>(instanceResourceId)->GetReal();
     D3D12_GPU_VIRTUAL_ADDRESS instanceGpuAddress = instanceResource->GetGPUVirtualAddress();
     uint64_t instanceResOffset = accStructInput.Inputs.InstanceDescs - instanceGpuAddress;
 
@@ -1025,7 +1025,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
                                               destASBId, destASBOffset);
 
       WrappedID3D12Resource *destASB =
-          GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(destASBId);
+          GetResourceManager()->GetResAs<WrappedID3D12Resource>(destASBId);
 
       RDCASSERT(destASB->GetAccStructIfExist(destASBOffset, &accStructAtDstOffset));
     }
@@ -1187,7 +1187,7 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
       WrappedID3D12Resource::GetResIDFromAddr(duplicateDest, destID, destOffs);
 
       ID3D12Resource *destRes =
-          GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(destID)->GetReal();
+          GetResourceManager()->GetResAs<WrappedID3D12Resource>(destID)->GetReal();
 
       ResourceId sourceID;
       D3D12BufferOffset sourceOffs;
@@ -1195,7 +1195,7 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
       WrappedID3D12Resource::GetResIDFromAddr(duplicateSource, sourceID, sourceOffs);
 
       ID3D12Resource *sourceRes =
-          GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(sourceID)->GetReal();
+          GetResourceManager()->GetResAs<WrappedID3D12Resource>(sourceID)->GetReal();
 
       RDCCOMPILE_ASSERT(
           sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_CURRENT_SIZE_DESC) ==
@@ -1252,17 +1252,17 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     // restore state that might have been mutated by the copying process
     if(m_CaptureComputeState.compute.rootsig != ResourceId())
     {
-      m_pList4->SetComputeRootSignature(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(
+      m_pList4->SetComputeRootSignature(Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(
           m_CaptureComputeState.compute.rootsig)));
       m_CaptureComputeState.ApplyComputeRootElementsUnwrapped(m_pList);
     }
 
     if(m_CaptureComputeState.stateobj != ResourceId())
-      m_pList4->SetPipelineState1(Unwrap(
-          GetResourceManager()->GetCurrentAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
+      m_pList4->SetPipelineState1(
+          Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
     else if(m_CaptureComputeState.pipe != ResourceId())
-      m_pList4->SetPipelineState(Unwrap(
-          GetResourceManager()->GetCurrentAs<ID3D12PipelineState>(m_CaptureComputeState.pipe)));
+      m_pList4->SetPipelineState(
+          Unwrap(GetResourceManager()->GetResAs<ID3D12PipelineState>(m_CaptureComputeState.pipe)));
 
     ResourceId asbWrappedResourceId;
     D3D12BufferOffset asbWrappedResourceBufferOffset;
@@ -1636,7 +1636,7 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
         D3D12AccelerationStructure *accStructAtSrcOffset = NULL;
 
         WrappedID3D12Resource *srcASB =
-            GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(srcASBId);
+            GetResourceManager()->GetResAs<WrappedID3D12Resource>(srcASBId);
 
         // get the source AS, we should have this and can't proceed without it to give us the size
         if(!srcASB->GetAccStructIfExist(srcASBOffset, &accStructAtSrcOffset))
@@ -1689,7 +1689,7 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
 
             D3D12AccelerationStructure *accStructAtSrcOffset = NULL;
 
-            WrappedID3D12Resource *srcASB = resManager->GetCurrentAs<WrappedID3D12Resource>(srcASBId);
+            WrappedID3D12Resource *srcASB = resManager->GetResAs<WrappedID3D12Resource>(srcASBId);
 
             // get the source AS, we should have this and can't proceed without it to give us the size
             if(!srcASB->GetAccStructIfExist(srcASBOffset, &accStructAtSrcOffset))
@@ -1838,9 +1838,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
 
         // restore state that would have been mutated by the patching process
         Unwrap4(list)->SetComputeRootSignature(
-            Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)));
+            Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
         Unwrap4(list)->SetPipelineState1(
-            Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
+            Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
         state.ApplyComputeRootElementsUnwrapped(Unwrap4(list));
 
         m_Cmd->m_RayDispatches.push_back(std::move(patchedDispatch));
@@ -1864,11 +1864,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
 
       // restore state that would have been mutated by the patching process
       Unwrap4(pCommandList)
-          ->SetComputeRootSignature(Unwrap(
-              GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)));
+          ->SetComputeRootSignature(
+              Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
       Unwrap4(pCommandList)
           ->SetPipelineState1(
-              Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
+              Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
       state.ApplyComputeRootElementsUnwrapped(Unwrap4(pCommandList));
 
       m_Cmd->m_RayDispatches.push_back(patchedDispatch);
@@ -1900,10 +1900,10 @@ void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RA
       m_pList4, m_CaptureComputeState.heaps, *pDesc);
 
   // restore state that would have been mutated by the patching process
-  m_pList4->SetComputeRootSignature(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(
-      m_CaptureComputeState.compute.rootsig)));
+  m_pList4->SetComputeRootSignature(Unwrap(
+      GetResourceManager()->GetResAs<ID3D12RootSignature>(m_CaptureComputeState.compute.rootsig)));
   m_pList4->SetPipelineState1(
-      Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
+      Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
   m_CaptureComputeState.ApplyComputeRootElementsUnwrapped(m_pList);
 
   SERIALISE_TIME_CALL(m_pList4->DispatchRays(&patchedDispatch.desc));

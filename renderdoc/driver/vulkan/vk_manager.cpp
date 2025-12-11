@@ -312,7 +312,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
     }
     else
     {
-      bool hasLiveRes = HasLiveResource(Image);
+      bool hasLiveRes = HasResource(Image);
 
       ImageState imageState;
 
@@ -538,7 +538,7 @@ bool VulkanResourceManager::Serialise_ImageRefs(ReadSerialiser &ser,
     // unpack data into states
     for(auto it = data.begin(); it != data.end(); ++it)
     {
-      if(!HasLiveResource(it->image))
+      if(!HasResource(it->image))
         continue;
 
       auto stit = states.find(it->image);
@@ -881,7 +881,7 @@ void VulkanResourceManager::RecordBarriers(rdcflatmap<ResourceId, ImageState> &s
 
 ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
 {
-  for(auto it = m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
+  for(auto it = m_ResourceMap.begin(); it != m_ResourceMap.end(); ++it)
   {
     WrappedVkRes *res = it->second;
 
@@ -1025,14 +1025,14 @@ bool VulkanResourceManager::Serialise_InitialState(WriteSerialiser &ser, Resourc
   return m_Core->Serialise_InitialState(ser, id, record, initial);
 }
 
-void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)
+void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *res, bool hasData)
 {
-  return m_Core->Create_InitialState(id, live, hasData);
+  return m_Core->Create_InitialState(id, res, hasData);
 }
 
-void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, VkInitialContents &initial)
+void VulkanResourceManager::Apply_InitialState(WrappedVkRes *res, VkInitialContents &initial)
 {
-  return m_Core->Apply_InitialState(live, initial);
+  return m_Core->Apply_InitialState(res, initial);
 }
 
 rdcarray<ResourceId> VulkanResourceManager::InitialContentResources()

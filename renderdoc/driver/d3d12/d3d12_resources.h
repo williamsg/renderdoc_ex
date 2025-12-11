@@ -96,7 +96,7 @@ protected:
         RDCERR("Error adding wrapper for type %s", ToStr(__uuidof(NestedType)).c_str());
     }
 
-    m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+    m_pDevice->GetResourceManager()->AddResource(GetResourceID(), this);
   }
 
   void Shutdown()
@@ -104,7 +104,7 @@ protected:
     if(m_pReal)
       m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
 
-    m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
+    m_pDevice->GetResourceManager()->ReleaseResource(GetResourceID());
     m_pDevice->ReleaseResource((NestedType *)this);
     SAFE_RELEASE(m_pReal);
     m_pDevice = NULL;
@@ -889,7 +889,7 @@ public:
       m_DXBCFile = NULL;
       m_Details = new ShaderReflection;
 
-      device->GetResourceManager()->AddLiveResource(GetResourceID(), this);
+      device->GetResourceManager()->TakeResourceOwnership(this);
 
       if(!m_InternalResources)
       {

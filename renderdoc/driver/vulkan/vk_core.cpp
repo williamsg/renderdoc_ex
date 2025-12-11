@@ -2821,7 +2821,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     else if(VRBackbufferRecord)
     {
       RDCASSERT(VRBackbufferRecord->resInfo);
-      backbuffer = GetResourceManager()->GetCurrentHandle<VkImage>(m_CurrentVRBackbuffer);
+      backbuffer = GetResourceManager()->GetHandle<VkImage>(m_CurrentVRBackbuffer);
       swapImageInfo = &VRBackbufferRecord->resInfo->imageInfo;
       swapQueueIndex = m_QueueFamilyIdx;
       swapLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -3775,10 +3775,10 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
         VkDebugUtilsObjectNameInfoEXT name = {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT};
         name.pObjectName = it->second.c_str();
 
-        if(!GetResourceManager()->HasCurrentResource(it->first))
+        if(!GetResourceManager()->HasResource(it->first))
           continue;
 
-        WrappedVkRes *res = GetResourceManager()->GetCurrentResource(it->first);
+        WrappedVkRes *res = GetResourceManager()->GetResource(it->first);
 
         if(res)
         {
@@ -4097,7 +4097,7 @@ void WrappedVulkan::ApplyInitialContents()
 
   for(auto it = m_ImageStates.begin(); it != m_ImageStates.end(); ++it)
   {
-    if(GetResourceManager()->HasCurrentResource(it->first))
+    if(GetResourceManager()->HasResource(it->first))
     {
       it->second.LockWrite()->ResetToOldState(m_cleanupImageBarriers, GetImageTransitionInfo());
     }
@@ -4242,7 +4242,7 @@ void WrappedVulkan::CopyInternalDescriptor(VkCommandBuffer unwrappedCmdBuf, VkBu
 
   for(ResourceId id : m_ResourceDescBuffers)
   {
-    VkBuffer dst = Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(id));
+    VkBuffer dst = Unwrap(GetResourceManager()->GetHandle<VkBuffer>(id));
     bufCopy.dstOffset = m_CreationInfo.m_Buffer[id].size;
 
     ObjDisp(m_Device)->CmdCopyBuffer(unwrappedCmdBuf, unwrappedSrc, dst, 1, &bufCopy);

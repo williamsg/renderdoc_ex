@@ -137,7 +137,7 @@ protected:
     if(!ret)
       RDCERR("Error adding wrapper for type %s", ToStr(__uuidof(NestedType)).c_str());
 
-    m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+    m_pDevice->GetResourceManager()->AddResource(GetResourceID(), this);
   }
 
   virtual ~WrappedDeviceChild11()

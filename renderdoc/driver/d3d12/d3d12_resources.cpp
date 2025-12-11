@@ -487,7 +487,7 @@ void WrappedID3D12Resource::GetMappableIDs(D3D12ResourceManager *rm,
   {
     if(refdIDs.find(id) != refdIDs.end())
     {
-      WrappedID3D12Resource *resource = (WrappedID3D12Resource *)rm->GetCurrentResource(id);
+      WrappedID3D12Resource *resource = (WrappedID3D12Resource *)rm->GetResource(id);
       mappableIDs.insert(resource->GetMappableID());
     }
   }
@@ -501,7 +501,7 @@ rdcarray<ID3D12Resource *> WrappedID3D12Resource::AddRefBuffersBeforeCapture(D3D
 
   for(size_t i = 0; i < addresses.size(); i++)
   {
-    ID3D12Resource *resource = (ID3D12Resource *)rm->GetCurrentResource(addresses[i].id);
+    ID3D12Resource *resource = (ID3D12Resource *)rm->GetResource(addresses[i].id);
     if(resource)
     {
       resource->AddRef();

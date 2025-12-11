@@ -114,8 +114,8 @@ void DoSerialiseViaResourceId(SerialiserType &ser, Interface *&el)
 
   if(ser.IsReading() && !ser.IsStructurising())
   {
-    if(id != ResourceId() && rm && rm->HasLiveResource(id))
-      el = rm->GetLiveAs<Interface>(id);
+    if(id != ResourceId() && rm && rm->HasResource(id))
+      el = rm->GetResAs<Interface>(id);
     else
       el = NULL;
   }
@@ -342,8 +342,8 @@ void DoSerialise(SerialiserType &ser, D3D12BufferLocation &el)
 
   if(ser.IsReading() && !ser.IsStructurising())
   {
-    if(rm && buffer != ResourceId() && rm->HasLiveResource(buffer))
-      el.Location = rm->GetLiveAs<ID3D12Resource>(buffer)->GetGPUVirtualAddress() + offs;
+    if(rm && buffer != ResourceId() && rm->HasResource(buffer))
+      el.Location = rm->GetResAs<ID3D12Resource>(buffer)->GetGPUVirtualAddress() + offs;
     else
       ser.ClearObj(el.Location);
   }
@@ -372,7 +372,7 @@ void DoSerialise(SerialiserType &ser, D3D12ASLocation &el, bool useSideband)
     else
     {
       // otherwise query from the resource for the current AS there, if one exists
-      WrappedID3D12Resource *res = rm ? rm->GetCurrentAs<WrappedID3D12Resource>(buffer) : NULL;
+      WrappedID3D12Resource *res = rm ? rm->GetResAs<WrappedID3D12Resource>(buffer) : NULL;
       if(res)
       {
         D3D12AccelerationStructure *as = NULL;
@@ -408,10 +408,10 @@ void DoSerialise(SerialiserType &ser, D3D12ASLocation &el, bool useSideband)
 
   if(ser.IsReading() && !ser.IsStructurising())
   {
-    if(rm && asId != ResourceId() && rm->HasLiveResource(asId))
-      el.Location = rm->GetLiveAs<D3D12AccelerationStructure>(asId)->GetVirtualAddress();
-    else if(rm && buffer != ResourceId() && rm->HasLiveResource(buffer))
-      el.Location = rm->GetLiveAs<ID3D12Resource>(buffer)->GetGPUVirtualAddress() + offs;
+    if(rm && asId != ResourceId() && rm->HasResource(asId))
+      el.Location = rm->GetResAs<D3D12AccelerationStructure>(asId)->GetVirtualAddress();
+    else if(rm && buffer != ResourceId() && rm->HasResource(buffer))
+      el.Location = rm->GetResAs<ID3D12Resource>(buffer)->GetGPUVirtualAddress() + offs;
     else
       ser.ClearObj(el.Location);
   }

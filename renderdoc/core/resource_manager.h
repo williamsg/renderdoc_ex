@@ -576,11 +576,11 @@ public:
   inline void RemoveResourceRecord(ResourceId id);
   void DestroyResourceRecord(ResourceRecord *record);
 
-  // while capturing or replaying, resources and their live IDs
-  void AddCurrentResource(ResourceId id, WrappedResourceType res);
-  bool HasCurrentResource(ResourceId id);
-  WrappedResourceType GetCurrentResource(ResourceId id);
-  void ReleaseCurrentResource(ResourceId id);
+  // while capturing or replaying, resources and their IDs
+  void AddResource(ResourceId id, WrappedResourceType res);
+  bool HasResource(ResourceId id);
+  WrappedResourceType GetResource(ResourceId id, bool optional = false);
+  void ReleaseResource(ResourceId id);
 
   // insert the chunks for the resources referenced in the frame
   void InsertReferencedChunks(WriteSerialiser &ser);
@@ -632,11 +632,8 @@ public:
   ///////////////////////////////////////////
   // Replay-side methods
 
-  // Live resources to replace serialised IDs
-  void AddLiveResource(ResourceId id, WrappedResourceType livePtr);
-  bool HasLiveResource(ResourceId id);
-  WrappedResourceType GetLiveResource(ResourceId id, bool optional = false);
-  void EraseLiveResource(ResourceId id);
+  // resources which are owned by the resource manager and so automatically released on shutdown
+  void TakeResourceOwnership(WrappedResourceType res);
 
   // when asked for a given id, return the resource for a replacement id
   void ReplaceResource(ResourceId from, ResourceId to);
@@ -690,8 +687,8 @@ protected:
   virtual uint64_t GetSize_InitialState(ResourceId id, const InitialContentData &initial) = 0;
   virtual bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, RecordType *record,
                                       const InitialContentData *initialData) = 0;
-  virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
-  virtual void Apply_InitialState(WrappedResourceType live, InitialContentData &initial) = 0;
+  virtual void Create_InitialState(ResourceId id, WrappedResourceType res, bool hasData) = 0;
+  virtual void Apply_InitialState(WrappedResourceType res, InitialContentData &initial) = 0;
   virtual rdcarray<ResourceId> InitialContentResources();
 
   void UpdateLastWriteTime(ResourceId id, FrameRefType refType);
@@ -743,12 +740,12 @@ protected:
   // used during capture or replay - holds initial contents
   std::unordered_map<ResourceId, InitialContentStorage> m_InitialContents;
 
-  // used during capture or replay - map of resources currently alive with their real IDs, used in
+  // used during capture or replay - map of resources currently alive from their IDs, used in
   // capture and replay.
-  std::unordered_map<ResourceId, WrappedResourceType> m_CurrentResourceMap;
+  std::unordered_map<ResourceId, WrappedResourceType> m_ResourceMap;
 
-  // used during replay - holds resources allocated for replay
-  std::unordered_map<ResourceId, WrappedResourceType> m_LiveResourceMap;
+  // used during replay - holds resources allocated for replay which should be automatically destroyed on shutdown
+  rdcarray<WrappedResourceType> m_OwnedResources;
 
   // used during capture - holds resource records by id.
   std::unordered_map<ResourceId, RecordType *> m_ResourceRecords;
@@ -812,15 +809,13 @@ void ResourceManager<Configuration>::Shutdown()
 {
   FreeInitialContents();
 
-  while(!m_LiveResourceMap.empty())
+  while(!m_OwnedResources.empty())
   {
-    auto it = m_LiveResourceMap.begin();
-    ResourceId id = it->first;
-    ResourceTypeRelease(it->second);
+    WrappedResourceType it = m_OwnedResources.back();
+    ResourceTypeRelease(it);
 
-    auto removeit = m_LiveResourceMap.find(id);
-    if(removeit != m_LiveResourceMap.end())
-      m_LiveResourceMap.erase(removeit);
+    if(it == m_OwnedResources.back())
+      m_OwnedResources.pop_back();
   }
 
   RDCASSERT(m_ResourceRecords.empty());
@@ -829,7 +824,7 @@ void ResourceManager<Configuration>::Shutdown()
 template <typename Configuration>
 ResourceManager<Configuration>::~ResourceManager()
 {
-  RDCASSERT(m_LiveResourceMap.empty());
+  RDCASSERT(m_OwnedResources.empty());
   RDCASSERT(m_InitialContents.empty());
   RDCASSERT(m_ResourceRecords.empty());
 
@@ -1134,7 +1129,7 @@ void ResourceManager<Configuration>::Prepare_InitialStateIfPostponed(ResourceId 
     Begin_PrepareInitialBatch();
   }
 
-  WrappedResourceType res = GetCurrentResource(id);
+  WrappedResourceType res = GetResource(id);
   Prepare_InitialState(res);
 
   if(midframe)
@@ -1168,7 +1163,7 @@ void ResourceManager<Configuration>::SkipOrPostponeOrPrepare_InitialState(Resour
 
   // If this resource is only being read, we might as well try to
   // postpone it to conserve memory consumption.
-  if(!IsDirtyFrameRef(refType) && IsResourceTrackedForPersistency(GetCurrentResource(id)))
+  if(!IsDirtyFrameRef(refType) && IsResourceTrackedForPersistency(GetResource(id)))
   {
     m_PostponedResourceIDs.insert(id);
     RDCDEBUG("Resource %s converted from skipped to postponed on refType of %s", ToStr(id).c_str(),
@@ -1177,7 +1172,7 @@ void ResourceManager<Configuration>::SkipOrPostponeOrPrepare_InitialState(Resour
   }
   else
   {
-    WrappedResourceType res = GetCurrentResource(id);
+    WrappedResourceType res = GetResource(id);
     RDCDEBUG("Preparing resource %s after it has been skipped on refType of %s", ToStr(id).c_str(),
              ToStr(refType).c_str());
     Begin_PrepareInitialBatch();
@@ -1296,7 +1291,7 @@ inline bool ResourceManager<Configuration>::ShouldPostpone(ResourceId id)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  WrappedResourceType res = GetCurrentResource(id);
+  WrappedResourceType res = GetResource(id);
 
   if(!IsResourceTrackedForPersistency(res))
     return false;
@@ -1309,7 +1304,7 @@ inline bool ResourceManager<Configuration>::ShouldSkip(ResourceId id)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  WrappedResourceType res = GetCurrentResource(id);
+  WrappedResourceType res = GetResource(id);
 
   if(!IsResourceTrackedForPersistency(res))
     return false;
@@ -1335,8 +1330,8 @@ void ResourceManager<Configuration>::CreateInitialContents(ReadSerialiser &ser)
 
     // if this resource exists and we don't have initial contents for it serialised, create some for
     // reset purposes.
-    if(HasLiveResource(id) && m_InitialContents.find(id) == m_InitialContents.end())
-      Create_InitialState(id, GetLiveResource(id), wr.written);
+    if(HasResource(id) && m_InitialContents.find(id) == m_InitialContents.end())
+      Create_InitialState(id, GetResource(id), wr.written);
   }
 
   // any initial contents that we ended up with which we don't need can be freed now
@@ -1366,7 +1361,7 @@ void ResourceManager<Configuration>::ApplyInitialContents()
   {
     ResourceId id = *it;
     InitialContentStorage &data = m_InitialContents[id];
-    WrappedResourceType live = GetLiveResource(id);
+    WrappedResourceType live = GetResource(id);
     Apply_InitialState(live, data.data);
   }
   RDCDEBUG("Applied %d", (uint32_t)resources.size());
@@ -1380,7 +1375,7 @@ rdcarray<ResourceId> ResourceManager<Configuration>::InitialContentResources()
   {
     ResourceId id = it->first;
 
-    if(IsCaptureMode(m_State) || HasLiveResource(id))
+    if(IsCaptureMode(m_State) || HasResource(id))
     {
       resources.push_back(id);
     }
@@ -1474,11 +1469,11 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     // if somehow this resource has been deleted but is still dirty, we can't prepare it. Resources
     // deleted prior to beginning the frame capture cannot linger and be needed - we only need to
     // care about resources deleted after this point (mid-capture)
-    if(!HasCurrentResource(id))
+    if(!HasResource(id))
       continue;
 
     RecordType *record = GetResourceRecord(id);
-    WrappedResourceType res = GetCurrentResource(id);
+    WrappedResourceType res = GetResource(id);
 
     // don't prepare internal resources, or those without a record
     if(record == NULL || record->InternalResource)
@@ -1683,7 +1678,7 @@ void ResourceManager<Configuration>::ReplaceResource(ResourceId from, ResourceId
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  if(HasLiveResource(to))
+  if(HasResource(to))
   {
     m_Replacements[from] = to;
     m_Replaced[to] = from;
@@ -1835,42 +1830,16 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetW
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::AddLiveResource(ResourceId id, WrappedResourceType livePtr)
+void ResourceManager<Configuration>::TakeResourceOwnership(WrappedResourceType res)
 {
-  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
+  RDCASSERT(!m_Capturing);
 
-  if(id == ResourceId() || livePtr == (WrappedResourceType)RecordType::NullResource)
-  {
-    RDCERR("Invalid state adding resource mapping - id is invalid or live pointer is NULL");
-  }
-
-  RDCASSERT(id == GetID(livePtr));
-
-  if(m_LiveResourceMap.find(id) != m_LiveResourceMap.end())
-  {
-    RDCERR("Releasing live resource for duplicate creation: %s", ToStr(id).c_str());
-    ResourceTypeRelease(m_LiveResourceMap[id]);
-    m_LiveResourceMap.erase(id);
-  }
-
-  m_LiveResourceMap[id] = livePtr;
+  m_OwnedResources.push_back(res);
 }
 
 template <typename Configuration>
-bool ResourceManager<Configuration>::HasLiveResource(ResourceId id)
-{
-  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
-
-  if(id == ResourceId())
-    return false;
-
-  return (m_Replacements.find(id) != m_Replacements.end() ||
-          m_LiveResourceMap.find(id) != m_LiveResourceMap.end());
-}
-
-template <typename Configuration>
-typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetLiveResource(
-    ResourceId id, bool optional)
+typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetResource(ResourceId id,
+                                                                                        bool optional)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
@@ -1880,19 +1849,19 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetL
 #if DISABLED(RDOC_RELEASE)
   if(!optional)
   {
-    RDCASSERT(HasLiveResource(id), id);
+    RDCASSERT(HasResource(id), id);
   }
 #endif
 
   {
     auto it = m_Replacements.find(id);
     if(it != m_Replacements.end())
-      return GetLiveResource(it->second);
+      id = it->second;
   }
 
   {
-    auto it = m_LiveResourceMap.find(id);
-    if(it != m_LiveResourceMap.end())
+    auto it = m_ResourceMap.find(id);
+    if(it != m_ResourceMap.end())
       return it->second;
   }
 
@@ -1900,48 +1869,29 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetL
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::EraseLiveResource(ResourceId id)
+void ResourceManager<Configuration>::AddResource(ResourceId id, WrappedResourceType res)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  RDCASSERT(HasLiveResource(id), id);
+  RDCASSERT(m_ResourceMap.find(id) == m_ResourceMap.end());
 
-  m_LiveResourceMap.erase(id);
+  m_ResourceMap[id] = res;
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::AddCurrentResource(ResourceId id, WrappedResourceType res)
-{
-  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
-
-  m_CurrentResourceMap[id] = res;
-}
-
-template <typename Configuration>
-bool ResourceManager<Configuration>::HasCurrentResource(ResourceId id)
-{
-  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
-
-  return m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end();
-}
-
-template <typename Configuration>
-typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetCurrentResource(
-    ResourceId id)
+bool ResourceManager<Configuration>::HasResource(ResourceId id)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   if(id == ResourceId())
-    return (WrappedResourceType)RecordType::NullResource;
+    return false;
 
-  if(m_Replacements.find(id) != m_Replacements.end())
-    return GetCurrentResource(m_Replacements[id]);
-
-  return m_CurrentResourceMap[id];
+  return m_Replacements.find(id) != m_Replacements.end() ||
+         m_ResourceMap.find(id) != m_ResourceMap.end();
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
+void ResourceManager<Configuration>::ReleaseResource(ResourceId id)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
@@ -1950,7 +1900,12 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
   if(IsActiveCapturing(m_State))
     Prepare_InitialStateIfPostponed(id, true);
 
-  m_CurrentResourceMap.erase(id);
+  {
+    auto it = m_ResourceMap.find(id);
+    m_OwnedResources.removeOne(it->second);
+    m_ResourceMap.erase(it);
+  }
+
   m_DirtyResources.erase(id);
 
   auto it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);

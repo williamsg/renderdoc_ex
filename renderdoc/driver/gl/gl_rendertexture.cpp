@@ -370,10 +370,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
 
   GLuint customProgram = 0;
 
-  if(cfg.customShaderId != ResourceId() &&
-     drv.GetResourceManager()->HasCurrentResource(cfg.customShaderId))
+  if(cfg.customShaderId != ResourceId() && drv.GetResourceManager()->HasResource(cfg.customShaderId))
   {
-    GLuint customShader = drv.GetResourceManager()->GetCurrentResource(cfg.customShaderId).name;
+    GLuint customShader = drv.GetResourceManager()->GetResource(cfg.customShaderId).name;
 
     customProgram = drv.glCreateProgram();
 

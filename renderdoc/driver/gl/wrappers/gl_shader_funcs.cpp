@@ -614,7 +614,7 @@ bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLenum type, G
     GLResource res = ShaderRes(GetCtx(), real);
 
     ResourceId id = GetResourceManager()->RegisterResource(Shader, res);
-    GetResourceManager()->AddLiveResource(Shader, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     m_Shaders[id].type = type;
 
@@ -651,7 +651,7 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
   }
   else
   {
-    GetResourceManager()->AddLiveResource(id, res);
+    GetResourceManager()->TakeResourceOwnership(res);
   }
 
   m_Shaders[id].type = type;
@@ -809,7 +809,7 @@ void WrappedOpenGL::glDeleteShader(GLuint shader)
   GL.glDeleteShader(shader);
 
   GLResource res = ShaderRes(GetCtx(), shader);
-  if(GetResourceManager()->HasCurrentResource(res))
+  if(GetResourceManager()->HasResource(res))
   {
     if(GetResourceManager()->HasResourceRecord(res))
       GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
@@ -905,8 +905,8 @@ bool WrappedOpenGL::Serialise_glDetachShader(SerialiserType &ser, GLuint program
       }
     }
 
-    GL.glDetachShader(GetResourceManager()->GetLiveResource(progid).name,
-                      GetResourceManager()->GetLiveResource(shadid).name);
+    GL.glDetachShader(GetResourceManager()->GetResource(progid).name,
+                      GetResourceManager()->GetResource(shadid).name);
     */
   }
 
@@ -921,7 +921,7 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
   {
     // check that shader still exists, it might have been deleted. If it has, it's not too important
     // that we detach the shader (only important if the program will attach it elsewhere).
-    if(IsCaptureMode(m_State) && GetResourceManager()->HasCurrentResource(ShaderRes(GetCtx(), shader)))
+    if(IsCaptureMode(m_State) && GetResourceManager()->HasResource(ShaderRes(GetCtx(), shader)))
     {
       GLResourceRecord *progRecord =
           GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
@@ -974,7 +974,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
     GLResource res = ProgramRes(GetCtx(), real);
 
     ResourceId id = m_ResourceManager->RegisterResource(Program, res);
-    GetResourceManager()->AddLiveResource(Program, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     WrappedOpenGL::ProgramData &progDetails = m_Programs[id];
 
@@ -1060,7 +1060,7 @@ bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint progra
     GLResource res = ProgramRes(GetCtx(), real);
 
     ResourceId id = m_ResourceManager->RegisterResource(Program, res);
-    GetResourceManager()->AddLiveResource(Program, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     m_Programs[id].linked = false;
 
@@ -1101,7 +1101,7 @@ GLuint WrappedOpenGL::glCreateProgram()
   }
   else
   {
-    GetResourceManager()->AddLiveResource(id, res);
+    GetResourceManager()->TakeResourceOwnership(res);
   }
 
   m_Programs[id].linked = false;
@@ -1613,7 +1613,7 @@ void WrappedOpenGL::glDeleteProgram(GLuint program)
   GL.glDeleteProgram(program);
 
   GLResource res = ProgramRes(GetCtx(), program);
-  if(GetResourceManager()->HasCurrentResource(res))
+  if(GetResourceManager()->HasResource(res))
   {
     m_Programs.erase(GetResourceManager()->GetResID(res));
 
@@ -1928,7 +1928,7 @@ bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei
     GLResource res = ProgramPipeRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(pipeline, res);
-    GetResourceManager()->AddLiveResource(pipeline, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(pipeline, ResourceType::StateObject, "Pipeline");
   }
@@ -1964,7 +1964,7 @@ void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -1988,7 +1988,7 @@ bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsi
     GLResource res = ProgramPipeRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(pipeline, res);
-    GetResourceManager()->AddLiveResource(pipeline, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(pipeline, ResourceType::StateObject, "Pipeline");
   }
@@ -2024,7 +2024,7 @@ void WrappedOpenGL::glCreateProgramPipelines(GLsizei n, GLuint *pipelines)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -2124,7 +2124,7 @@ void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
         cd->second.m_ProgramPipeline = 0;
     }
 
-    if(GetResourceManager()->HasCurrentResource(res))
+    if(GetResourceManager()->HasResource(res))
     {
       m_Pipelines.erase(GetResourceManager()->GetResID(res));
 

@@ -190,7 +190,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
 
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[cfg.resourceId];
   TextureDisplayViews &texviews = m_TexRender.TextureViews[cfg.resourceId];
-  VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.resourceId);
+  VkImage liveIm = m_pDriver->GetResourceManager()->GetHandle<VkImage>(cfg.resourceId);
 
   CreateTexImageView(liveIm, iminfo, cfg.typeCast, texviews);
 

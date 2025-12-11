@@ -149,7 +149,7 @@ GLuint RefreshUniforms(WrappedOpenGL *driver, GLRenderState &rs, GLuint dstProgr
     const WrappedOpenGL::PipelineData &pipeDetails = driver->GetPipeline(id);
 
     srcProgram = driver->GetResourceManager()
-                     ->GetCurrentResource(pipeDetails.stagePrograms[(size_t)ShaderStage::Pixel])
+                     ->GetResource(pipeDetails.stagePrograms[(size_t)ShaderStage::Pixel])
                      .name;
   }
 
@@ -608,7 +608,7 @@ bool PixelHistorySetupResources(WrappedOpenGL *driver, GLPixelHistoryResources &
   driver->glGenFramebuffers(1, &resources.copySourceFramebuffer);
   driver->glBindFramebuffer(eGL_FRAMEBUFFER, resources.copySourceFramebuffer);
 
-  GLResource targetTex = driver->GetResourceManager()->GetLiveResource(desc.resourceId);
+  GLResource targetTex = driver->GetResourceManager()->GetResource(desc.resourceId);
   GLenum targetAtt = eGL_COLOR_ATTACHMENT0;
   resources.depthTarget = false;
   if(desc.format.type == ResourceFormatType::D16S8 ||

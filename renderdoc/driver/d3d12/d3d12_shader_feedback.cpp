@@ -1345,7 +1345,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   WrappedID3D12PipelineState *pipe =
-      (WrappedID3D12PipelineState *)rm->GetCurrentAs<ID3D12PipelineState>(rs.pipe);
+      (WrappedID3D12PipelineState *)rm->GetResAs<ID3D12PipelineState>(rs.pipe);
   D3D12RootSignature modsig;
 
   if(!pipe)
@@ -1366,7 +1366,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   for(ResourceId id : rs.heaps)
   {
     WrappedID3D12DescriptorHeap *heap =
-        (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(id);
+        (WrappedID3D12DescriptorHeap *)rm->GetResAs<ID3D12DescriptorHeap>(id);
     D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
     maxDescriptors = RDCMAX(maxDescriptors, desc.NumDescriptors);
   }
@@ -1385,7 +1385,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
   if(result.compute)
   {
-    ID3D12RootSignature *sig = rm->GetCurrentAs<ID3D12RootSignature>(rs.compute.rootsig);
+    ID3D12RootSignature *sig = rm->GetResAs<ID3D12RootSignature>(rs.compute.rootsig);
 
     if(!sig)
     {
@@ -1405,7 +1405,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   }
   else
   {
-    ID3D12RootSignature *sig = rm->GetCurrentAs<ID3D12RootSignature>(rs.graphics.rootsig);
+    ID3D12RootSignature *sig = rm->GetResAs<ID3D12RootSignature>(rs.graphics.rootsig);
 
     if(!sig)
     {

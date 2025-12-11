@@ -75,7 +75,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandList1(SerialiserType &ser, UINT
     else if(list)
     {
       // don't have to close it, as there's no implicit reset
-      GetResourceManager()->AddLiveResource(pCommandList, list);
+      GetResourceManager()->TakeResourceOwnership(list);
     }
 
     AddResource(pCommandList, ResourceType::CommandBuffer, "Command List");
@@ -279,7 +279,7 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
     {
       ret = new WrappedID3D12Heap(pHeap, ret, this);
 
-      GetResourceManager()->AddLiveResource(pHeap, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pHeap, ResourceType::Memory, "Heap");
@@ -333,7 +333,7 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
     }
     else
     {
-      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;

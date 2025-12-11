@@ -256,10 +256,10 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
     if(id != ResourceId() && rm)
     {
-      if(rm->HasLiveResource(id))
+      if(rm->HasResource(id))
       {
         // we leave this wrapped.
-        el = rm->GetLiveHandle<type>(id);
+        el = rm->GetHandle<type>(id);
       }
       else if(!OptionalResourcesEnabled())
       {

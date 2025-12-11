@@ -1456,7 +1456,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
 
       WrappedVkPhysicalDevice *wrapped = new WrappedVkPhysicalDevice(fakeDevice, PhysicalDevice);
 
-      GetResourceManager()->AddCurrentResource(PhysicalDevice, wrapped);
+      GetResourceManager()->AddResource(PhysicalDevice, wrapped);
 
       if(IsReplayMode(m_State))
         GetResourceManager()->AddWrapper(wrapped, ToTypedHandle(fakeDevice));

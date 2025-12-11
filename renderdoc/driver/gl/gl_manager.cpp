@@ -67,7 +67,7 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   if(res.name == 0)
     return;
 
-  rdcpair<ResourceId, GLResourceRecord *> &it = m_CurrentResources[res];
+  rdcpair<ResourceId, GLResourceRecord *> &it = m_Resources[res];
 
   MarkResourceFrameReferenced(it.first, ref);
 
@@ -194,7 +194,7 @@ void GLResourceManager::SetInternalResource(GLResource res)
 
 bool GLResourceManager::ResourceTypeRelease(GLResource res)
 {
-  if(HasCurrentResource(res))
+  if(HasResource(res))
     UnregisterResource(res);
 
   if(res.name)

@@ -594,10 +594,10 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
       RDCASSERT(dxbc);
       RDCASSERT(dxbc->m_Type == DXBC::ShaderType::Pixel);
 
-      if(m_pDevice->GetResourceManager()->HasLiveResource(cfg.customShaderId))
+      if(m_pDevice->GetResourceManager()->HasResource(cfg.customShaderId))
       {
         WrappedID3D11Shader<ID3D11PixelShader> *wrapped =
-            (WrappedID3D11Shader<ID3D11PixelShader> *)m_pDevice->GetResourceManager()->GetLiveResource(
+            (WrappedID3D11Shader<ID3D11PixelShader> *)m_pDevice->GetResourceManager()->GetResource(
                 cfg.customShaderId);
 
         RD_CustomShader_CBuffer_Type customCBuffer = {};

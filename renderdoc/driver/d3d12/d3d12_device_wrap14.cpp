@@ -114,13 +114,13 @@ bool WrappedID3D12Device::Serialise_CreateRootSignatureFromSubobjectInLibrary(
         ret = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
-        GetResourceManager()->AddLiveResource(pRootSignature, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
       else
       {
         ret = new WrappedID3D12RootSignature(pRootSignature, ret, this);
 
-        GetResourceManager()->AddLiveResource(pRootSignature, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;

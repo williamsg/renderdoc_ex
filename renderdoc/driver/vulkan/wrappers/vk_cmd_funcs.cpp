@@ -399,7 +399,7 @@ void WrappedVulkan::CopyVersionedDescriptorBuffer(
         m_CreationInfo.m_Buffer[id].size - offs,
     };
     ObjDisp(cmdBuf)->CmdCopyBuffer(Unwrap(cmdBuf),
-                                   Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(id)),
+                                   Unwrap(GetResourceManager()->GetHandle<VkBuffer>(id)),
                                    unwrappedDstBuf, 1, &region);
   }
 }
@@ -580,8 +580,8 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
     barrierStencil.subresourceRange = barrier.subresourceRange =
         m_CreationInfo.m_ImageView[view].range;
 
-    barrierStencil.image = barrier.image = Unwrap(
-        GetResourceManager()->GetCurrentHandle<VkImage>(m_CreationInfo.m_ImageView[view].image));
+    barrierStencil.image = barrier.image =
+        Unwrap(GetResourceManager()->GetHandle<VkImage>(m_CreationInfo.m_ImageView[view].image));
 
     // When an imageView of a depth/stencil image is used as a depth/stencil framebuffer attachment,
     // the aspectMask is ignored and both depth and stencil image subresources are used.
@@ -1032,7 +1032,7 @@ void WrappedVulkan::ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D 
   for(size_t i = 0; i < attachments.size(); i++)
   {
     const VulkanCreationInfo::ImageView &viewInfo = m_CreationInfo.m_ImageView[attachments[i]];
-    VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+    VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
     const VulkanCreationInfo::Image &imInfo = GetDebugManager()->GetImageInfo(GetResID(image));
 
     VkImageSubresourceRange viewRange = viewInfo.range;
@@ -1142,7 +1142,7 @@ void WrappedVulkan::ApplyRPStoreDiscards(VkCommandBuffer commandBuffer, VkRect2D
       continue;
 
     const VulkanCreationInfo::ImageView &viewInfo = m_CreationInfo.m_ImageView[attachments[i]];
-    VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+    VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
     const VulkanCreationInfo::Image &imInfo = GetDebugManager()->GetImageInfo(GetResID(image));
 
     VkImageSubresourceRange viewRange = viewInfo.range;
@@ -1728,7 +1728,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
       VkCommandBuffer cmd = VK_NULL_HANDLE;
 
-      if(!GetResourceManager()->HasLiveResource(BakedCommandBuffer))
+      if(!GetResourceManager()->HasResource(BakedCommandBuffer))
       {
         VkCommandBufferAllocateInfo unwrappedInfo = AllocateInfo;
         unwrappedInfo.commandPool = Unwrap(unwrappedInfo.commandPool);
@@ -1767,7 +1767,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
       }
       else
       {
-        cmd = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(BakedCommandBuffer);
+        cmd = GetResourceManager()->GetHandle<VkCommandBuffer>(BakedCommandBuffer);
       }
 
       InsertCommandQueueFamily(BakedCommandBuffer, FindCommandQueueFamily(CommandBuffer));
@@ -1993,7 +1993,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
     }
     else
     {
-      commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(BakedCommandBuffer);
+      commandBuffer = GetResourceManager()->GetHandle<VkCommandBuffer>(BakedCommandBuffer);
 
       ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
@@ -2448,7 +2448,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
 
         if(attachmentsInfo)
         {
-          barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
+          barrier.image = GetResourceManager()->GetHandle<VkImage>(att->baseResource);
           barrier.subresourceRange = att->viewRange;
         }
 
@@ -3073,7 +3073,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
 
         if(attachmentsInfo)
         {
-          barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
+          barrier.image = GetResourceManager()->GetHandle<VkImage>(att->baseResource);
           barrier.subresourceRange = att->viewRange;
         }
 
@@ -7731,7 +7731,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
 
             const VulkanCreationInfo::ImageView &viewInfo =
                 m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
 
             if(dynAtts[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
             {
@@ -8089,7 +8089,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
 
             const VulkanCreationInfo::ImageView &viewInfo =
                 m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
 
             if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
             {
@@ -8158,7 +8158,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
 
             const VulkanCreationInfo::ImageView &viewInfo =
                 m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
 
             if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
             {
@@ -8361,7 +8361,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
 
             const VulkanCreationInfo::ImageView &viewInfo =
                 m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
 
             if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
             {
@@ -8445,7 +8445,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
 
             const VulkanCreationInfo::ImageView &viewInfo =
                 m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
 
             if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
             {

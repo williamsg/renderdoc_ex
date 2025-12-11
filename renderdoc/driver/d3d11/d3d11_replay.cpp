@@ -353,9 +353,9 @@ rdcstr D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
 
 void D3D11Replay::FreeTargetResource(ResourceId id)
 {
-  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+  if(m_pDevice->GetResourceManager()->HasResource(id))
   {
-    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetResource(id);
 
     SAFE_RELEASE(resource);
   }
@@ -363,9 +363,9 @@ void D3D11Replay::FreeTargetResource(ResourceId id)
 
 void D3D11Replay::FreeCustomShader(ResourceId id)
 {
-  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+  if(m_pDevice->GetResourceManager()->HasResource(id))
   {
-    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetResource(id);
 
     SAFE_RELEASE(resource);
   }

@@ -654,7 +654,7 @@ void WrappedVulkan::LookupDescriptor(byte *descriptorBytes, size_t descriptorSiz
 
           // verify that descriptor roundtrips that our detection was correct
           info.type = VK_DESCRIPTOR_TYPE_SAMPLER;
-          VkSampler sampler = Unwrap(GetResourceManager()->GetCurrentHandle<VkSampler>(samp));
+          VkSampler sampler = Unwrap(GetResourceManager()->GetHandle<VkSampler>(samp));
           info.data.pSampler = &sampler;
 
           ObjDisp(m_Device)->GetDescriptorEXT(Unwrap(m_Device), &info, descriptorSize, tempMem);
@@ -747,8 +747,8 @@ void WrappedVulkan::LookupDescriptor(byte *descriptorBytes, size_t descriptorSiz
         VkDescriptorImageInfo imInfo = {};
         info.data.pCombinedImageSampler = &imInfo;
 
-        imInfo.sampler = Unwrap(GetResourceManager()->GetCurrentHandle<VkSampler>(samp));
-        imInfo.imageView = Unwrap(GetResourceManager()->GetCurrentHandle<VkImageView>(view));
+        imInfo.sampler = Unwrap(GetResourceManager()->GetHandle<VkSampler>(samp));
+        imInfo.imageView = Unwrap(GetResourceManager()->GetHandle<VkImageView>(view));
 
         // always iterate at least once even if the layouts array is empty
         for(size_t i = 0; i < layouts.size() || (i == 0 && layouts.empty()); i++)
@@ -902,7 +902,7 @@ void WrappedVulkan::LookupDescriptor(byte *descriptorBytes, size_t descriptorSiz
                 {
                   data.SetAccelerationStructure(
                       VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-                      GetResourceManager()->GetCurrentHandle<VkAccelerationStructureKHR>(id));
+                      GetResourceManager()->GetHandle<VkAccelerationStructureKHR>(id));
 
                   return;
                 }

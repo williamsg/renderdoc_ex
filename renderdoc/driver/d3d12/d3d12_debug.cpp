@@ -1914,7 +1914,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
   D3D12_CPU_DESCRIPTOR_HANDLE ret = {};
 
   ID3D12Resource *res =
-      m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(desc.GetResResourceId());
+      m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(desc.GetResResourceId());
 
   if(desc.GetType() == D3D12DescriptorType::RTV)
   {
@@ -1960,7 +1960,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
     ret = GetUAVClearHandle(TMP_UAV);
 
     ID3D12Resource *counterRes =
-        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(desc.GetCounterResourceId());
+        m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(desc.GetCounterResourceId());
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC unpacked = desc.GetUAV();
 
@@ -2100,7 +2100,7 @@ void D3D12DebugManager::PrepareExecuteIndirectPatching(GPUAddressRangeTracker &o
     b.origBase = addr.start;
     b.origEnd = addr.realEnd;
     b.newBase =
-        m_pDevice->GetResourceManager()->GetLiveAs<ID3D12Resource>(addr.id)->GetGPUVirtualAddress();
+        m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(addr.id)->GetGPUVirtualAddress();
     buffers.push_back(b);
   }
 
@@ -3521,7 +3521,7 @@ void AddDebugDescriptorsToRenderState(WrappedID3D12Device *pDevice, D3D12RenderS
   for(size_t i = 0; i < rs.heaps.size(); i++)
   {
     WrappedID3D12DescriptorHeap *h =
-        pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(rs.heaps[i]);
+        pDevice->GetResourceManager()->GetResAs<WrappedID3D12DescriptorHeap>(rs.heaps[i]);
     if(h->GetDesc().Type == heapType)
     {
       // use the last descriptors
@@ -3535,8 +3535,7 @@ void AddDebugDescriptorsToRenderState(WrappedID3D12Device *pDevice, D3D12RenderS
         for(size_t j = 0; j < handles.size(); ++j)
         {
           WrappedID3D12DescriptorHeap *h2 =
-              pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(
-                  handles[j].heap);
+              pDevice->GetResourceManager()->GetResAs<WrappedID3D12DescriptorHeap>(handles[j].heap);
           D3D12_CPU_DESCRIPTOR_HANDLE src = h2->GetCPUDescriptorHandleForHeapStart();
           src.ptr += handles[j].index * sizeof(D3D12Descriptor);
 

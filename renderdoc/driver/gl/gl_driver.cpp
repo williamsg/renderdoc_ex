@@ -702,8 +702,8 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     m_DescriptorsID = GetResourceManager()->RegisterResource(
         ResourceId(), GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
 
-    GetResourceManager()->AddLiveResource(
-        m_DescriptorsID, GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
+    GetResourceManager()->TakeResourceOwnership(
+        GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
 
     AddResource(m_DescriptorsID, ResourceType::DescriptorStore, "");
     GetReplay()->GetResourceDesc(m_DescriptorsID).SetCustomName("Context Bindings");
@@ -887,7 +887,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   if(params.depthBits > 0 || params.stencilBits > 0)
     drv.glClearBufferfi(eGL_DEPTH_STENCIL, 0, 1.0f, 0);
 
-  GetResourceManager()->AddLiveResource(fboId, FramebufferRes(GetCtx(), fbo));
+  GetResourceManager()->TakeResourceOwnership(FramebufferRes(GetCtx(), fbo));
   AddResource(fboId, ResourceType::SwapchainImage, "");
   GetReplay()->GetResourceDesc(fboId).SetCustomName(bbname + " FBO");
 
@@ -959,7 +959,7 @@ WrappedOpenGL::~WrappedOpenGL()
 
   GetResourceManager()->ClearReferencedResources();
 
-  GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
+  GetResourceManager()->ReleaseResource(m_DeviceResourceID);
 
   for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
   {
@@ -967,7 +967,7 @@ WrappedOpenGL::~WrappedOpenGL()
     {
       RDCASSERT(it->second.m_ContextDataRecord->GetRefCount() == 1);
       it->second.m_ContextDataRecord->Delete(GetResourceManager());
-      GetResourceManager()->ReleaseCurrentResource(it->second.m_ContextDataResourceID);
+      GetResourceManager()->ReleaseResource(it->second.m_ContextDataResourceID);
     }
   }
 
@@ -976,7 +976,7 @@ WrappedOpenGL::~WrappedOpenGL()
     RDCASSERT(m_ContextRecord->GetRefCount() == 1);
     m_ContextRecord->Delete(GetResourceManager());
   }
-  GetResourceManager()->ReleaseCurrentResource(m_ContextResourceID);
+  GetResourceManager()->ReleaseResource(m_ContextResourceID);
 
   if(m_DeviceRecord)
   {
@@ -1151,7 +1151,7 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
   {
     RDCASSERT(ctxdata.m_ContextDataRecord->GetRefCount() == 1);
     ctxdata.m_ContextDataRecord->Delete(GetResourceManager());
-    GetResourceManager()->ReleaseCurrentResource(ctxdata.m_ContextDataResourceID);
+    GetResourceManager()->ReleaseResource(ctxdata.m_ContextDataResourceID);
     ctxdata.m_ContextDataRecord = NULL;
   }
 
@@ -1336,7 +1336,7 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
   {
     // we might encounter multiple instances of this chunk per frame, so only do work on the first
     // one
-    if(!GetResourceManager()->HasLiveResource(FBO))
+    if(!GetResourceManager()->HasResource(FBO))
     {
       rdcstr name;
 
@@ -1359,7 +1359,7 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
       CreateReplayBackbuffer(InitParams, FBO, fbo, name);
     }
 
-    m_CurrentDefaultFBO = GetResourceManager()->GetLiveResource(FBO).name;
+    m_CurrentDefaultFBO = GetResourceManager()->GetResource(FBO).name;
   }
 
   return true;
@@ -1385,7 +1385,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
   ContextData &ctxdata = m_ContextData[winData.ctx];
 
-  ctxdata.CreateResourceRecord(this, winData.ctx);
+  if(IsCaptureMode(m_State))
+    ctxdata.CreateResourceRecord(this, winData.ctx);
 
   // update thread-local context pair
   {
@@ -1526,7 +1527,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       // VAOs are shared and a previous context in the share group created it.
       GLResource vao0 = VertexArrayRes(GetCtx(), 0);
 
-      if(!GetResourceManager()->HasCurrentResource(vao0))
+      if(!GetResourceManager()->HasResource(vao0))
       {
         ResourceId id = GetResourceManager()->RegisterResource(ResourceId(), vao0);
 
@@ -1560,7 +1561,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       // shared the FBO0 may not be :(.
       GLResource fbo0 = FramebufferRes({GetCtx().ctx, GetCtx().ctx}, 0);
 
-      if(!GetResourceManager()->HasCurrentResource(fbo0))
+      if(!GetResourceManager()->HasResource(fbo0))
         ctxdata.m_ContextFBOID = GetResourceManager()->RegisterResource(ResourceId(), fbo0);
     }
   }
@@ -1662,10 +1663,10 @@ struct ReplacementSearch
 
 void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 {
-  if(GetResourceManager()->HasLiveResource(from))
+  if(GetResourceManager()->HasResource(from))
   {
-    GLResource fromresource = GetResourceManager()->GetLiveResource(from);
-    GLResource toresource = GetResourceManager()->GetLiveResource(to);
+    GLResource fromresource = GetResourceManager()->GetResource(from);
+    GLResource toresource = GetResourceManager()->GetResource(to);
 
     // do actual replacement
 
@@ -1715,7 +1716,7 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
       shadDetails.ProcessCompilation(*this, targetId, 0);
 
-      GetResourceManager()->AddLiveResource(targetId, toresource);
+      GetResourceManager()->TakeResourceOwnership(toresource);
 
       // finally since programs have state (sigh) we have to copy that across as well.
       GLuint progsrc = fromresource.name;
@@ -1783,9 +1784,9 @@ void WrappedOpenGL::RemoveReplacement(ResourceId id)
 
 void WrappedOpenGL::FreeTargetResource(ResourceId id)
 {
-  if(GetResourceManager()->HasLiveResource(id))
+  if(GetResourceManager()->HasResource(id))
   {
-    GLResource resource = GetResourceManager()->GetLiveResource(id);
+    GLResource resource = GetResourceManager()->GetResource(id);
 
     RDCASSERT(resource.Namespace != eResUnknown);
 
@@ -1826,7 +1827,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
     // if this program has a replacement, remove it and delete the program generated for it
     if(GetResourceManager()->HasReplacement(origsrcid))
     {
-      deletequeue.push_back(GetResourceManager()->GetLiveResource(origsrcid).name);
+      deletequeue.push_back(GetResourceManager()->GetResource(origsrcid).name);
       GetResourceManager()->RemoveReplacement(origsrcid);
     }
 
@@ -1844,7 +1845,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
     // if there are replaced shaders in use, create a new program with any/all replaced shaders.
     if(usesReplacedShader)
     {
-      GLuint progsrc = GetResourceManager()->GetCurrentResource(progsrcid).name;
+      GLuint progsrc = GetResourceManager()->GetResource(progsrcid).name;
 
       // make a new program
       GLuint progdst = glCreateProgram();
@@ -1856,8 +1857,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
       {
         if(progdata.stageShaders[i] != ResourceId())
         {
-          glAttachShader(progdst,
-                         GetResourceManager()->GetLiveResource(progdata.stageShaders[i]).name);
+          glAttachShader(progdst, GetResourceManager()->GetResource(progdata.stageShaders[i]).name);
         }
       }
 
@@ -1954,7 +1954,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
     // if this pipeline has a replacement, remove it and delete the pipeline generated for it
     if(GetResourceManager()->HasReplacement(origsrcid))
     {
-      deletequeue.push_back(GetResourceManager()->GetLiveResource(origsrcid).name);
+      deletequeue.push_back(GetResourceManager()->GetResource(origsrcid).name);
       GetResourceManager()->RemoveReplacement(origsrcid);
     }
 
@@ -1984,7 +1984,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
         if(pipedata.stagePrograms[i] != ResourceId())
         {
           glUseProgramStages(pipedst, ShaderBit(i),
-                             GetResourceManager()->GetLiveResource(pipedata.stagePrograms[i]).name);
+                             GetResourceManager()->GetResource(pipedata.stagePrograms[i]).name);
         }
       }
 
@@ -3650,10 +3650,10 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
           GL.glGenVertexArrays(1, &m_Global_VAO0);
 
           GetResourceManager()->RegisterResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
-          GetResourceManager()->AddLiveResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
+          GetResourceManager()->TakeResourceOwnership(VertexArrayRes(GetCtx(), m_Global_VAO0));
 
           glBindVertexArray(m_Global_VAO0);
-          GetResourceManager()->AddLiveResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
+          GetResourceManager()->TakeResourceOwnership(VertexArrayRes(GetCtx(), m_Global_VAO0));
           AddResource(vao, ResourceType::StateObject, "Vertex Array");
           GetReplay()->GetResourceDesc(vao).SetCustomName("Default VAO");
 
@@ -5483,7 +5483,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
         {
           if(pipeDetails.stageShaders[i] != ResourceId())
           {
-            curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+            curProg = rm->GetResource(pipeDetails.stagePrograms[i]).name;
 
             refl[i] = GetShader(pipeDetails.stageShaders[i]).GetReflection();
             progForStage[i] = curProg;

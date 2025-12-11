@@ -560,7 +560,7 @@ bool WrappedOpenGL::Serialise_glCreateMemoryObjectsEXT(SerialiserType &ser, GLsi
     GLResource res = ExtMemRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(memory, res);
-    GetResourceManager()->AddLiveResource(memory, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(memory, ResourceType::Memory, "Memory Object");
   }
@@ -596,7 +596,7 @@ void WrappedOpenGL::glCreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -606,7 +606,7 @@ void WrappedOpenGL::glDeleteMemoryObjectsEXT(GLsizei n, const GLuint *memoryObje
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = ExtMemRes(GetCtx(), memoryObjects[i]);
-    if(GetResourceManager()->HasCurrentResource(res))
+    if(GetResourceManager()->HasResource(res))
     {
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
@@ -835,7 +835,7 @@ bool WrappedOpenGL::Serialise_glGenSemaphoresEXT(SerialiserType &ser, GLsizei n,
     GLResource res = ExtSemRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(semaphore, res);
-    GetResourceManager()->AddLiveResource(semaphore, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(semaphore, ResourceType::Sync, "Semaphore");
   }
@@ -871,7 +871,7 @@ void WrappedOpenGL::glGenSemaphoresEXT(GLsizei n, GLuint *semaphores)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -881,7 +881,7 @@ void WrappedOpenGL::glDeleteSemaphoresEXT(GLsizei n, const GLuint *semaphores)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = ExtSemRes(GetCtx(), semaphores[i]);
-    if(GetResourceManager()->HasCurrentResource(res))
+    if(GetResourceManager()->HasResource(res))
     {
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());

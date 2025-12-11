@@ -1408,7 +1408,7 @@ protected:
 
     for(uint32_t i = 0; i < fbInfo.attachments.size(); i++)
     {
-      atts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(
+      atts[i] = m_pDriver->GetResourceManager()->GetHandle<VkImageView>(
           pipestate.GetFramebufferAttachments()[i]);
     }
 
@@ -2355,7 +2355,7 @@ private:
 
     if(depthImageId != ResourceId())
     {
-      VkImage depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(depthImageId);
+      VkImage depthImage = m_pDriver->GetResourceManager()->GetHandle<VkImage>(depthImageId);
 
       const VulkanCreationInfo::Image &imginfo =
           m_pDriver->GetDebugManager()->GetImageInfo(depthImageId);
@@ -3419,7 +3419,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       if(dsView != VK_NULL_HANDLE)
       {
         ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(GetResID(dsView)).image;
-        depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
+        depthImage = m_pDriver->GetResourceManager()->GetHandle<VkImage>(resId);
         const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
         depthFormat = imginfo.format;
       }
@@ -3434,7 +3434,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       if(depthAtt >= 0)
       {
         ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[depthAtt]).image;
-        depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
+        depthImage = m_pDriver->GetResourceManager()->GetHandle<VkImage>(resId);
         const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
         depthFormat = imginfo.format;
         depthLayout = rpInfo.subpasses[prevState.subpass].depthLayout;
@@ -4540,7 +4540,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   PixelHistoryResources resources = {};
   // TODO: perhaps should do this after making an occlusion query, since we will
   // get a smaller subset of events that passed the occlusion query.
-  VkImage targetImage = GetResourceManager()->GetCurrentHandle<VkImage>(target);
+  VkImage targetImage = GetResourceManager()->GetHandle<VkImage>(target);
   GetDebugManager()->PixelHistorySetupResources(resources, targetImage, imginfo.extent,
                                                 imginfo.format, imginfo.samples, sub,
                                                 (uint32_t)events.size());

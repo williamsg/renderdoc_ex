@@ -43,8 +43,8 @@ void DoSerialiseViaResourceId(SerialiserType &ser, Interface *&el)
 
   if(ser.IsReading())
   {
-    if(id != ResourceId() && rm && rm->HasLiveResource(id))
-      el = (Interface *)rm->GetLiveResource(id);
+    if(id != ResourceId() && rm && rm->HasResource(id))
+      el = (Interface *)rm->GetResource(id);
     else
       el = NULL;
   }

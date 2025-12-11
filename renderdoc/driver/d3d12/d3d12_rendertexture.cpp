@@ -495,7 +495,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   if(cfg.customShaderId != ResourceId())
   {
     WrappedID3D12Shader *shader =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(cfg.customShaderId);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12Shader>(cfg.customShaderId);
 
     if(shader == NULL)
       return false;

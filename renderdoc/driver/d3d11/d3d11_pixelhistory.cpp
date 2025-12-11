@@ -1088,8 +1088,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       {
         if(targetImageIsDepth)
         {
-          dsv = (ID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetCurrentResource(
-              events[ev].view);
+          dsv =
+              (ID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetResource(events[ev].view);
           dsv->AddRef();
         }
       }
@@ -1445,7 +1445,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       // if the access is through a view, check the mip/slice matches
       bool used = false;
 
-      ID3D11DeviceChild *view = m_pDevice->GetResourceManager()->GetCurrentResource(events[i].view);
+      ID3D11DeviceChild *view = m_pDevice->GetResourceManager()->GetResource(events[i].view);
 
       if(WrappedID3D11RenderTargetView1::IsAlloc(view))
       {

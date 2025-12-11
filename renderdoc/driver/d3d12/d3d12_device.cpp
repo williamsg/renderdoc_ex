@@ -1898,7 +1898,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
       fakeBB->SetName(L"Swap Chain Buffer");
 
-      GetResourceManager()->AddLiveResource(SwapbufferID, fakeBB);
+      GetResourceManager()->TakeResourceOwnership(fakeBB);
 
       m_BackbufferFormat[wrapped->GetResourceID()] = SwapbufferFormat;
 
@@ -1973,7 +1973,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
     {
       WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
 
-      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
   }
 
@@ -3377,9 +3377,9 @@ void WrappedID3D12Device::UploadBLASBufferAddresses()
   for(GPUAddressRange addressRange : m_OrigGPUAddresses.GetAddresses())
   {
     ResourceId resId = addressRange.id;
-    if(resManager->HasLiveResource(resId))
+    if(resManager->HasResource(resId))
     {
-      WrappedID3D12Resource *wrappedRes = (WrappedID3D12Resource *)resManager->GetLiveResource(resId);
+      WrappedID3D12Resource *wrappedRes = (WrappedID3D12Resource *)resManager->GetResource(resId);
       {
         BlasAddressPair addressPair;
         addressPair.oldAddress.start = addressRange.start;
@@ -3516,15 +3516,6 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
 
   if(record)
     record->Delete(GetResourceManager());
-
-  // wrapped resources get released all the time, we don't want to
-  // try and slerp in a resource release. Just the explicit ones
-  if(IsReplayMode(m_State))
-  {
-    if(GetResourceManager()->HasLiveResource(id))
-      GetResourceManager()->EraseLiveResource(id);
-    return;
-  }
 }
 
 HRESULT WrappedID3D12Device::CreatePipeState(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &desc,
@@ -4098,7 +4089,7 @@ bool WrappedID3D12Device::Serialise_CreateAS(SerialiserType &ser, ID3D12Resource
     D3D12AccelerationStructure *accStructAtOffset = NULL;
     if(asbWrappedResource->CreateAccStruct(asId, resourceOffset, type, byteSize, &accStructAtOffset))
     {
-      GetResourceManager()->AddLiveResource(asId, accStructAtOffset);
+      GetResourceManager()->TakeResourceOwnership(accStructAtOffset);
 
       if(D3D12_Debug_RT_Auditing())
       {
@@ -4786,7 +4777,7 @@ ID3D12GraphicsCommandListX *WrappedID3D12Device::GetNewList()
 
     if(IsReplayMode(m_State))
     {
-      GetResourceManager()->AddLiveResource(GetResID(ret), ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
       // add a reference here so that when we release our internal resources on destruction we don't
       // free this too soon before the resource manager can. We still want to have it tracked as a
       // resource in the manager though.

@@ -239,7 +239,7 @@ bool WrappedID3D12Device::Serialise_CreateStateObject(SerialiserType &ser,
           .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
       m_GlobalEXTUAV = ~0U;
     }
-    GetResourceManager()->AddLiveResource(pStateObject, wrapped);
+    GetResourceManager()->TakeResourceOwnership(wrapped);
   }
 
   return true;
@@ -322,7 +322,7 @@ WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REF
     }
     else
     {
-      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppStateObject = (ID3D12StateObject *)wrapped;

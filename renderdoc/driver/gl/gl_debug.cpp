@@ -2634,7 +2634,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
     idxclamp = uint32_t(-cfg.position.baseVertex);
 
   if(cfg.position.indexByteStride && cfg.position.indexResourceId != ResourceId())
-    ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
+    ib = m_pDriver->GetResourceManager()->GetResource(cfg.position.indexResourceId).name;
 
   const bool fandecode =
       (cfg.position.topology == Topology::TriangleFan && cfg.position.allowRestart);

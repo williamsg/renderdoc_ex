@@ -1200,7 +1200,7 @@ void VulkanDebugManager::CreateCustomShaderPipeline(ResourceId shader, VkPipelin
       m_Custom.TexRP,
       pipeLayout,
       m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::BlitVS),
-      m_pDriver->GetResourceManager()->GetCurrentHandle<VkShaderModule>(shader),
+      m_pDriver->GetResourceManager()->GetHandle<VkShaderModule>(shader),
       {VK_DYNAMIC_STATE_VIEWPORT},
       VK_SAMPLE_COUNT_1_BIT,
       false,    // sampleRateShading
@@ -1988,13 +1988,13 @@ void VulkanDebugManager::ResetBufferMSDescriptorPools()
 
 void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret)
 {
-  if(!m_pDriver->GetResourceManager()->HasCurrentResource(buff))
+  if(!m_pDriver->GetResourceManager()->HasResource(buff))
   {
     RDCERR("Getting buffer data for unknown buffer/memory %s!", ToStr(buff).c_str());
     return;
   }
 
-  WrappedVkRes *res = m_pDriver->GetResourceManager()->GetCurrentResource(buff);
+  WrappedVkRes *res = m_pDriver->GetResourceManager()->GetResource(buff);
 
   if(res == VK_NULL_HANDLE)
   {
@@ -2020,7 +2020,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   }
   else if(WrappedVkBuffer::IsAlloc(res))
   {
-    unwrappedSrcBuf = Unwrap(m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff));
+    unwrappedSrcBuf = Unwrap(m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(buff));
     bufsize = m_pDriver->m_CreationInfo.m_Buffer[buff].size;
   }
   else
@@ -3194,8 +3194,7 @@ void VulkanReplay::AllocAndAddReservedDescriptors(
           VkSampler *samplers = new VkSampler[layoutBind.descriptorCount];
           newBind.pImmutableSamplers = samplers;
           for(uint32_t s = 0; s < layoutBind.descriptorCount; s++)
-            samplers[s] =
-                GetResourceManager()->GetCurrentHandle<VkSampler>(layoutBind.immutableSampler[s]);
+            samplers[s] = GetResourceManager()->GetHandle<VkSampler>(layoutBind.immutableSampler[s]);
         }
         else
         {
@@ -3495,8 +3494,7 @@ VulkanReplay::AddedDescriptorData VulkanReplay::PrepareExtraBufferDescriptor(
         ret.setLayouts.reserve(sets.size());
 
         for(size_t i = 0; i < sets.size(); i++)
-          ret.setLayouts.push_back(
-              GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(sets[i]));
+          ret.setLayouts.push_back(GetResourceManager()->GetHandle<VkDescriptorSetLayout>(sets[i]));
       }
     }
 

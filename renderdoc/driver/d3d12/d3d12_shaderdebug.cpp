@@ -470,7 +470,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
   rdcarray<ResourceId> descHeaps = rs.heaps;
   for(ResourceId heapId : descHeaps)
   {
-    WrappedID3D12DescriptorHeap *pD3D12Heap = rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(heapId);
+    WrappedID3D12DescriptorHeap *pD3D12Heap = rm->GetResAs<WrappedID3D12DescriptorHeap>(heapId);
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = pD3D12Heap->GetDesc();
     if(heapDesc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
     {
@@ -535,7 +535,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
   if(pRootSignature)
   {
     WrappedID3D12RootSignature *pD3D12RootSig =
-        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+        rm->GetResAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
 
     if(descType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
     {
@@ -563,7 +563,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
           if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
              param.Descriptor.RegisterSpace == slot.registerSpace)
           {
-            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+            ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(element.id);
 
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -585,7 +585,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
           if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
              param.Descriptor.RegisterSpace == slot.registerSpace)
           {
-            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+            ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(element.id);
 
             D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
             uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -605,8 +605,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
                 element.type == eRootTable)
         {
           UINT prevTableOffset = 0;
-          WrappedID3D12DescriptorHeap *heap =
-              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+          WrappedID3D12DescriptorHeap *heap = rm->GetResAs<WrappedID3D12DescriptorHeap>(element.id);
 
           size_t numRanges = param.ranges.size();
           for(size_t r = 0; r < numRanges; ++r)
@@ -670,7 +669,7 @@ ShaderVariable D3D12ShaderDebug::GetResourceInfo(WrappedID3D12Device *device,
   if(descriptor.GetType() == D3D12DescriptorType::UAV && descType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
   {
     ResourceId uavId = descriptor.GetResResourceId();
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
+    ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(uavId);
     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = descriptor.GetUAV();
 
@@ -779,7 +778,7 @@ ShaderVariable D3D12ShaderDebug::GetResourceInfo(WrappedID3D12Device *device,
           descType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
   {
     ResourceId srvId = descriptor.GetResResourceId();
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+    ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(srvId);
     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = descriptor.GetSRV();
     if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
@@ -949,7 +948,7 @@ ShaderVariable D3D12ShaderDebug::GetSampleInfo(WrappedID3D12Device *device,
     D3D12ResourceManager *rm = device->GetResourceManager();
 
     ResourceId srvId = descriptor.GetResResourceId();
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+    ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(srvId);
     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = descriptor.GetSRV();
     if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
@@ -987,7 +986,7 @@ ShaderVariable D3D12ShaderDebug::GetRenderTargetSampleInfo(WrappedID3D12Device *
     if(res == ResourceId() && !rs.rts.empty())
       res = rs.rts[0].GetResResourceId();
 
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(res);
+    ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(res);
     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
     result.value.u32v[0] = resDesc.SampleDesc.Count;
     result.value.u32v[1] = 0;
@@ -1106,7 +1105,7 @@ void D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
   if(pRootSignature)
   {
     WrappedID3D12RootSignature *pD3D12RootSig =
-        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+        rm->GetResAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
 
     size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
     for(size_t i = 0; i < numParams; ++i)
@@ -1121,7 +1120,7 @@ void D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
              param.Descriptor.RegisterSpace == slot.registerSpace)
           {
             // Found the requested SRV
-            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+            ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(element.id);
 
             if(pResource)
             {
@@ -1150,8 +1149,7 @@ void D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
                 element.type == eRootTable)
         {
           UINT prevTableOffset = 0;
-          WrappedID3D12DescriptorHeap *heap =
-              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+          WrappedID3D12DescriptorHeap *heap = rm->GetResAs<WrappedID3D12DescriptorHeap>(element.id);
 
           size_t numRanges = param.ranges.size();
           for(size_t r = 0; r < numRanges; ++r)
@@ -1190,7 +1188,7 @@ void D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
               if(desc)
               {
                 ResourceId srvId = desc->GetResResourceId();
-                ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+                ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(srvId);
 
                 if(pResource)
                 {
@@ -1277,7 +1275,7 @@ void D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
   if(pRootSignature)
   {
     WrappedID3D12RootSignature *pD3D12RootSig =
-        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+        rm->GetResAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
 
     size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
     for(size_t i = 0; i < numParams; ++i)
@@ -1292,7 +1290,7 @@ void D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
              param.Descriptor.RegisterSpace == slot.registerSpace)
           {
             // Found the requested UAV
-            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+            ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(element.id);
 
             if(pResource)
             {
@@ -1321,8 +1319,7 @@ void D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
                 element.type == eRootTable)
         {
           UINT prevTableOffset = 0;
-          WrappedID3D12DescriptorHeap *heap =
-              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+          WrappedID3D12DescriptorHeap *heap = rm->GetResAs<WrappedID3D12DescriptorHeap>(element.id);
 
           size_t numRanges = param.ranges.size();
           for(size_t r = 0; r < numRanges; ++r)
@@ -1362,7 +1359,7 @@ void D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
               if(desc)
               {
                 ResourceId uavId = desc->GetResResourceId();
-                ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
+                ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(uavId);
 
                 if(pResource)
                 {
@@ -1507,7 +1504,7 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
   if(descriptor.GetType() == D3D12DescriptorType::SRV &&
      type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
   {
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(descriptor.GetResResourceId());
+    ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(descriptor.GetResResourceId());
     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = descriptor.GetSRV();
@@ -1524,7 +1521,7 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
   if(descriptor.GetType() == D3D12DescriptorType::UAV &&
      type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
   {
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(descriptor.GetResResourceId());
+    ID3D12Resource *pResource = rm->GetResAs<ID3D12Resource>(descriptor.GetResResourceId());
     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = descriptor.GetUAV();
@@ -1623,7 +1620,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
                            rdcarray<SourceVariableMapping> &sourceVars)
 {
   WrappedID3D12RootSignature *pD3D12RootSig =
-      pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootsig.rootsig);
+      pDevice->GetResourceManager()->GetResAs<WrappedID3D12RootSignature>(rootsig.rootsig);
 
   size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), rootsig.sigelems.size());
   for(size_t i = 0; i < numParams; i++)
@@ -1646,7 +1643,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
       {
         DXBCDebug::BindingSlot slot(rootSigParam.Descriptor.ShaderRegister,
                                     rootSigParam.Descriptor.RegisterSpace);
-        ID3D12Resource *cbv = pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(element.id);
+        ID3D12Resource *cbv = pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(element.id);
         bytebuf cbufData;
         pDevice->GetDebugManager()->GetBufferData(cbv, element.offset, 0, cbufData);
         AddCBufferToGlobalState(program, global, sourceVars, refl, slot, cbufData);
@@ -1656,7 +1653,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
       {
         UINT prevTableOffset = 0;
         WrappedID3D12DescriptorHeap *heap =
-            pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+            pDevice->GetResourceManager()->GetResAs<WrappedID3D12DescriptorHeap>(element.id);
 
         size_t numRanges = rootSigParam.ranges.size();
         for(size_t r = 0; r < numRanges; r++)
@@ -1699,7 +1696,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
             uint64_t byteOffset = 0;
             WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, resId, byteOffset);
             ID3D12Resource *pCbvResource =
-                pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
+                pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(resId);
             cbufData.clear();
 
             if(cbv.SizeInBytes > 0)
@@ -1877,7 +1874,7 @@ ID3D12RootSignature *D3D12Replay::CreateInputFetchRootSig(bool compute, uint32_t
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   WrappedID3D12RootSignature *sig =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
+      m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12RootSignature>(
           compute ? rs.compute.rootsig : rs.graphics.rootsig);
 
   // Need to be able to add a descriptor table with our UAV without hitting the 64 DWORD limit
@@ -1929,7 +1926,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   WrappedID3D12PipelineState *pso =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+      m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
   if(!pso || !pso->IsGraphics())
   {
@@ -2015,7 +2012,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     if(rs.vbuffers.size() > i)
     {
       const D3D12RenderState::VertBuffer &vb = rs.vbuffers[i];
-      ID3D12Resource *buffer = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vb.buf);
+      ID3D12Resource *buffer = m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(vb.buf);
 
       if(vb.stride * (action->vertexOffset + idx) < vb.size)
         GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * (action->vertexOffset + idx),
@@ -2301,7 +2298,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     DXDebug::InputFetcher fetcher;
 
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
-    m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe)->Fill(pipeDesc);
+    m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe)->Fill(pipeDesc);
 
     // Store a copy of the event's render state to restore later
     D3D12RenderState prevState = rs;
@@ -2849,7 +2846,7 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   WrappedID3D12PipelineState *pso =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+      m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
   if(!pso || !pso->IsGraphics())
   {
@@ -2917,7 +2914,7 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   DXDebug::InputFetcher fetcher;
 
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
-  m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe)->Fill(pipeDesc);
+  m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe)->Fill(pipeDesc);
 
   // Store a copy of the event's render state to restore later
   D3D12RenderState prevState = rs;
@@ -3445,7 +3442,7 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   WrappedID3D12PipelineState *pso =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+      m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
   WrappedID3D12Shader *cs =
       pso && pso->IsCompute() ? (WrappedID3D12Shader *)pso->compute->CS.pShaderBytecode : NULL;
@@ -3621,8 +3618,7 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
       DXDebug::InputFetcher fetcher;
 
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe)->Fill(
-          pipeDesc);
+      m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe)->Fill(pipeDesc);
 
       // Store a copy of the event's render state to restore later
       D3D12RenderState prevState = rs;

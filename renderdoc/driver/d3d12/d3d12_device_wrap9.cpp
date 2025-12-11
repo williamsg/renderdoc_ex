@@ -101,7 +101,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue1(SerialiserType &ser,
 
       ret = new WrappedID3D12CommandQueue(pCommandQueue, ret, this, m_State);
 
-      GetResourceManager()->AddLiveResource(pCommandQueue, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
 
       AddResource(pCommandQueue, ResourceType::Queue, "Command Queue");
 
@@ -160,7 +160,7 @@ HRESULT WrappedID3D12Device::CreateCommandQueue1(const D3D12_COMMAND_QUEUE_DESC 
     }
     else
     {
-      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)

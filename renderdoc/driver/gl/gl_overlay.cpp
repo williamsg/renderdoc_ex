@@ -89,9 +89,8 @@ bool GLReplay::CreateShaderReplacementProgram(GLuint srcProgram, GLuint srcPipel
             HasGLSLShaders = true;
 
           programs[i] =
-              m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
-          shaders[i] =
-              m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stageShaders[i]).name;
+              m_pDriver->GetResourceManager()->GetResource(pipeDetails.stagePrograms[i]).name;
+          shaders[i] = m_pDriver->GetResourceManager()->GetResource(pipeDetails.stageShaders[i]).name;
 
           if(pipeDetails.stagePrograms[i] == pipeDetails.stageShaders[i])
           {
@@ -146,8 +145,7 @@ bool GLReplay::CreateShaderReplacementProgram(GLuint srcProgram, GLuint srcPipel
       if(progDetails.stageShaders[i] != ResourceId())
       {
         programs[i] = srcProgram;
-        shaders[i] =
-            m_pDriver->GetResourceManager()->GetCurrentResource(progDetails.stageShaders[i]).name;
+        shaders[i] = m_pDriver->GetResourceManager()->GetResource(progDetails.stageShaders[i]).name;
 
         const WrappedOpenGL::ShaderData &shadDetails =
             m_pDriver->GetShader(progDetails.stageShaders[i]);
@@ -1943,8 +1941,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                 drv.glVertexAttribIFormat(0, postvs.format.compCount, fmttype, 0);
               }
 
-              GLuint vb =
-                  m_pDriver->GetResourceManager()->GetCurrentResource(postvs.vertexResourceId).name;
+              GLuint vb = m_pDriver->GetResourceManager()->GetResource(postvs.vertexResourceId).name;
               drv.glBindVertexBuffer(0, vb, (GLintptr)postvs.vertexByteOffset,
                                      postvs.vertexByteStride);
             }
@@ -1960,8 +1957,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
               else if(postvs.indexByteStride == 4)
                 idxtype = eGL_UNSIGNED_INT;
 
-              GLuint ib =
-                  m_pDriver->GetResourceManager()->GetCurrentResource(postvs.indexResourceId).name;
+              GLuint ib = m_pDriver->GetResourceManager()->GetResource(postvs.indexResourceId).name;
               drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
               drv.glDrawElementsBaseVertex(topo, postvs.numIndices, idxtype,
                                            (const void *)uintptr_t(postvs.indexByteOffset),

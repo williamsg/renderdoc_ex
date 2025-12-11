@@ -370,7 +370,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
         list->SetPipelineState(secondaryCache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
 
         ID3D12Resource *vb =
-            m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.vertexResourceId);
+            m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(fmt.vertexResourceId);
 
         UINT64 offs = fmt.vertexByteOffset;
         D3D12_VERTEX_BUFFER_VIEW view;
@@ -390,7 +390,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
         if(fmt.indexByteStride)
         {
           ID3D12Resource *ib =
-              m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.indexResourceId);
+              m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(fmt.indexResourceId);
 
           if(ib)
           {
@@ -422,7 +422,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     D3D12MarkerRegion::Set(list, "Primary");
 
     ID3D12Resource *vb =
-        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
+        m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
     UINT64 offs = cfg.position.vertexByteOffset;
 
@@ -457,7 +457,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     D3D12MarkerRegion::Set(list, "Secondary");
 
     ID3D12Resource *vb =
-        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
+        m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
     UINT64 offs = cfg.second.vertexByteOffset;
 
@@ -541,7 +541,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     if(cfg.position.indexByteStride)
     {
       ID3D12Resource *ib =
-          m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.indexResourceId);
+          m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(cfg.position.indexResourceId);
 
       if(ib)
       {
@@ -591,7 +591,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     if(cfg.position.indexByteStride)
     {
       ID3D12Resource *ib =
-          m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.indexResourceId);
+          m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(cfg.position.indexResourceId);
 
       if(ib)
       {

@@ -82,8 +82,7 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
       HRESULT hr = S_OK;
 
       WrappedID3D12RootSignature *sig =
-          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
-              rs.graphics.rootsig);
+          m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
 
       // need to be able to add a descriptor table with our UAV without hitting the 64 DWORD limit
       RDCASSERT(sig->sig.dwordLength < 64);
@@ -124,7 +123,7 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
       RDCASSERTEQUAL(hr, S_OK);
 
       WrappedID3D12PipelineState *origPSO =
-          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+          m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
       RDCASSERT(origPSO->IsGraphics());
 
@@ -961,7 +960,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   if(dsView.GetResResourceId() != ResourceId())
   {
     ID3D12Resource *realDepth =
-        m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(dsView.GetResResourceId());
+        m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(dsView.GetResResourceId());
 
     dsViewDesc = dsView.GetDSV();
 
@@ -1043,7 +1042,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   WrappedID3D12PipelineState *pipe = NULL;
 
   if(rs.pipe != ResourceId())
-    pipe = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+    pipe = m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
   if(overlay == DebugOverlay::NaN || overlay == DebugOverlay::Clipping)
   {
@@ -1368,7 +1367,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       if(rs.dsv.GetResResourceId() != ResourceId() && IsDepthFormat(resourceDesc.Format))
       {
         WrappedID3D12PipelineState *origPSO =
-            m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+            m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
         if(origPSO && origPSO->IsGraphics())
         {
           D3D12_COMPARISON_FUNC depthFunc = origPSO->graphics->DepthStencilState.DepthFunc;
@@ -1614,7 +1613,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
       }
 
-      pipe = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+      pipe = m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
       pipe->Fill(pipeDesc);
@@ -1744,7 +1743,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
             }
 
             ID3D12Resource *vb =
-                m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.vertexResourceId);
+                m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(fmt.vertexResourceId);
 
             D3D12_VERTEX_BUFFER_VIEW vbView = {};
             vbView.BufferLocation = vb->GetGPUVirtualAddress() + fmt.vertexByteOffset;
@@ -1761,7 +1760,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
             if(fmt.indexByteStride && fmt.indexResourceId != ResourceId())
             {
               ID3D12Resource *ib =
-                  m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.indexResourceId);
+                  m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(fmt.indexResourceId);
 
               D3D12_INDEX_BUFFER_VIEW view;
               view.BufferLocation = ib->GetGPUVirtualAddress() + fmt.indexByteOffset;
@@ -1883,7 +1882,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       ResourceId res = rs.GetDSVID();
 
-      ID3D12Resource *curDepth = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(res);
+      ID3D12Resource *curDepth = m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(res);
       D3D12_RESOURCE_DESC curDepthDesc = curDepth ? curDepth->GetDesc() : D3D12_RESOURCE_DESC();
       if(curDepthDesc.SampleDesc.Count > 1)
       {

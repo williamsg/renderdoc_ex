@@ -61,9 +61,9 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
   if(IsReplayingAndReading())
   {
     // if we've already sync'd, delete the old one
-    if(GetResourceManager()->HasLiveResource(sync))
+    if(GetResourceManager()->HasResource(sync))
     {
-      GLResource res = GetResourceManager()->GetLiveResource(sync);
+      GLResource res = GetResourceManager()->GetResource(sync);
       GLsync oldSyncObj = GetResourceManager()->GetSync(res.name);
 
       GL.glDeleteSync(oldSyncObj);
@@ -78,7 +78,7 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
 
     GLResource res = SyncRes(GetCtx(), name);
 
-    GetResourceManager()->AddLiveResource(sync, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(sync, ResourceType::Sync, "Sync");
   }
@@ -111,7 +111,7 @@ GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
   }
   else
   {
-    GetResourceManager()->AddLiveResource(id, res);
+    GetResourceManager()->TakeResourceOwnership(res);
   }
 
   return sync;
@@ -127,9 +127,9 @@ bool WrappedOpenGL::Serialise_glClientWaitSync(SerialiserType &ser, GLsync sync_
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(IsReplayingAndReading() && GetResourceManager()->HasLiveResource(sync))
+  if(IsReplayingAndReading() && GetResourceManager()->HasResource(sync))
   {
-    GLResource res = GetResourceManager()->GetLiveResource(sync);
+    GLResource res = GetResourceManager()->GetResource(sync);
     GL.glClientWaitSync(GetResourceManager()->GetSync(res.name), flags, timeout);
   }
 
@@ -163,9 +163,9 @@ bool WrappedOpenGL::Serialise_glWaitSync(SerialiserType &ser, GLsync sync_, GLbi
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  if(IsReplayingAndReading() && GetResourceManager()->HasLiveResource(sync))
+  if(IsReplayingAndReading() && GetResourceManager()->HasResource(sync))
   {
-    GLResource res = GetResourceManager()->GetLiveResource(sync);
+    GLResource res = GetResourceManager()->GetResource(sync);
     GL.glWaitSync(GetResourceManager()->GetSync(res.name), flags, timeout);
   }
 
@@ -192,8 +192,8 @@ void WrappedOpenGL::glDeleteSync(GLsync sync)
 
   ResourceId id = GetResourceManager()->GetSyncID(sync);
 
-  if(GetResourceManager()->HasCurrentResource(id))
-    GetResourceManager()->UnregisterResource(GetResourceManager()->GetCurrentResource(id));
+  if(GetResourceManager()->HasResource(id))
+    GetResourceManager()->UnregisterResource(GetResourceManager()->GetResource(id));
 }
 
 template <typename SerialiserType>
@@ -213,7 +213,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
     GLResource res = QueryRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(query, res);
-    GetResourceManager()->AddLiveResource(query, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(query, ResourceType::Query, "Query");
   }
@@ -249,7 +249,7 @@ void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -273,7 +273,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
     GLResource res = QueryRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(query, res);
-    GetResourceManager()->AddLiveResource(query, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(query, ResourceType::Query, "Query");
   }
@@ -309,7 +309,7 @@ void WrappedOpenGL::glCreateQueries(GLenum target, GLsizei count, GLuint *ids)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -559,7 +559,7 @@ void WrappedOpenGL::glDeleteQueries(GLsizei n, const GLuint *ids)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = QueryRes(GetCtx(), ids[i]);
-    if(GetResourceManager()->HasCurrentResource(res))
+    if(GetResourceManager()->HasResource(res))
     {
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());

@@ -72,7 +72,7 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, 
     GLResource res = FramebufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(framebuffer, res);
-    GetResourceManager()->AddLiveResource(framebuffer, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
   }
@@ -108,7 +108,7 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -132,7 +132,7 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei 
     GLResource res = FramebufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(framebuffer, res);
-    GetResourceManager()->AddLiveResource(framebuffer, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
   }
@@ -168,7 +168,7 @@ void WrappedOpenGL::glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -2368,7 +2368,7 @@ void WrappedOpenGL::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
-    if(GetResourceManager()->HasCurrentResource(res) && framebuffers[i])
+    if(GetResourceManager()->HasResource(res) && framebuffers[i])
     {
       if(GetResourceManager()->HasResourceRecord(res))
       {
@@ -2409,7 +2409,7 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n,
     GLResource res = RenderbufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(renderbuffer, res);
-    GetResourceManager()->AddLiveResource(renderbuffer, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
 
@@ -2448,7 +2448,7 @@ void WrappedOpenGL::glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -2473,7 +2473,7 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei
     GLResource res = RenderbufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(renderbuffer, res);
-    GetResourceManager()->AddLiveResource(renderbuffer, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
 
@@ -2512,7 +2512,7 @@ void WrappedOpenGL::glCreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -2533,7 +2533,7 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
-    if(GetResourceManager()->HasCurrentResource(res))
+    if(GetResourceManager()->HasResource(res))
     {
       if(GetResourceManager()->HasResourceRecord(res))
       {

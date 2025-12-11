@@ -526,7 +526,7 @@ rdcarray<ShaderEntryPoint> D3D12Replay::GetShaderEntryPoints(ResourceId shader)
   if(!WrappedID3D12Shader::IsShader(shader))
     return {};
 
-  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
+  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetResource(shader);
 
   if(!res)
     return {};
@@ -541,8 +541,7 @@ rdcarray<ShaderEntryPoint> D3D12Replay::GetShaderEntryPoints(ResourceId shader)
 const ShaderReflection *D3D12Replay::GetShader(ResourceId pipeline, ResourceId shader,
                                                ShaderEntryPoint entry)
 {
-  WrappedID3D12Shader *sh =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(shader);
+  WrappedID3D12Shader *sh = m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12Shader>(shader);
 
   if(sh)
     return &sh->GetDetails();
@@ -592,7 +591,7 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
                                       const rdcstr &target)
 {
   WrappedID3D12Shader *sh =
-      m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->resourceId);
+      m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12Shader>(refl->resourceId);
 
   if(!sh)
     return "; Invalid Shader Specified";
@@ -612,7 +611,7 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
     }
 
     WrappedID3D12PipelineState *pipe =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(pipeline);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(pipeline);
 
     UINT size = 0;
     pipe->GetPrivateData(WKPDID_CommentStringW, &size, NULL);
@@ -708,9 +707,9 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
 
 void D3D12Replay::FreeTargetResource(ResourceId id)
 {
-  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+  if(m_pDevice->GetResourceManager()->HasResource(id))
   {
-    ID3D12DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+    ID3D12DeviceChild *resource = m_pDevice->GetResourceManager()->GetResource(id);
 
     SAFE_RELEASE(resource);
   }
@@ -718,9 +717,9 @@ void D3D12Replay::FreeTargetResource(ResourceId id)
 
 void D3D12Replay::FreeCustomShader(ResourceId id)
 {
-  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+  if(m_pDevice->GetResourceManager()->HasResource(id))
   {
-    ID3D12DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+    ID3D12DeviceChild *resource = m_pDevice->GetResourceManager()->GetResource(id);
 
     SAFE_RELEASE(resource);
   }
@@ -771,7 +770,7 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
   D3D12_RESOURCE_DESC res = {};
 
   {
-    ID3D12Resource *r = rm->GetCurrentAs<ID3D12Resource>(src->GetResResourceId());
+    ID3D12Resource *r = rm->GetResAs<ID3D12Resource>(src->GetResResourceId());
     if(r)
       res = r->GetDesc();
   }
@@ -827,7 +826,7 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
         WrappedID3D12Resource::GetResIDFromAddr(srv.RaytracingAccelerationStructure.Location, asID,
                                                 dst.byteOffset);
 
-        WrappedID3D12Resource *asRes = rm->GetCurrentAs<WrappedID3D12Resource>(asID);
+        WrappedID3D12Resource *asRes = rm->GetResAs<WrappedID3D12Resource>(asID);
 
         if(asRes)
         {
@@ -941,9 +940,8 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
         if(dst.secondary != ResourceId())
         {
           bytebuf counterVal;
-          GetDebugManager()->GetBufferData(
-              rm->GetCurrentAs<ID3D12Resource>(src->GetCounterResourceId()),
-              uav.Buffer.CounterOffsetInBytes, 4, counterVal);
+          GetDebugManager()->GetBufferData(rm->GetResAs<ID3D12Resource>(src->GetCounterResourceId()),
+                                           uav.Buffer.CounterOffsetInBytes, 4, counterVal);
           uint32_t *val = (uint32_t *)&counterVal[0];
           dst.bufferStructCount = *val;
         }
@@ -1139,7 +1137,7 @@ void D3D12Replay::FillRootDescriptor(Descriptor &dst, const D3D12RenderState::Si
   {
     dst.type = DescriptorType::ConstantBuffer;
 
-    ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(src.id);
+    ID3D12Resource *buf = rm->GetResAs<ID3D12Resource>(src.id);
 
     dst.resource = src.id;
     dst.byteOffset = src.offset;
@@ -1152,7 +1150,7 @@ void D3D12Replay::FillRootDescriptor(Descriptor &dst, const D3D12RenderState::Si
   {
     dst.type = DescriptorType::Buffer;
 
-    ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(src.id);
+    ID3D12Resource *buf = rm->GetResAs<ID3D12Resource>(src.id);
 
     // parameters from resource/view
     dst.resource = src.id;
@@ -1170,7 +1168,7 @@ void D3D12Replay::FillRootDescriptor(Descriptor &dst, const D3D12RenderState::Si
   {
     dst.type = DescriptorType::ReadWriteBuffer;
 
-    ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(src.id);
+    ID3D12Resource *buf = rm->GetResAs<ID3D12Resource>(src.id);
 
     // parameters from resource/view
     dst.resource = src.id;
@@ -1213,7 +1211,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
   WrappedID3D12PipelineState *pipe = NULL;
 
   if(rs.pipe != ResourceId())
-    pipe = rm->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+    pipe = rm->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
   if(pipe && pipe->IsGraphics())
   {
@@ -1336,7 +1334,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
         (pipe && pipe->IsCompute()) ? rs.compute : rs.graphics;
     const rdcarray<D3D12RenderState::SignatureElement> &rootElems = sig.sigelems;
 
-    WrappedID3D12RootSignature *rootSig = rm->GetCurrentAs<WrappedID3D12RootSignature>(sig.rootsig);
+    WrappedID3D12RootSignature *rootSig = rm->GetResAs<WrappedID3D12RootSignature>(sig.rootsig);
 
     state.rootSignature.resourceId = GetResID(rootSig);
     state.rootSignature.parameters.clear();
@@ -1736,7 +1734,7 @@ rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
+  ID3D12DeviceChild *res = rm->GetResAs<ID3D12DeviceChild>(descriptorStore);
 
   if(WrappedID3D12RootSignature::IsAlloc(res))
   {
@@ -1858,7 +1856,7 @@ rdcarray<SamplerDescriptor> D3D12Replay::GetSamplerDescriptors(ResourceId descri
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
+  ID3D12DeviceChild *res = rm->GetResAs<ID3D12DeviceChild>(descriptorStore);
 
   if(WrappedID3D12RootSignature::IsAlloc(res))
   {
@@ -1936,7 +1934,7 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess(uint32_t eventId)
   WrappedID3D12PipelineState *pipe = NULL;
 
   if(rs.pipe != ResourceId())
-    pipe = rm->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+    pipe = rm->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
   rdcarray<DescriptorAccess> ret;
 
@@ -1956,7 +1954,7 @@ rdcarray<DescriptorAccess> D3D12Replay::GetDescriptorAccess(uint32_t eventId)
     for(ResourceId id : rs.heaps)
     {
       WrappedID3D12DescriptorHeap *heap =
-          (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(id);
+          (WrappedID3D12DescriptorHeap *)rm->GetResAs<ID3D12DescriptorHeap>(id);
       D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
       if(desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
         resourceHeap = heap;
@@ -2031,7 +2029,7 @@ rdcarray<DescriptorLogicalLocation> D3D12Replay::GetDescriptorLocations(
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  ID3D12DeviceChild *res = rm->GetCurrentAs<ID3D12DeviceChild>(descriptorStore);
+  ID3D12DeviceChild *res = rm->GetResAs<ID3D12DeviceChild>(descriptorStore);
 
   size_t count = 0;
   for(const DescriptorRange &r : ranges)
@@ -2481,10 +2479,10 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   ID3D12Resource *vb = NULL, *ib = NULL;
 
   if(cfg.position.vertexResourceId != ResourceId())
-    vb = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.vertexResourceId);
+    vb = m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(cfg.position.vertexResourceId);
 
   if(cfg.position.indexResourceId != ResourceId())
-    ib = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.indexResourceId);
+    ib = m_pDevice->GetResourceManager()->GetResAs<ID3D12Resource>(cfg.position.indexResourceId);
 
   HRESULT hr = S_OK;
 
@@ -3361,7 +3359,7 @@ bool D3D12Replay::NeedRemapForFetch(const ResourceFormat &format)
 
 void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &ret)
 {
-  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(buff);
+  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetResource(buff);
   if(WrappedID3D12PipelineState::IsAlloc(res))
   {
     const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
@@ -3427,7 +3425,7 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, S
   if(shader == ResourceId())
     return;
 
-  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
+  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetResource(shader);
 
   WrappedID3D12Shader *sh = (WrappedID3D12Shader *)res;
 
@@ -3449,14 +3447,12 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, S
 
   if(refl.stage == ShaderStage::Compute && rs.compute.rootsig != ResourceId())
   {
-    sig =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.compute.rootsig);
+    sig = m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12RootSignature>(rs.compute.rootsig);
     sigElems = &rs.compute.sigelems;
   }
   else if(refl.stage != ShaderStage::Compute && rs.graphics.rootsig != ResourceId())
   {
-    sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
-        rs.graphics.rootsig);
+    sig = m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
     sigElems = &rs.graphics.sigelems;
   }
 
@@ -3588,9 +3584,9 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
   if(WrappedID3D12Shader::IsShader(from))
   {
     WrappedID3D12Shader *fromsh =
-        (WrappedID3D12Shader *)m_pDevice->GetResourceManager()->GetCurrentResource(from);
+        (WrappedID3D12Shader *)m_pDevice->GetResourceManager()->GetResource(from);
     WrappedID3D12Shader *tosh =
-        (WrappedID3D12Shader *)m_pDevice->GetResourceManager()->GetCurrentResource(to);
+        (WrappedID3D12Shader *)m_pDevice->GetResourceManager()->GetResource(to);
 
     if(fromsh && tosh)
     {
@@ -3650,7 +3646,7 @@ void D3D12Replay::RefreshDerivedReplacements()
     // if this pipeline has a replacement, remove it and delete the program generated for it
     if(rm->HasReplacement(origsrcid))
     {
-      deletequeue.push_back(rm->GetLiveAs<ID3D12PipelineState>(origsrcid));
+      deletequeue.push_back(rm->GetResAs<ID3D12PipelineState>(origsrcid));
 
       rm->RemoveReplacement(origsrcid);
     }
@@ -3711,7 +3707,7 @@ void D3D12Replay::RefreshDerivedReplacements()
             WrappedID3D12Shader *stage = (WrappedID3D12Shader *)shaders[s]->pShaderBytecode;
 
             // this will pick up any replacements
-            stage = rm->GetLiveAs<WrappedID3D12Shader>(stage->GetResourceID());
+            stage = rm->GetResAs<WrappedID3D12Shader>(stage->GetResourceID());
 
             *shaders[s] = stage->GetDesc();
           }
@@ -3726,7 +3722,7 @@ void D3D12Replay::RefreshDerivedReplacements()
         WrappedID3D12Shader *stage = pipe->CS();
 
         // this will pick up any replacements
-        stage = rm->GetLiveAs<WrappedID3D12Shader>(stage->GetResourceID());
+        stage = rm->GetResAs<WrappedID3D12Shader>(stage->GetResourceID());
 
         desc.CS = stage->GetDesc();
 

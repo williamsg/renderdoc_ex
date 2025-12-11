@@ -761,12 +761,11 @@ public:
     VkMarkerRegion markerRegion("QueueSampleGather");
 
     VkBufferView bufferView =
-        m_pDriver->GetResourceManager()->GetLiveHandle<VkBufferView>(bufferViewDescriptor.view);
+        m_pDriver->GetResourceManager()->GetHandle<VkBufferView>(bufferViewDescriptor.view);
 
     VkSampler sampler =
-        m_pDriver->GetResourceManager()->GetLiveHandle<VkSampler>(samplerDescriptor.object);
-    VkImageView view =
-        m_pDriver->GetResourceManager()->GetLiveHandle<VkImageView>(imageDescriptor.view);
+        m_pDriver->GetResourceManager()->GetHandle<VkSampler>(samplerDescriptor.object);
+    VkImageView view = m_pDriver->GetResourceManager()->GetHandle<VkImageView>(imageDescriptor.view);
     VkImageLayout layout = convert((DescriptorSlotImageLayout)imageDescriptor.byteOffset);
 
     // NULL view : return 0,0,0,0
@@ -940,7 +939,7 @@ public:
     if(sampleView == VK_NULL_HANDLE && view != VK_NULL_HANDLE)
     {
       VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-      viewInfo.image = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(viewProps.image);
+      viewInfo.image = m_pDriver->GetResourceManager()->GetHandle<VkImage>(viewProps.image);
       viewInfo.format = viewProps.format;
       viewInfo.viewType = viewProps.viewType;
       if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_1D)
@@ -1023,8 +1022,7 @@ public:
           if(samplerProps.ycbcr != ResourceId())
           {
             ycbcrInfo.conversion =
-                m_pDriver->GetResourceManager()->GetCurrentHandle<VkSamplerYcbcrConversion>(
-                    viewProps.image);
+                m_pDriver->GetResourceManager()->GetHandle<VkSamplerYcbcrConversion>(viewProps.image);
 
             ycbcrInfo.pNext = sampInfo.pNext;
             sampInfo.pNext = &ycbcrInfo;
@@ -1439,7 +1437,7 @@ public:
               VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
               NULL,
               0,
-              m_pDriver->GetResourceManager()->GetLiveHandle<VkBuffer>(bufferViewDescriptor.resource),
+              m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(bufferViewDescriptor.resource),
               key.format,
               bufferViewDescriptor.byteOffset,
               bufferViewDescriptor.byteSize,

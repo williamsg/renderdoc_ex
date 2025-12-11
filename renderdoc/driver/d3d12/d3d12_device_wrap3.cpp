@@ -83,7 +83,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
     }
     else
     {
-      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;
@@ -152,7 +152,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping
     }
     else
     {
-      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;

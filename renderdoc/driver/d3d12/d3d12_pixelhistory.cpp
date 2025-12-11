@@ -976,7 +976,7 @@ private:
       return it->second;
 
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(state.pipe);
     if(origPSO == NULL)
     {
       RDCERR("Failed to retrieve original PSO for pixel history.");
@@ -1267,14 +1267,14 @@ private:
 
     // Get the bound depth format for this event
     WrappedID3D12PipelineState *pipe =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(m_SavedState.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(m_SavedState.pipe);
     if(pipe && pipe->IsGraphics())
     {
       ResourceId resId = m_SavedState.dsv.GetResResourceId();
       if(resId != ResourceId())
       {
         WrappedID3D12Resource *depthImage =
-            m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(resId);
+            m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12Resource>(resId);
 
         DXGI_FORMAT depthFormat = m_SavedState.dsv.GetDSV().Format;
         // Descriptors with unknown type are valid and indicate to use the resource's format
@@ -1342,7 +1342,7 @@ private:
     D3D12PipelineReplacements replacements = {};
 
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(state.pipe);
 
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC desc;
     origPSO->Fill(desc);
@@ -1440,7 +1440,7 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
     m_EventFlags[eid] = eventFlags;
 
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(pipeState.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(pipeState.pipe);
     if(origPSO == NULL)
       RDCERR("Failed to retrieve original PSO for pixel history.");
 
@@ -1588,7 +1588,7 @@ private:
     uint32_t flags = 0;
 
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(pipeState.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(pipeState.pipe);
     if(origPSO == NULL)
     {
       RDCERR("Failed to retrieve original PSO for pixel history.");
@@ -1896,7 +1896,7 @@ private:
       return it->second;
 
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(baseState.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(baseState.pipe);
     if(origPSO == NULL)
     {
       RDCERR("Failed to retrieve original PSO for pixel history.");
@@ -2120,7 +2120,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     }
 
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(state.pipe);
     if(origPSO == NULL)
     {
       RDCERR("Failed to retrieve original PSO for pixel history.");
@@ -2359,7 +2359,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
     PerFragmentPipelines pipes = {};
 
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(state.pipe);
     if(origPSO == NULL)
     {
       RDCERR("Failed to retrieve original PSO for pixel history.");
@@ -2723,7 +2723,7 @@ private:
   ID3D12PipelineState *CreateDiscardedFragmentPipeline(const D3D12RenderState &state, uint32_t eid)
   {
     WrappedID3D12PipelineState *origPSO =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(state.pipe);
     if(origPSO == NULL)
     {
       RDCERR("Failed to retrieve original PSO for pixel history.");
@@ -2996,7 +2996,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     return history;
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
-  WrappedID3D12Resource *pResource = rm->GetCurrentAs<WrappedID3D12Resource>(target);
+  WrappedID3D12Resource *pResource = rm->GetResAs<WrappedID3D12Resource>(target);
   D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
   if(resDesc.Format == DXGI_FORMAT_UNKNOWN)
     return history;

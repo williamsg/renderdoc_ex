@@ -1456,15 +1456,9 @@ public:
   ~D3D12ResourceManager() { SAFE_DELETE(m_RTManager); }
 
   template <class T>
-  T *GetLiveAs(ResourceId id, bool optional = false)
+  T *GetResAs(ResourceId id, bool optional = false)
   {
-    return (T *)GetLiveResource(id, optional);
-  }
-
-  template <class T>
-  T *GetCurrentAs(ResourceId id)
-  {
-    return (T *)GetCurrentResource(id);
+    return (T *)GetResource(id, optional);
   }
 
   template <typename D3D12Type>

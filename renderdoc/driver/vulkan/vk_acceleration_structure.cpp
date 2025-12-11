@@ -677,7 +677,7 @@ template bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser,
 void VulkanAccelerationStructureManager::Apply(ResourceId id, VkInitialContents &initial)
 {
   const VkAccelerationStructureKHR wrappedAS =
-      m_pDriver->GetResourceManager()->GetCurrentHandle<VkAccelerationStructureKHR>(id);
+      m_pDriver->GetResourceManager()->GetHandle<VkAccelerationStructureKHR>(id);
   VkAccelerationStructureInfo *asInfo = initial.accelerationStructureInfo;
   RDCASSERT(asInfo);
 

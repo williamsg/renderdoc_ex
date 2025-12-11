@@ -677,10 +677,10 @@ public:
 
     GLMarkerRegion markerRegion("QueueSampleGather");
 
-    GLResource texture = m_pDriver->GetResourceManager()->GetLiveResource(imageDescriptor.resource);
+    GLResource texture = m_pDriver->GetResourceManager()->GetResource(imageDescriptor.resource);
     GLResource bufTexture =
-        m_pDriver->GetResourceManager()->GetLiveResource(bufferViewDescriptor.resource);
-    GLResource sampler = m_pDriver->GetResourceManager()->GetLiveResource(samplerDescriptor.object);
+        m_pDriver->GetResourceManager()->GetResource(bufferViewDescriptor.resource);
+    GLResource sampler = m_pDriver->GetResourceManager()->GetResource(samplerDescriptor.object);
 
     // NULL texture : return 0,0,0,0
     if(!buffer && (texture.name == 0))
@@ -2794,7 +2794,7 @@ uint32_t GetStorageBufferBinding(WrappedOpenGL *driver,
 
     const ShaderReflection *refl = driver->GetShader(stageShaders[i]).GetReflection();
 
-    GLuint prog = driver->GetResourceManager()->GetCurrentResource(stagePrograms[i]).name;
+    GLuint prog = driver->GetResourceManager()->GetResource(stagePrograms[i]).name;
 
     for(const ShaderResource &res : refl->readWriteResources)
     {
@@ -2875,7 +2875,7 @@ ShaderDebugTrace *GLReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint3
     const WrappedOpenGL::PipelineData &pipeDetails = m_pDriver->GetPipeline(id);
 
     prog = m_pDriver->GetResourceManager()
-               ->GetCurrentResource(pipeDetails.stagePrograms[(uint32_t)ShaderStage::Vertex])
+               ->GetResource(pipeDetails.stagePrograms[(uint32_t)ShaderStage::Vertex])
                .name;
 
     vert = pipeDetails.stageShaders[(uint32_t)ShaderStage::Vertex];

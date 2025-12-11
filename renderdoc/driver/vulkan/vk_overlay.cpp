@@ -120,8 +120,8 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
       descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
 
       for(uint32_t i = 0; i < descSet; i++)
-        descSetLayouts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
-            origDescSetLayouts[i]);
+        descSetLayouts[i] =
+            m_pDriver->GetResourceManager()->GetHandle<VkDescriptorSetLayout>(origDescSetLayouts[i]);
 
       // this layout has storage image
       descBuf = (p.flags & VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT) != 0;
@@ -2077,7 +2077,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         ResourceId depthIm = depthViewInfo.image;
         VulkanCreationInfo::Image &depthImageInfo = createinfo.m_Image[depthIm];
-        dsDepthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(depthIm);
+        dsDepthImage = m_pDriver->GetResourceManager()->GetHandle<VkImage>(depthIm);
 
         dsFmt = depthImageInfo.format;
         VkFormat dsNewFmt = dsFmt;
@@ -2172,7 +2172,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         CHECK_VKR(m_pDriver, vkr);
 
         VkImageView dsView =
-            m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthStencilView);
+            m_pDriver->GetResourceManager()->GetHandle<VkImageView>(depthStencilView);
 
         if(needDepthCopyToDepthStencil)
         {
@@ -3455,7 +3455,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
           VkImageView views[] = {
               m_Overlay.ImageView,
-              m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthStencilView),
+              m_pDriver->GetResourceManager()->GetHandle<VkImageView>(depthStencilView),
           };
 
           // Create framebuffer rendering just to overlay image, no depth
@@ -3598,7 +3598,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           rdcarray<VkDescriptorSetLayout> descSetLayouts;
           for(ResourceId setLayout : layoutInfo.descSetLayouts)
             descSetLayouts.push_back(
-                m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(setLayout));
+                m_pDriver->GetResourceManager()->GetHandle<VkDescriptorSetLayout>(setLayout));
 
           VkShaderCreateInfoEXT shadInfo = {
               VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
@@ -3724,7 +3724,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               }
 
               VkBuffer vb =
-                  m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.vertexResourceId);
+                  m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(fmt.vertexResourceId);
 
               VkDeviceSize offs = fmt.vertexByteOffset;
               vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
@@ -4202,7 +4202,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                 if(fmt.indexResourceId != ResourceId())
                 {
                   VkBuffer ib =
-                      m_pDriver->GetResourceManager()->GetLiveHandle<VkBuffer>(fmt.indexResourceId);
+                      m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(fmt.indexResourceId);
 
                   vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.indexByteOffset, idxtype);
                   vt->CmdDrawIndexed(Unwrap(cmd), fmt.numIndices, 1, 0, fmt.baseVertex, 0);

@@ -2120,7 +2120,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   WrappedID3D12PipelineState *pipe =
-      (WrappedID3D12PipelineState *)rm->GetCurrentAs<ID3D12PipelineState>(rs.pipe);
+      (WrappedID3D12PipelineState *)rm->GetResAs<ID3D12PipelineState>(rs.pipe);
   D3D12RootSignature modsig;
 
   // for indirect dispatches, fetch up to date dispatch sizes in case they're non-deterministic
@@ -2138,10 +2138,10 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
       uint32_t cmdIdx = chunk->FindChild("CommandIndex")->AsUInt32();
       uint32_t argIdx = chunk->FindChild("ArgumentIndex")->AsUInt32();
 
-      WrappedID3D12CommandSignature *comSig = rm->GetLiveAs<WrappedID3D12CommandSignature>(
+      WrappedID3D12CommandSignature *comSig = rm->GetResAs<WrappedID3D12CommandSignature>(
           parentChunk->FindChild("pCommandSignature")->AsResourceId());
       ID3D12Resource *argBuf =
-          rm->GetLiveAs<ID3D12Resource>(parentChunk->FindChild("pArgumentBuffer")->AsResourceId());
+          rm->GetResAs<ID3D12Resource>(parentChunk->FindChild("pArgumentBuffer")->AsResourceId());
       uint64_t argOffs = parentChunk->FindChild("ArgumentBufferOffset")->AsUInt64();
 
       argOffs += cmdIdx * comSig->sig.ByteStride;
@@ -2192,7 +2192,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
   pipe->Fill(pipeDesc);
 
-  ID3D12RootSignature *rootsig = rm->GetCurrentAs<ID3D12RootSignature>(rs.graphics.rootsig);
+  ID3D12RootSignature *rootsig = rm->GetResAs<ID3D12RootSignature>(rs.graphics.rootsig);
 
   if(!rootsig)
   {
@@ -2858,7 +2858,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   }
 
   WrappedID3D12PipelineState *origPSO =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+      m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12PipelineState>(rs.pipe);
 
   if(!origPSO || !origPSO->IsGraphics())
   {
@@ -2950,7 +2950,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
   {
     WrappedID3D12RootSignature *sig =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
+        m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
 
     D3D12RootSignature rootsig = sig->sig;
 

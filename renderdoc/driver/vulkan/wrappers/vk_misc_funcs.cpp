@@ -503,14 +503,14 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
       // On replay though we do need to tidy up book-keeping for these.
       if(IsReplayMode(m_State))
       {
-        GetResourceManager()->ReleaseCurrentResource(disp->id);
+        GetResourceManager()->ReleaseResource(disp->id);
         GetResourceManager()->RemoveWrapper(ToTypedHandle(disp->real.As<VkDevice>()));
       }
       break;
     case eResInstance:
       if(IsReplayMode(m_State))
       {
-        GetResourceManager()->ReleaseCurrentResource(disp->id);
+        GetResourceManager()->ReleaseResource(disp->id);
         GetResourceManager()->RemoveWrapper(ToTypedHandle(disp->real.As<VkInstance>()));
       }
       break;
@@ -1089,7 +1089,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
 
           fbInfo->imageAttachments[a].record = attRecord;
           fbInfo->imageAttachments[a].barrier.image =
-              GetResourceManager()->GetCurrentHandle<VkImage>(attRecord->baseResource);
+              GetResourceManager()->GetHandle<VkImage>(attRecord->baseResource);
           fbInfo->imageAttachments[a].barrier.subresourceRange = attRecord->viewRange;
 
           {

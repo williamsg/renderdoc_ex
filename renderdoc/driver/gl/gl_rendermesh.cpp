@@ -154,7 +154,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
       const MeshFormat &fmt = secondaryDraws[i];
 
       if(fmt.vertexResourceId != ResourceId() &&
-         m_pDriver->GetResourceManager()->HasCurrentResource(fmt.vertexResourceId))
+         m_pDriver->GetResourceManager()->HasResource(fmt.vertexResourceId))
       {
         uboParams.color = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, fmt.meshColor.w);
 
@@ -170,7 +170,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
         *uboptr = uboParams;
         drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-        GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.vertexResourceId).name;
+        GLuint vb = m_pDriver->GetResourceManager()->GetResource(fmt.vertexResourceId).name;
         drv.glBindVertexBuffer(0, vb, (GLintptr)fmt.vertexByteOffset, fmt.vertexByteStride);
 
         {
@@ -186,7 +186,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
         if(fmt.indexByteStride)
         {
-          GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.indexResourceId).name;
+          GLuint ib = m_pDriver->GetResourceManager()->GetResource(fmt.indexResourceId).name;
           drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 
           GLenum idxtype = eGL_UNSIGNED_BYTE;
@@ -212,7 +212,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
   for(uint32_t i = 0; i < 2; i++)
   {
     if(meshData[i]->vertexResourceId == ResourceId() ||
-       !m_pDriver->GetResourceManager()->HasCurrentResource(meshData[i]->vertexResourceId))
+       !m_pDriver->GetResourceManager()->HasResource(meshData[i]->vertexResourceId))
       continue;
 
     if(meshData[i]->format.Special())
@@ -312,8 +312,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
     if(meshData[i]->instanced)
       offs += meshData[i]->vertexByteStride * (cfg.curInstance / meshData[i]->instStepRate);
 
-    GLuint vb =
-        m_pDriver->GetResourceManager()->GetCurrentResource(meshData[i]->vertexResourceId).name;
+    GLuint vb = m_pDriver->GetResourceManager()->GetResource(meshData[i]->vertexResourceId).name;
 
     {
       GLuint bytesize = 0;
@@ -415,8 +414,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
       if(cfg.position.indexResourceId != ResourceId())
       {
-        GLuint ib =
-            m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
+        GLuint ib = m_pDriver->GetResourceManager()->GetResource(cfg.position.indexResourceId).name;
         drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
       }
       drv.glDrawElementsBaseVertex(topo, cfg.position.numIndices, idxtype,
@@ -470,10 +468,9 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
         idxtype = eGL_UNSIGNED_INT;
 
       if(cfg.position.indexResourceId != ResourceId() &&
-         m_pDriver->GetResourceManager()->HasCurrentResource(cfg.position.indexResourceId))
+         m_pDriver->GetResourceManager()->HasResource(cfg.position.indexResourceId))
       {
-        GLuint ib =
-            m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.indexResourceId).name;
+        GLuint ib = m_pDriver->GetResourceManager()->GetResource(cfg.position.indexResourceId).name;
         drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 
         drv.glDrawElementsBaseVertex(

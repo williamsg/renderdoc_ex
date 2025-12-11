@@ -102,8 +102,8 @@ DECLARE_REFLECTION_ENUM(GLNamespace);
 enum GLSpecialResource
 {
   eSpecialResDevice = 0,
-  eSpecialResContext = 0,
-  eSpecialResDescriptorStorage = 0,
+  eSpecialResContext = 1,
+  eSpecialResDescriptorStorage = 2,
 };
 
 enum NullInitialiser

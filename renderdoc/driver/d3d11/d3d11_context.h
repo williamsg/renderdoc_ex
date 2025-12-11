@@ -100,10 +100,11 @@ struct D3DDescriptorStore : public ID3D11DeviceChild
 {
 private:
   ResourceId m_ID;
+  WrappedID3D11Device *m_pDevice;
 
 public:
   D3DDescriptorStore(WrappedID3D11Device *device);
-  virtual ~D3DDescriptorStore() {}
+  virtual ~D3DDescriptorStore();
 
   ResourceId GetResourceID() { return m_ID; }
 

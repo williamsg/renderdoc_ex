@@ -69,10 +69,15 @@ HRESULT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::QueryInterface(REFII
 extern uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 extern uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
-D3DDescriptorStore::D3DDescriptorStore(WrappedID3D11Device *device)
+D3DDescriptorStore::D3DDescriptorStore(WrappedID3D11Device *device) : m_pDevice(device)
 {
   m_ID = ResourceIDGen::GetNewUniqueID();
-  device->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+  device->GetResourceManager()->AddResource(GetResourceID(), this);
+}
+
+D3DDescriptorStore::~D3DDescriptorStore()
+{
+  m_pDevice->GetResourceManager()->ReleaseResource(GetResourceID());
 }
 
 WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *realDevice,
@@ -146,8 +151,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
     m_State = CaptureState::LoadingReplaying;
 
     m_DescriptorStore = new D3DDescriptorStore(m_pDevice);
-    m_pDevice->GetResourceManager()->AddLiveResource(m_DescriptorStore->GetResourceID(),
-                                                     m_DescriptorStore);
   }
   else
   {
@@ -231,10 +234,6 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   if(m_pRealContext && GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
     m_pDevice->RemoveDeferredContext(this);
 
-  // if this context is being destroyed by the resource manager the descriptor store may already be
-  // "removed"
-  if(m_DescriptorStore && GetResourceManager()->HasLiveResource(m_DescriptorStore->GetResourceID()))
-    GetResourceManager()->EraseLiveResource(m_DescriptorStore->GetResourceID());
   SAFE_DELETE(m_DescriptorStore);
 
   SAFE_DELETE(m_FrameReader);
@@ -443,7 +442,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
     // DrawAuto()
     for(const HiddenCounter &c : HiddenStreamOutCounters)
     {
-      if(m_pDevice->GetResourceManager()->HasLiveResource(c.id))
+      if(m_pDevice->GetResourceManager()->HasResource(c.id))
       {
         StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(c.id);
         so.numPrims = c.counterValue;
@@ -1434,10 +1433,10 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
   for(; it != m_OpenMaps.end(); ++it)
   {
-    RDCASSERT(m_pDevice->GetResourceManager()->HasLiveResource(it->first.resource));
+    RDCASSERT(m_pDevice->GetResourceManager()->HasResource(it->first.resource));
 
     ID3D11Resource *res =
-        (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(it->first.resource);
+        (ID3D11Resource *)m_pDevice->GetResourceManager()->GetResource(it->first.resource);
 
     m_pRealContext->Unmap(UnwrapResource(res), it->first.subresource);
   }

@@ -479,7 +479,7 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
 
   rdcarray<PipelineExecutables> &data = it.first->second;
 
-  VkPipeline pipe = m_pDriver->GetResourceManager()->GetCurrentHandle<VkPipeline>(pipeline);
+  VkPipeline pipe = m_pDriver->GetResourceManager()->GetHandle<VkPipeline>(pipeline);
 
   VkPipelineInfoKHR pipeInfo = {
       VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
@@ -578,7 +578,7 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
              "; Shader must be disassembled with a specific pipeline.";
     }
 
-    VkPipeline pipe = m_pDriver->GetResourceManager()->GetCurrentHandle<VkPipeline>(pipeline);
+    VkPipeline pipe = m_pDriver->GetResourceManager()->GetHandle<VkPipeline>(pipeline);
 
     VkShaderStageFlagBits stageBit = VkShaderStageFlagBits(
         1 << it->second.GetReflection(refl->stage, refl->entryPoint, pipeline).stageIndex);
@@ -1059,7 +1059,7 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
   }
 
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetCurrentResource(buff)))
+  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetResource(buff)))
   {
     inlineData.assign(m_pDriver->m_RenderState.pushconsts, m_pDriver->m_RenderState.pushConstSize);
     useInlineData = true;
@@ -2582,7 +2582,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
   }
 
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(rm->GetCurrentResource(descriptorStore)))
+  if(WrappedVkCommandBuffer::IsAlloc(rm->GetResource(descriptorStore)))
   {
     const VulkanRenderState &state = m_pDriver->m_RenderState;
 
@@ -2606,7 +2606,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
   }
 
   // check for a descriptor buffer
-  if(WrappedVkBuffer::IsAlloc(rm->GetCurrentResource(descriptorStore)) &&
+  if(WrappedVkBuffer::IsAlloc(rm->GetResource(descriptorStore)) &&
      (m_pDriver->m_CreationInfo.m_Buffer[descriptorStore].usage &
       (VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
        VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT)) != 0)
@@ -2738,14 +2738,14 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
   }
 
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetCurrentResource(descriptorStore)))
+  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetResource(descriptorStore)))
   {
     // not sampler data
     return ret;
   }
 
   // check for a descriptor buffer
-  if(WrappedVkBuffer::IsAlloc(GetResourceManager()->GetCurrentResource(descriptorStore)) &&
+  if(WrappedVkBuffer::IsAlloc(GetResourceManager()->GetResource(descriptorStore)) &&
      (m_pDriver->m_CreationInfo.m_Buffer[descriptorStore].usage &
       (VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
        VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT)) != 0)
@@ -3015,7 +3015,7 @@ rdcarray<DescriptorLogicalLocation> VulkanReplay::GetDescriptorLocations(
   VulkanResourceManager *rm = m_pDriver->GetResourceManager();
 
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(rm->GetCurrentResource(descriptorStore)))
+  if(WrappedVkCommandBuffer::IsAlloc(rm->GetResource(descriptorStore)))
   {
     // should only be one descriptor referred here, but just munge them all to be the same
     for(DescriptorLogicalLocation &d : ret)
@@ -3032,7 +3032,7 @@ rdcarray<DescriptorLogicalLocation> VulkanReplay::GetDescriptorLocations(
   if(m_pDriver->m_CreationInfo.m_DescSetLayout.find(descriptorStore) !=
          m_pDriver->m_CreationInfo.m_DescSetLayout.end() ||
      m_pDriver->m_InlineBuffers.find(descriptorStore) != m_pDriver->m_InlineBuffers.end() ||
-     (WrappedVkBuffer::IsAlloc(GetResourceManager()->GetCurrentResource(descriptorStore)) &&
+     (WrappedVkBuffer::IsAlloc(GetResourceManager()->GetResource(descriptorStore)) &&
       (m_pDriver->m_CreationInfo.m_Buffer[descriptorStore].usage &
        (VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
         VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT)) != 0))
@@ -3415,7 +3415,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
   bool isMemoryBound = state->isMemoryBound;
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
   TextureDisplayViews &texviews = m_TexRender.TextureViews[texid];
-  VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
+  VkImage liveIm = m_pDriver->GetResourceManager()->GetHandle<VkImage>(texid);
 
   if(!isMemoryBound)
     return false;
@@ -3730,7 +3730,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
     return false;
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
   TextureDisplayViews &texviews = m_TexRender.TextureViews[texid];
-  VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
+  VkImage liveIm = m_pDriver->GetResourceManager()->GetHandle<VkImage>(texid);
 
   bool stencil = false;
   // detect if stencil is selected
@@ -4119,7 +4119,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   bool isPlanar = (imageAspects & VK_IMAGE_ASPECT_PLANE_0_BIT) != 0;
   uint32_t planeCount = GetYUVPlaneCount(imInfo.format);
 
-  VkImage liveWrappedImage = GetResourceManager()->GetCurrentHandle<VkImage>(tex);
+  VkImage liveWrappedImage = GetResourceManager()->GetHandle<VkImage>(tex);
 
   VkImage srcImage = Unwrap(liveWrappedImage);
   VkImage tmpImage = VK_NULL_HANDLE;
@@ -5039,7 +5039,7 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
   if(id == ResourceId())
     return;
 
-  m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
+  m_pDriver->ReleaseResource(GetResourceManager()->GetResource(id));
 }
 
 ResourceId VulkanReplay::ApplyCustomShader(TextureDisplay &display)
@@ -5192,11 +5192,11 @@ void VulkanReplay::FreeTargetResource(ResourceId id)
   auto it = m_ModuleIDToShaderObject.find(id);
   if(it != m_ModuleIDToShaderObject.end())
   {
-    m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(GetResID(it->second)));
+    m_pDriver->ReleaseResource(GetResourceManager()->GetResource(GetResID(it->second)));
     m_ModuleIDToShaderObject.erase(it);
   }
 
-  m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
+  m_pDriver->ReleaseResource(GetResourceManager()->GetResource(id));
 }
 
 void VulkanReplay::ClearReplayCache()
@@ -5277,7 +5277,7 @@ void VulkanReplay::RefreshDerivedReplacements()
     // if this pipeline has a replacement, remove it and delete the program generated for it
     if(rm->HasReplacement(origsrcid))
     {
-      deletequeue.push_back(rm->GetLiveHandle<VkPipeline>(origsrcid));
+      deletequeue.push_back(rm->GetHandle<VkPipeline>(origsrcid));
 
       rm->RemoveReplacement(origsrcid);
     }
@@ -5314,7 +5314,7 @@ void VulkanReplay::RefreshDerivedReplacements()
 
           ResourceId shadId = GetResID(sh.module);
 
-          sh.module = rm->GetLiveHandle<VkShaderModule>(shadId);
+          sh.module = rm->GetHandle<VkShaderModule>(shadId);
 
           if(rm->HasReplacement(shadId))
           {
@@ -5366,7 +5366,7 @@ void VulkanReplay::RefreshDerivedReplacements()
         // replace the module by going via the live ID to pick up any replacements
         VkPipelineShaderStageCreateInfo &sh = pipeCreateInfo.stage;
         ResourceId shadId = pipeInfo.shaders[5].module;
-        sh.module = rm->GetLiveHandle<VkShaderModule>(shadId);
+        sh.module = rm->GetHandle<VkShaderModule>(shadId);
 
         rdcarray<ShaderEntryPoint> entries;
 

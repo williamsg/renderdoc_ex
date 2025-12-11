@@ -1091,7 +1091,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             progIds[i] = pipeDetails.stagePrograms[i];
             shadIds[i] = pipeDetails.stageShaders[i];
 
-            progForStage[i] = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+            progForStage[i] = rm->GetResource(pipeDetails.stagePrograms[i]).name;
           }
         }
       }
@@ -1123,7 +1123,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   {
     if(progForStage[i])
     {
-      progForStage[i] = rm->GetCurrentResource(progIds[i]).name;
+      progForStage[i] = rm->GetResource(progIds[i]).name;
       stages[i]->programResourceId = rm->GetUnreplacedID(progIds[i]);
       stages[i]->shaderResourceId = rm->GetUnreplacedID(shadIds[i]);
 
@@ -2873,8 +2873,7 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, Shad
 
       size_t s = ShaderIdx(shaderDetails.type);
 
-      curProg =
-          m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[s]).name;
+      curProg = m_pDriver->GetResourceManager()->GetResource(pipeDetails.stagePrograms[s]).name;
     }
   }
 
@@ -3670,7 +3669,7 @@ void GLReplay::FreeCustomShader(ResourceId id)
   if(id == ResourceId())
     return;
 
-  m_pDriver->glDeleteShader(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
+  m_pDriver->glDeleteShader(m_pDriver->GetResourceManager()->GetResource(id).name);
 }
 
 void GLReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source,
@@ -3914,7 +3913,7 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 {
   WrappedOpenGL &drv = *m_pDriver;
 
-  GLuint tex = m_pDriver->GetResourceManager()->GetCurrentResource(texid).name;
+  GLuint tex = m_pDriver->GetResourceManager()->GetResource(texid).name;
 
   WrappedOpenGL::TextureData &texdetails = m_pDriver->m_Textures[texid];
 
@@ -4264,7 +4263,7 @@ ResourceId GLReplay::CreateProxyBuffer(const BufferDescription &templateBuf)
 
 void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 {
-  GLuint buf = m_pDriver->GetResourceManager()->GetCurrentResource(bufid).name;
+  GLuint buf = m_pDriver->GetResourceManager()->GetResource(bufid).name;
 
   m_pDriver->glNamedBufferSubDataEXT(buf, 0, dataSize, data);
 }

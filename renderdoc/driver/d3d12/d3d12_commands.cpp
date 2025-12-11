@@ -551,7 +551,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ResourceId id, ID3D12Comman
     m_CreationRecord->InternalResource = true;
   }
 
-  m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+  m_pDevice->GetResourceManager()->AddResource(GetResourceID(), this);
 
   m_pDevice->SoftRef();
 }
@@ -569,7 +569,7 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 
   if(m_QueueRecord)
     m_QueueRecord->Delete(m_pDevice->GetResourceManager());
-  m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
+  m_pDevice->GetResourceManager()->ReleaseResource(GetResourceID());
   m_pDevice->RemoveQueue(this);
 
   SAFE_RELEASE(m_pDownlevel);
@@ -1427,7 +1427,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ResourceId id
       RDCERR("Error adding wrapper for ID3D12GraphicsCommandList");
   }
 
-  m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+  m_pDevice->GetResourceManager()->AddResource(GetResourceID(), this);
 
   m_pDevice->SoftRef();
 }
@@ -1452,10 +1452,7 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   if(m_ListRecord)
     m_ListRecord->Delete(m_pDevice->GetResourceManager());
 
-  m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
-
-  if(IsReplayMode(m_State) && m_pDevice->GetResourceManager()->HasLiveResource(GetResourceID()))
-    m_pDevice->GetResourceManager()->EraseLiveResource(GetResourceID());
+  m_pDevice->GetResourceManager()->ReleaseResource(GetResourceID());
 
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);
@@ -2064,7 +2061,7 @@ void D3D12CommandData::AddUsageForBindInRootSig(const D3D12RenderState &state,
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  WrappedID3D12RootSignature *sig = rm->GetCurrentAs<WrappedID3D12RootSignature>(rootsig->rootsig);
+  WrappedID3D12RootSignature *sig = rm->GetResAs<WrappedID3D12RootSignature>(rootsig->rootsig);
 
   for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
   {
@@ -2136,7 +2133,7 @@ void D3D12CommandData::AddUsageForBindInRootSig(const D3D12RenderState &state,
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE && el.type == eRootTable)
     {
       WrappedID3D12DescriptorHeap *heap =
-          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(el.id);
+          m_pDevice->GetResourceManager()->GetResAs<WrappedID3D12DescriptorHeap>(el.id);
 
       if(heap == NULL)
         continue;
@@ -2248,7 +2245,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNo
   WrappedID3D12PipelineState *pipe = NULL;
 
   if(state.pipe != ResourceId())
-    pipe = rm->GetCurrentAs<WrappedID3D12PipelineState>(state.pipe);
+    pipe = rm->GetResAs<WrappedID3D12PipelineState>(state.pipe);
 
   const ShaderReflection *refls[NumShaderStages] = {};
 

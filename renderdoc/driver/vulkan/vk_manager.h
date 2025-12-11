@@ -177,23 +177,23 @@ public:
     // if any objects leaked past, it's no longer safe to delete them as we would
     // be calling Shutdown() after the device that owns them is destroyed. Instead
     // we just have to leak ourselves.
-    RDCASSERT(m_LiveResourceMap.empty());
+    RDCASSERT(m_OwnedResources.empty());
     RDCASSERT(m_InitialContents.empty());
     RDCASSERT(m_ResourceRecords.empty());
-    RDCASSERT(m_CurrentResourceMap.empty());
+    RDCASSERT(m_ResourceMap.empty());
     RDCASSERT(m_WrapperMap.empty());
 
-    m_LiveResourceMap.clear();
+    m_OwnedResources.clear();
     m_InitialContents.clear();
     m_ResourceRecords.clear();
-    m_CurrentResourceMap.clear();
+    m_ResourceMap.clear();
     m_WrapperMap.clear();
   }
 
   template <typename realtype>
   void AddLiveResource(ResourceId id, realtype obj)
   {
-    ResourceManager::AddLiveResource(id, GetWrapped(obj));
+    ResourceManager::TakeResourceOwnership(GetWrapped(obj));
   }
 
   using ResourceManager::AddResourceRecord;
@@ -217,17 +217,10 @@ public:
 
   // easy path for getting the wrapped handle cast to the correct type
   template <typename realtype>
-  realtype GetLiveHandle(ResourceId id)
+  realtype GetHandle(ResourceId id)
   {
-    return realtype((uint64_t)((
-        typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(id)));
-  }
-
-  template <typename realtype>
-  realtype GetCurrentHandle(ResourceId id)
-  {
-    return realtype((uint64_t)((
-        typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id)));
+    return realtype(
+        (uint64_t)((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetResource(id)));
   }
 
   // handling memory & image layouts
@@ -307,7 +300,7 @@ public:
 
     SetTableIfDispatchable(IsCaptureMode(m_State), parentObj, m_Core, wrapped);
 
-    AddCurrentResource(id, wrapped);
+    AddResource(id, wrapped);
 
     if(IsReplayMode(m_State))
       AddWrapper(wrapped, ToTypedHandle(obj));
@@ -387,13 +380,10 @@ public:
 
     if(IsReplayMode(m_State))
     {
-      if(!ResourceIDGen::IsReplayOnlyID(id))
-        EraseLiveResource(id);
-
       ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
     }
 
-    ResourceManager::ReleaseCurrentResource(id);
+    ResourceManager::ReleaseResource(id);
     VkResourceRecord *record = GetRecord(obj);
     if(record)
     {

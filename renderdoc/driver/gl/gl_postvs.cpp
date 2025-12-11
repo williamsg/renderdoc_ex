@@ -330,8 +330,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
             gsPatch = m_pDriver->GetShader(pipeDetails.stageShaders[3]).patchData;
           }
 
-          stageShaders[i] = rm->GetCurrentResource(pipeDetails.stageShaders[i]).name;
-          stageSrcPrograms[i] = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+          stageShaders[i] = rm->GetResource(pipeDetails.stageShaders[i]).name;
+          stageSrcPrograms[i] = rm->GetResource(pipeDetails.stagePrograms[i]).name;
 
           if(stageShaders[i] == stageSrcPrograms[i])
           {
@@ -388,7 +388,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           gsPatch = m_pDriver->GetShader(progDetails.stageShaders[3]).patchData;
         }
 
-        stageShaders[i] = rm->GetCurrentResource(progDetails.stageShaders[i]).name;
+        stageShaders[i] = rm->GetResource(progDetails.stageShaders[i]).name;
 
         if(refl)
         {

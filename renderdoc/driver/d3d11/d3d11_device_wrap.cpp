@@ -127,7 +127,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
     {
       ret = new WrappedID3D11Buffer(pBuffer, ret, Descriptor.ByteWidth, this);
 
-      GetResourceManager()->AddLiveResource(pBuffer, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pBuffer, ResourceType::Buffer, "Buffer");
@@ -245,9 +245,7 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
     }
     else
     {
-      WrappedID3D11Buffer *w = (WrappedID3D11Buffer *)wrapped;
-
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppBuffer = wrapped;
@@ -441,7 +439,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
     {
       ret = new WrappedID3D11Texture1D(pTexture, ret, this, dispType);
 
-      GetResourceManager()->AddLiveResource(pTexture, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     const char *prefix = Descriptor.ArraySize > 1 ? "1D TextureArray" : "1D Texture";
@@ -502,9 +500,7 @@ HRESULT WrappedID3D11Device::CreateTexture1D(const D3D11_TEXTURE1D_DESC *pDesc,
     }
     else
     {
-      WrappedID3D11Texture1D *w = (WrappedID3D11Texture1D *)wrapped;
-
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppTexture1D = wrapped;
@@ -580,7 +576,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
     {
       ret = new WrappedID3D11Texture2D1(pTexture, ret, this, dispType);
 
-      GetResourceManager()->AddLiveResource(pTexture, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     const char *prefix = Descriptor.ArraySize > 1 ? "2D TextureArray" : "2D Texture";
@@ -645,9 +641,7 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
     }
     else
     {
-      WrappedID3D11Texture2D1 *w = (WrappedID3D11Texture2D1 *)wrapped;
-
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppTexture2D = wrapped;
@@ -722,7 +716,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
     {
       ret = new WrappedID3D11Texture3D1(pTexture, ret, this, dispType);
 
-      GetResourceManager()->AddLiveResource(pTexture, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     const char *prefix = "3D Texture";
@@ -783,9 +777,7 @@ HRESULT WrappedID3D11Device::CreateTexture3D(const D3D11_TEXTURE3D_DESC *pDesc,
     }
     else
     {
-      WrappedID3D11Texture3D1 *w = (WrappedID3D11Texture3D1 *)wrapped;
-
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppTexture3D = wrapped;
@@ -863,7 +855,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
     {
       ret = new WrappedID3D11ShaderResourceView1(pView, ret, pResource, this);
 
-      GetResourceManager()->AddLiveResource(pView, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pView, ResourceType::View, "Shader Resource View");
@@ -991,7 +983,7 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
     {
       ret = new WrappedID3D11UnorderedAccessView1(pView, ret, pResource, this);
 
-      GetResourceManager()->AddLiveResource(pView, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pView, ResourceType::View, "Unordered Access View");
@@ -1143,7 +1135,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(SerialiserType &ser,
     {
       ret = new WrappedID3D11RenderTargetView1(pView, ret, pResource, this);
 
-      GetResourceManager()->AddLiveResource(pView, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pView, ResourceType::View, "Render Target View");
@@ -1243,7 +1235,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
     {
       ret = new WrappedID3D11DepthStencilView(pView, ret, pResource, this);
 
-      GetResourceManager()->AddLiveResource(pView, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pView, ResourceType::View, "Depth Stencil View");
@@ -1351,7 +1343,7 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
     {
       ret = new WrappedID3D11InputLayout(pInputLayout, ret, this);
 
-      GetResourceManager()->AddLiveResource(pInputLayout, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pInputLayout, ResourceType::StateObject, "Input Layout");
@@ -1451,7 +1443,7 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
       ret = new WrappedID3D11Shader<ID3D11VertexShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                         (size_t)BytecodeLength, this);
 
-      GetResourceManager()->AddLiveResource(pShader, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pShader, ResourceType::Shader, "Vertex Shader");
@@ -1540,7 +1532,7 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
       if(m_GlobalEXTUAV != ~0U)
         w->SetShaderExtSlot(m_GlobalEXTUAV);
 
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppVertexShader = wrapped;
@@ -1586,7 +1578,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
       ret = new WrappedID3D11Shader<ID3D11GeometryShader>(
           pShader, ret, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
-      GetResourceManager()->AddLiveResource(pShader, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pShader, ResourceType::Shader, "Geometry Shader");
@@ -1678,7 +1670,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
       if(m_GlobalEXTUAV != ~0U)
         w->SetShaderExtSlot(m_GlobalEXTUAV);
 
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppGeometryShader = wrapped;
@@ -1730,7 +1722,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
       ret = new WrappedID3D11Shader<ID3D11GeometryShader>(
           pShader, ret, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
-      GetResourceManager()->AddLiveResource(pShader, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     D3D_PRIMITIVE_TOPOLOGY topo =
@@ -1899,7 +1891,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
       if(m_GlobalEXTUAV != ~0U)
         w->SetShaderExtSlot(m_GlobalEXTUAV);
 
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppGeometryShader = wrapped;
@@ -1944,7 +1936,7 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
       ret = new WrappedID3D11Shader<ID3D11PixelShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                        (size_t)BytecodeLength, this);
 
-      GetResourceManager()->AddLiveResource(pShader, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pShader, ResourceType::Shader, "Pixel Shader");
@@ -2034,7 +2026,7 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
       if(m_GlobalEXTUAV != ~0U)
         w->SetShaderExtSlot(m_GlobalEXTUAV);
 
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppPixelShader = wrapped;
@@ -2078,7 +2070,7 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
       ret = new WrappedID3D11Shader<ID3D11HullShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                       (size_t)BytecodeLength, this);
 
-      GetResourceManager()->AddLiveResource(pShader, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pShader, ResourceType::Shader, "Hull Shader");
@@ -2168,7 +2160,7 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
       if(m_GlobalEXTUAV != ~0U)
         w->SetShaderExtSlot(m_GlobalEXTUAV);
 
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppHullShader = wrapped;
@@ -2214,7 +2206,7 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
       ret = new WrappedID3D11Shader<ID3D11DomainShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                         (size_t)BytecodeLength, this);
 
-      GetResourceManager()->AddLiveResource(pShader, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pShader, ResourceType::Shader, "Domain Shader");
@@ -2305,7 +2297,7 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
       if(m_GlobalEXTUAV != ~0U)
         w->SetShaderExtSlot(m_GlobalEXTUAV);
 
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppDomainShader = wrapped;
@@ -2351,7 +2343,7 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
       ret = new WrappedID3D11Shader<ID3D11ComputeShader>(
           pShader, ret, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
-      GetResourceManager()->AddLiveResource(pShader, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pShader, ResourceType::Shader, "Compute Shader");
@@ -2443,7 +2435,7 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
       if(m_GlobalEXTUAV != ~0U)
         w->SetShaderExtSlot(m_GlobalEXTUAV);
 
-      GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppComputeShader = wrapped;
@@ -2497,7 +2489,7 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
       FlushPendingDead();
       wrapped = new WrappedID3D11ClassInstance(pInstance, real, pClassLinkage, this);
 
-      GetResourceManager()->AddLiveResource(pInstance, wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     AddResource(pInstance, ResourceType::ShaderBinding, "Class Instance");
@@ -2571,7 +2563,7 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
       FlushPendingDead();
       wrapped = new WrappedID3D11ClassInstance(pInstance, real, pClassLinkage, this);
 
-      GetResourceManager()->AddLiveResource(pInstance, wrapped);
+      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     AddResource(pInstance, ResourceType::ShaderBinding, "Class Instance");
@@ -2636,7 +2628,7 @@ bool WrappedID3D11Device::Serialise_CreateClassLinkage(SerialiserType &ser,
     {
       ret = new WrappedID3D11ClassLinkage(pLinkage, ret, this);
 
-      GetResourceManager()->AddLiveResource(pLinkage, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pLinkage, ResourceType::ShaderBinding, "Class Linkage");
@@ -2711,13 +2703,13 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(SerialiserType &ser,
         ret = (ID3D11BlendState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
       else
       {
         ret = new WrappedID3D11BlendState1(pState, ret, this);
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
     }
 
@@ -2826,13 +2818,13 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
         ret = (ID3D11DepthStencilState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
       else
       {
         ret = new WrappedID3D11DepthStencilState(pState, ret, this);
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
     }
 
@@ -2939,13 +2931,13 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(SerialiserType &ser,
         ret = (ID3D11RasterizerState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
       else
       {
         ret = new WrappedID3D11RasterizerState2(pState, ret, this);
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
     }
 
@@ -3052,13 +3044,13 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(SerialiserType &ser,
         ret = (ID3D11SamplerState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
       else
       {
         ret = new WrappedID3D11SamplerState(pState, ret, this);
 
-        GetResourceManager()->AddLiveResource(pState, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
     }
 
@@ -3160,7 +3152,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery(SerialiserType &ser,
     {
       ret = new WrappedID3D11Query1(pQuery, ret, this);
 
-      GetResourceManager()->AddLiveResource(pQuery, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pQuery, ResourceType::Query, "Query");
@@ -3245,7 +3237,7 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
     {
       ret = new WrappedID3D11Predicate(pPredicate, ret, this);
 
-      GetResourceManager()->AddLiveResource(pPredicate, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pPredicate, ResourceType::Query, "Predicate");
@@ -3338,7 +3330,7 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
     {
       ret = new WrappedID3D11Query1(pCounter, ret, this);
 
-      GetResourceManager()->AddLiveResource(pCounter, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pCounter, ResourceType::Query, "Counter");
@@ -3427,7 +3419,7 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
 
       AddDeferredContext((WrappedID3D11DeviceContext *)ret);
 
-      GetResourceManager()->AddLiveResource(pDeferredContext, ret);
+      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pDeferredContext, ResourceType::CommandBuffer, "Deferred Context");
@@ -3554,7 +3546,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       {
         ret = new WrappedID3D11Buffer(pResource, ret, Descriptor.ByteWidth, this);
 
-        GetResourceManager()->AddLiveResource(pResource, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       AddResource(pResource, ResourceType::Buffer, "Shared Buffer");
@@ -3629,7 +3621,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       {
         ret = new WrappedID3D11Texture1D(pResource, ret, this, dispType);
 
-        GetResourceManager()->AddLiveResource(pResource, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       AddResource(pResource, ResourceType::Texture, "Shared 1D Texture");
@@ -3674,7 +3666,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       {
         ret = new WrappedID3D11Texture2D1(pResource, ret, this, dispType);
 
-        GetResourceManager()->AddLiveResource(pResource, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       AddResource(pResource, ResourceType::Texture, "Shared 2D Texture");
@@ -3719,7 +3711,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       {
         ret = new WrappedID3D11Texture3D1(pResource, ret, this, dispType);
 
-        GetResourceManager()->AddLiveResource(pResource, ret);
+        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       AddResource(pResource, ResourceType::Texture, "Shared 3D Texture");
@@ -3969,7 +3961,7 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
     record->SetDataPtr(chunk->GetData());
 
     if(IsActiveCapturing(m_State))
-      Prepare_InitialState(GetResourceManager()->GetCurrentResource(wrappedID));
+      Prepare_InitialState(GetResourceManager()->GetResource(wrappedID));
 
     return S_OK;
   }

@@ -51,7 +51,7 @@ bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLui
     GLResource res = SamplerRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(sampler, res);
-    GetResourceManager()->AddLiveResource(sampler, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(sampler, ResourceType::Sampler, "Sampler");
   }
@@ -87,7 +87,7 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -109,7 +109,7 @@ bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, G
     GLResource res = SamplerRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(sampler, res);
-    GetResourceManager()->AddLiveResource(sampler, res);
+    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(sampler, ResourceType::Sampler, "Sampler");
   }
@@ -145,7 +145,7 @@ void WrappedOpenGL::glCreateSamplers(GLsizei count, GLuint *samplers)
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, res);
+      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -630,7 +630,7 @@ void WrappedOpenGL::glDeleteSamplers(GLsizei n, const GLuint *ids)
   for(GLsizei i = 0; i < n; i++)
   {
     GLResource res = SamplerRes(GetCtx(), ids[i]);
-    if(GetResourceManager()->HasCurrentResource(res))
+    if(GetResourceManager()->HasResource(res))
     {
       if(GetResourceManager()->HasResourceRecord(res))
         GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());

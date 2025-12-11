@@ -510,7 +510,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
               if(it->second.destinationAS != ResourceId())
               {
                 D3D12AccelerationStructure *as =
-                    (D3D12AccelerationStructure *)GetResourceManager()->GetLiveResource(
+                    (D3D12AccelerationStructure *)GetResourceManager()->GetResource(
                         it->second.destinationAS);
                 as->seenReplayBuild = true;
               }
@@ -539,7 +539,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
                                               blasOffs);
 
               WrappedID3D12Resource *blas =
-                  GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(blasId);
+                  GetResourceManager()->GetResAs<WrappedID3D12Resource>(blasId);
 
               D3D12AccelerationStructure *blasCheck = NULL;
               rdcstr invalid;

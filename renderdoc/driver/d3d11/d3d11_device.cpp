@@ -1036,7 +1036,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       {
         m_pImmediateContext->AddRef();
         m_pImmediateContext->SetReplayResourceID(ImmediateContext);
-        m_ResourceManager->AddLiveResource(ImmediateContext, m_pImmediateContext);
+        m_ResourceManager->TakeResourceOwnership(m_pImmediateContext);
 
         ResourceId descId = m_pImmediateContext->GetDescriptorsID();
         AddResource(descId, ResourceType::DescriptorStore, "");
@@ -1735,7 +1735,7 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
       SetDebugName(fakeBB, "Serialised Swap Chain Buffer");
 
-      GetResourceManager()->AddLiveResource(SwapbufferID, fakeBB);
+      GetResourceManager()->TakeResourceOwnership(fakeBB);
     }
   }
 
@@ -1802,7 +1802,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, pTex);
+      GetResourceManager()->TakeResourceOwnership(pTex);
     }
   }
 
@@ -1955,13 +1955,10 @@ void WrappedID3D11Device::DestroyDeadObject(ID3D11DeviceChild *child)
 
     // clean up book-keeping
     rm->RemoveWrapper(wrapped->GetReal());
-    rm->ReleaseCurrentResource(id);
+    rm->ReleaseResource(id);
     D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
     if(record)
       record->Delete(GetResourceManager());
-
-    if(GetResourceManager()->HasLiveResource(id))
-      GetResourceManager()->EraseLiveResource(id);
 
     // this is a bit of a hack. the vtable for e.g. a wrapped blend state will have:
     //
@@ -2862,7 +2859,7 @@ void WrappedID3D11Device::AddResourceCurChunk(ResourceDescription &descr)
 
 void WrappedID3D11Device::AddResourceCurChunk(ResourceId id)
 {
-  if(GetResourceManager()->HasLiveResource(id))
+  if(GetResourceManager()->HasResource(id))
     AddResourceCurChunk(GetReplay()->GetResourceDesc(id));
 }
 

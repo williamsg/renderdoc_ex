@@ -87,7 +87,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
     }
     else
     {
-      GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(CommandList)->Close();
+      GetResourceManager()->GetResAs<WrappedID3D12GraphicsCommandList>(CommandList)->Close();
 
       {
         if(m_Cmd->GetActionStack().size() > 1)
@@ -253,7 +253,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         // has an object to find
         m_Cmd->m_RerecordCmdList.push_back(list);
 
-        GetResourceManager()->AddLiveResource(BakedCommandList, list);
+        GetResourceManager()->TakeResourceOwnership(list);
       }
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
@@ -293,7 +293,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
     }
     else
     {
-      if(!GetResourceManager()->HasLiveResource(BakedCommandList))
+      if(!GetResourceManager()->HasResource(BakedCommandList))
       {
         ID3D12GraphicsCommandList *list = NULL;
         HRESULT hr =
@@ -314,7 +314,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
           m_pDevice->GetResourceDesc(BakedCommandList).SetCustomName(descr.name + " (Baked)");
         }
 
-        GetResourceManager()->AddLiveResource(BakedCommandList, list);
+        GetResourceManager()->TakeResourceOwnership(list);
 
         // whenever a command-building chunk asks for the command list, it
         // will get our baked version.
@@ -330,7 +330,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       else
       {
         ID3D12GraphicsCommandList *list =
-            GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(BakedCommandList)->GetReal();
+            GetResourceManager()->GetResAs<WrappedID3D12GraphicsCommandList>(BakedCommandList)->GetReal();
         list->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
       }
 
@@ -1672,7 +1672,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
       // and all newly expected arguments must be set before Draw/Dispatch otherwise behavior is
       // undefined. If the root signature is redundantly set to the same one currently set, existing
       // root signature bindings do not become stale."
-      if(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)) !=
+      if(Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)) !=
          Unwrap(pRootSignature))
         state.compute.sigelems.clear();
       state.compute.rootsig = GetResID(pRootSignature);
@@ -1704,7 +1704,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignatu
     // and all newly expected arguments must be set before Draw/Dispatch otherwise behavior is
     // undefined. If the root signature is redundantly set to the same one currently set, existing
     // root signature bindings do not become stale."
-    if(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(
+    if(Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(
            m_CaptureComputeState.compute.rootsig)) != Unwrap(pRootSignature))
       m_CaptureComputeState.compute.sigelems.clear();
     m_CaptureComputeState.compute.rootsig = GetResID(pRootSignature);
@@ -2295,7 +2295,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
       // and all newly expected arguments must be set before Draw/Dispatch otherwise behavior is
       // undefined. If the root signature is redundantly set to the same one currently set, existing
       // root signature bindings do not become stale."
-      if(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.graphics.rootsig)) !=
+      if(Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.graphics.rootsig)) !=
          Unwrap(pRootSignature))
         state.graphics.sigelems.clear();
       state.graphics.rootsig = GetResID(pRootSignature);
@@ -3922,7 +3922,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
               uint64_t offs = 0;
               m_pDevice->GetResIDFromOrigAddr(*addr, id, offs);
 
-              ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+              ID3D12Resource *res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
               RDCASSERT(res);
               if(res)
                 *addr = res->GetGPUVirtualAddress() + offs;
@@ -3990,7 +3990,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
             uint64_t offs = 0;
             m_pDevice->GetResIDFromOrigAddr(vb->BufferLocation, id, offs);
 
-            ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+            ID3D12Resource *res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
             RDCASSERT(res);
             if(res)
               vb->BufferLocation = res->GetGPUVirtualAddress() + offs;
@@ -4021,7 +4021,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
             uint64_t offs = 0;
             m_pDevice->GetResIDFromOrigAddr(ib->BufferLocation, id, offs);
 
-            ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+            ID3D12Resource *res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
             RDCASSERT(res);
             if(res)
               ib->BufferLocation = res->GetGPUVirtualAddress() + offs;
@@ -4051,7 +4051,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
             uint64_t offs = 0;
             m_pDevice->GetResIDFromOrigAddr(*addr, id, offs);
 
-            ID3D12Resource *res = GetResourceManager()->GetLiveAs<ID3D12Resource>(id);
+            ID3D12Resource *res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
             if(res)
               *addr = res->GetGPUVirtualAddress() + offs;
 
@@ -4248,11 +4248,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
             argOffset = patchedDispatch.resources.argumentBuffer->Offset();
 
             // restore state that would have been mutated by the patching process
-            Unwrap(list)->SetComputeRootSignature(Unwrap(
-                GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)));
+            Unwrap(list)->SetComputeRootSignature(
+                Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
             Unwrap4((ID3D12GraphicsCommandList4 *)list)
                 ->SetPipelineState1(
-                    Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
+                    Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
             state.ApplyComputeRootElementsUnwrapped(Unwrap(list));
             m_Cmd->m_RayDispatches.push_back(patchedDispatch);
           }
@@ -4334,11 +4334,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
             argOffset = patchedDispatch.resources.argumentBuffer->Offset();
 
             // restore state that would have been mutated by the patching process
-            Unwrap(list)->SetComputeRootSignature(Unwrap(
-                GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)));
+            Unwrap(list)->SetComputeRootSignature(
+                Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
             Unwrap4((ID3D12GraphicsCommandList4 *)list)
                 ->SetPipelineState1(
-                    Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
+                    Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
             state.ApplyComputeRootElementsUnwrapped(Unwrap(list));
             m_Cmd->m_RayDispatches.push_back(patchedDispatch);
           }
@@ -4435,11 +4435,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
         // restore state that would have been mutated by the patching process
         Unwrap(pCommandList)
-            ->SetComputeRootSignature(Unwrap(
-                GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)));
+            ->SetComputeRootSignature(
+                Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
         Unwrap4((ID3D12GraphicsCommandList4 *)pCommandList)
             ->SetPipelineState1(
-                Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
+                Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
         state.ApplyComputeRootElementsUnwrapped(Unwrap(pCommandList));
         m_Cmd->m_RayDispatches.push_back(std::move(patchedDispatch));
       }
@@ -4545,10 +4545,10 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
     argOffset = patchedDispatch.resources.argumentBuffer->Offset();
 
     // restore state that would have been mutated by the patching process
-    m_pList->SetComputeRootSignature(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(
-        m_CaptureComputeState.compute.rootsig)));
-    m_pList4->SetPipelineState1(Unwrap(
-        GetResourceManager()->GetCurrentAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
+    m_pList->SetComputeRootSignature(Unwrap(
+        GetResourceManager()->GetResAs<ID3D12RootSignature>(m_CaptureComputeState.compute.rootsig)));
+    m_pList4->SetPipelineState1(
+        Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
     m_CaptureComputeState.ApplyComputeRootElementsUnwrapped(m_pList);
   }
 

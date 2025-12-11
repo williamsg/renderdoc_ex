@@ -66,8 +66,8 @@ void DoSerialise(SerialiserType &ser, GLResource &el)
 
   if(ser.IsReading())
   {
-    if(id != ResourceId() && rm && rm->HasLiveResource(id))
-      el = rm->GetLiveResource(id);
+    if(id != ResourceId() && rm && rm->HasResource(id))
+      el = rm->GetResource(id);
     else
       el = GLResource(MakeNullResource);
   }
