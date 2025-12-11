@@ -54,7 +54,7 @@ VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
 
   if(ret == VK_SUCCESS)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(instance), *pSurface);
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
@@ -96,7 +96,7 @@ VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
 
   if(ret == VK_SUCCESS)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(instance), *pSurface);
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
@@ -138,7 +138,7 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
 
   if(ret == VK_SUCCESS)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(instance), *pSurface);
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 

@@ -308,7 +308,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevi
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), layout);
+        live = GetResourceManager()->WrapResource(PipelineLayout, Unwrap(device), layout);
         GetResourceManager()->AddLiveResource(PipelineLayout, layout);
 
         m_CreationInfo.m_PipelineLayout[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
@@ -339,7 +339,8 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(VkDevice device,
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pPipelineLayout);
+    ResourceId id =
+        GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pPipelineLayout);
 
     if(IsCaptureMode(m_State))
     {
@@ -434,7 +435,7 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), sh);
+        live = GetResourceManager()->WrapResource(ShaderModule, Unwrap(device), sh);
         GetResourceManager()->AddLiveResource(ShaderModule, sh);
 
         m_CreationInfo.m_ShaderModule[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
@@ -459,7 +460,7 @@ VkResult WrappedVulkan::vkCreateShaderModule(VkDevice device,
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pShaderModule);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pShaderModule);
 
     if(IsCaptureMode(m_State))
     {
@@ -537,7 +538,7 @@ bool WrappedVulkan::Serialise_vkCreateShadersEXT(SerialiserType &ser, VkDevice d
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), sh);
+        live = GetResourceManager()->WrapResource(Shader, Unwrap(device), sh);
         GetResourceManager()->AddLiveResource(Shader, sh);
 
         m_CreationInfo.m_ShaderObject[live].Init(GetResourceManager(), m_CreationInfo, live,
@@ -587,7 +588,7 @@ VkResult WrappedVulkan::vkCreateShadersEXT(VkDevice device, uint32_t createInfoC
       if(pShaders[i] == VK_NULL_HANDLE)
         continue;
 
-      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pShaders[i]);
+      ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), pShaders[i]);
 
       // background or active capture state
       if(IsCaptureMode(m_State))
@@ -656,7 +657,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(SerialiserType &ser, VkDevic
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cache);
+      ResourceId live = GetResourceManager()->WrapResource(PipelineCache, Unwrap(device), cache);
       GetResourceManager()->AddLiveResource(PipelineCache, cache);
     }
 
@@ -680,7 +681,7 @@ VkResult WrappedVulkan::vkCreatePipelineCache(VkDevice device,
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pPipelineCache);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pPipelineCache);
 
     if(IsCaptureMode(m_State))
     {
@@ -760,7 +761,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 
     AddResource(Pipeline, ResourceType::PipelineState, "Graphics Pipeline");
 
-    ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+    ResourceId live = GetResourceManager()->WrapResource(Pipeline, Unwrap(device), pipe);
     GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
     pipelinesToCompile.push_back({OrigCreateInfo, pipe});
@@ -842,7 +843,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
       pipeInfo.subpass0pipe = GetResourceManager()->CreateDeferredHandle<VkPipeline>();
 
       ResourceId subpass0id =
-          GetResourceManager()->WrapResource(Unwrap(device), pipeInfo.subpass0pipe);
+          GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), pipeInfo.subpass0pipe);
 
       // register as a live-only resource, so it is cleaned up properly
       GetResourceManager()->AddLiveResource(subpass0id, pipeInfo.subpass0pipe);
@@ -951,7 +952,7 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
       if(pPipelines[i] == VK_NULL_HANDLE)
         continue;
 
-      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pPipelines[i]);
+      ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), pPipelines[i]);
 
       if(IsCaptureMode(m_State))
       {
@@ -1104,7 +1105,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
 
     AddResource(Pipeline, ResourceType::PipelineState, "Compute Pipeline");
 
-    ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+    ResourceId live = GetResourceManager()->WrapResource(Pipeline, Unwrap(device), pipe);
     GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
     VkPipelineShaderStageCreateInfo shadInstantiated = OrigCreateInfo.stage;
@@ -1203,7 +1204,7 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
   {
     for(uint32_t i = 0; i < count; i++)
     {
-      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pPipelines[i]);
+      ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), pPipelines[i]);
 
       if(IsCaptureMode(m_State))
       {
@@ -1376,7 +1377,7 @@ bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
 
     AddResource(Pipeline, ResourceType::PipelineState, "RT Pipeline");
 
-    ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+    ResourceId live = GetResourceManager()->WrapResource(Pipeline, Unwrap(device), pipe);
     GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
     VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[live];
@@ -1488,7 +1489,7 @@ VkResult WrappedVulkan::vkCreateRayTracingPipelinesKHR(
       if(pPipelines[i] == VK_NULL_HANDLE)
         continue;
 
-      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pPipelines[i]);
+      ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), pPipelines[i]);
 
       if(IsCaptureMode(m_State))
       {

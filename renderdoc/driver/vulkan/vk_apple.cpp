@@ -45,7 +45,7 @@ VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
 
   if(ret == VK_SUCCESS)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(instance), *pSurface);
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
@@ -71,7 +71,7 @@ VkResult WrappedVulkan::vkCreateMetalSurfaceEXT(VkInstance instance,
 
   if(ret == VK_SUCCESS)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(instance), *pSurface);
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 

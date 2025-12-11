@@ -1667,7 +1667,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
+      ResourceId live = GetResourceManager()->WrapResource(DescriptorPool, Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(DescriptorPool, pool);
 
       m_CreationInfo.m_DescSetPool[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
@@ -1691,7 +1691,8 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(VkDevice device,
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pDescriptorPool);
+    ResourceId id =
+        GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pDescriptorPool);
 
     if(IsCaptureMode(m_State))
     {
@@ -1789,7 +1790,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), layout);
+        live = GetResourceManager()->WrapResource(SetLayout, Unwrap(device), layout);
         GetResourceManager()->AddLiveResource(SetLayout, layout);
 
         m_CreationInfo.m_DescSetLayout[live].Init(GetResourceManager(), m_CreationInfo, live,
@@ -1862,7 +1863,7 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(VkDevice device,
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSetLayout);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pSetLayout);
 
     if(IsCaptureMode(m_State))
     {
@@ -1976,7 +1977,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
     ResourceId layoutId = GetResID(AllocateInfo.pSetLayouts[0]);
 
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), descset);
+      ResourceId live = GetResourceManager()->WrapResource(DescriptorSet, Unwrap(device), descset);
       GetResourceManager()->AddLiveResource(DescriptorSet, descset);
 
       // this is stored in the resource record on capture, we need to be able to look to up
@@ -2110,7 +2111,7 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
     if(record)
       id = GetResourceManager()->WrapReusedResource(record, pDescriptorSets[i]);
     else
-      id = GetResourceManager()->WrapResource(Unwrap(device), pDescriptorSets[i]);
+      id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), pDescriptorSets[i]);
 
     if(IsCaptureMode(m_State))
     {
@@ -3037,7 +3038,8 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplate(
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), templ);
+      ResourceId live =
+          GetResourceManager()->WrapResource(DescriptorUpdateTemplate, Unwrap(device), templ);
       GetResourceManager()->AddLiveResource(DescriptorUpdateTemplate, templ);
 
       m_CreationInfo.m_DescUpdateTemplate[live].Init(GetResourceManager(), m_CreationInfo,
@@ -3066,7 +3068,8 @@ VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplate(
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pDescriptorUpdateTemplate);
+    ResourceId id =
+        GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pDescriptorUpdateTemplate);
 
     if(IsCaptureMode(m_State))
     {

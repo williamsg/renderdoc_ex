@@ -64,7 +64,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
     }
     else
     {
-      GetResourceManager()->WrapResource(Unwrap(device), queue);
+      GetResourceManager()->WrapResource(Queue, Unwrap(device), queue);
       GetResourceManager()->AddLiveResource(Queue, queue);
     }
 
@@ -119,7 +119,7 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
     }
     else
     {
-      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pQueue);
+      ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pQueue);
 
       {
         Chunk *chunk = NULL;
@@ -2248,7 +2248,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice de
     QueueInfo.queueIndex = remapIndex;
     ObjDisp(device)->GetDeviceQueue2(Unwrap(device), &QueueInfo, &queue);
 
-    GetResourceManager()->WrapResource(Unwrap(device), queue);
+    GetResourceManager()->WrapResource(Queue, Unwrap(device), queue);
     GetResourceManager()->AddLiveResource(Queue, queue);
 
     if(remapFamily == m_QueueFamilyIdx && m_Queue == VK_NULL_HANDLE)
@@ -2301,7 +2301,7 @@ void WrappedVulkan::vkGetDeviceQueue2(VkDevice device, const VkDeviceQueueInfo2 
     }
     else
     {
-      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pQueue);
+      ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pQueue);
 
       {
         Chunk *chunk = NULL;

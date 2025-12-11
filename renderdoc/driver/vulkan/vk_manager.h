@@ -290,11 +290,18 @@ public:
   }
 
   template <typename parenttype, typename realtype>
-  ResourceId WrapResource(parenttype parentObj, realtype &obj)
+  ResourceId WrapResource(ResourceId id, parenttype parentObj, realtype &obj)
   {
     RDCASSERT(obj != VK_NULL_HANDLE);
 
-    ResourceId id = ResourceIDGen::GetNewUniqueID();
+    // on replay, we provide an ID for replayed versions of capture-time resources. For
+    // replay-only/internal resources, we auto-gen a resource id.
+    // during capture we should always be auto-gen'ing a resource id for obvious reasons.
+    if(id == ResourceId())
+      id = ResourceIDGen::GetNewUniqueID();
+    else
+      RDCASSERT(IsReplayMode(m_State));
+
     typename UnwrapHelper<realtype>::Outer *wrapped =
         new typename UnwrapHelper<realtype>::Outer(obj, id);
 
@@ -378,12 +385,13 @@ public:
   {
     ResourceId id = GetResID(obj);
 
-    auto origit = m_OriginalIDs.find(id);
-    if(origit != m_OriginalIDs.end())
-      EraseLiveResource(origit->second);
-
     if(IsReplayMode(m_State))
+    {
+      if(!ResourceIDGen::IsReplayOnlyID(id))
+        EraseLiveResource(origit->second);
+
       ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
+    }
 
     ResourceManager::ReleaseCurrentResource(id);
     VkResourceRecord *record = GetRecord(obj);

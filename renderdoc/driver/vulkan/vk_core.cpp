@@ -355,7 +355,7 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
       else
         SetDispatchTableOverMagicNumber(m_Device, ret);
 
-      GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
+      GetResourceManager()->WrapResource(ResourceId(), Unwrap(m_Device), ret);
     }
     else
     {
@@ -448,7 +448,7 @@ VkSemaphore WrappedVulkan::GetNextSemaphore()
     VkResult vkr = ObjDisp(m_Device)->CreateSemaphore(Unwrap(m_Device), &semInfo, NULL, &ret);
     CHECK_VKR(this, vkr);
 
-    GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(m_Device), ret);
   }
 
   m_InternalCmds.pendingsems.push_back(ret);
@@ -2897,7 +2897,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     vt->CreateBuffer(Unwrap(device), &bufInfo, NULL, &readbackBuf);
     CHECK_VKR(this, vkr);
 
-    GetResourceManager()->WrapResource(Unwrap(device), readbackBuf);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), readbackBuf);
 
     MemoryAllocation readbackMem =
         AllocateMemoryForResource(readbackBuf, MemoryScope::InitialContents, MemoryType::Readback);
@@ -3589,8 +3589,9 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
         {
           ObjDisp(m_Device)->GetDeviceQueue(Unwrap(m_Device), m_QueueFamilyIdx, 0, &m_Queue);
 
-          GetResourceManager()->WrapResource(Unwrap(m_Device), m_Queue);
-          GetResourceManager()->AddLiveResource(ResourceIDGen::GetNewUniqueID(), m_Queue);
+          ResourceId id = ResourceIDGen::GetNewUniqueID();
+          GetResourceManager()->WrapResource(id, Unwrap(m_Device), m_Queue);
+          GetResourceManager()->AddLiveResource(id, m_Queue);
 
           m_ExternalQueues[m_QueueFamilyIdx].queue = m_Queue;
         }
@@ -3677,6 +3678,14 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
 
     // steal the command buffer out of the pending commands - we'll manage its lifetime ourselves
     m_InternalCmds.pendingcmds.pop_back();
+
+    for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
+    {
+      m_commandQueueFamilies.erase(GetResID(rerecord.second));
+      vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
+    }
+
+    m_RerecordCmdList.clear();
   }
 
   FreeAllMemory(MemoryScope::IndirectReadback);
@@ -4034,8 +4043,9 @@ void WrappedVulkan::ApplyInitialContents()
 
     ObjDisp(m_Device)->GetDeviceQueue(Unwrap(m_Device), (uint32_t)i, 0, &queue);
 
-    GetResourceManager()->WrapResource(Unwrap(m_Device), queue);
-    GetResourceManager()->AddLiveResource(ResourceIDGen::GetNewUniqueID(), queue);
+    ResourceId id = ResourceIDGen::GetNewUniqueID();
+    GetResourceManager()->WrapResource(id, Unwrap(m_Device), queue);
+    GetResourceManager()->AddLiveResource(id, queue);
 
     m_ExternalQueues[i].queue = queue;
   }

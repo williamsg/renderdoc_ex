@@ -452,8 +452,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
 
     if(vkr == VK_SUCCESS)
     {
-      ResourceId id =
-          m_pDriver->GetResourceManager()->WrapResource(Unwrap(m_Device), m_PipelineCache);
+      ResourceId id = m_pDriver->GetResourceManager()->WrapResource(ResourceId(), Unwrap(m_Device),
+                                                                    m_PipelineCache);
 
       if(IsCaptureMode(m_pDriver->GetState()))
       {

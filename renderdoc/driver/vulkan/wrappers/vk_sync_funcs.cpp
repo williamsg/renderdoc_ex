@@ -129,7 +129,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), fence);
+      ResourceId live = GetResourceManager()->WrapResource(Fence, Unwrap(device), fence);
       GetResourceManager()->AddLiveResource(Fence, fence);
     }
 
@@ -154,7 +154,7 @@ VkResult WrappedVulkan::vkCreateFence(VkDevice device, const VkFenceCreateInfo *
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pFence);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pFence);
 
     if(IsCaptureMode(m_State))
     {
@@ -357,7 +357,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), ev);
+      ResourceId live = GetResourceManager()->WrapResource(Event, Unwrap(device), ev);
       GetResourceManager()->AddLiveResource(Event, ev);
     }
 
@@ -376,7 +376,7 @@ VkResult WrappedVulkan::vkCreateEvent(VkDevice device, const VkEventCreateInfo *
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pEvent);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pEvent);
 
     if(IsCaptureMode(m_State))
     {
@@ -582,7 +582,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), sem);
+        live = GetResourceManager()->WrapResource(Semaphore, Unwrap(device), sem);
         GetResourceManager()->AddLiveResource(Semaphore, sem);
       }
     }
@@ -608,7 +608,7 @@ VkResult WrappedVulkan::vkCreateSemaphore(VkDevice device, const VkSemaphoreCrea
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSemaphore);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pSemaphore);
 
     if(IsCaptureMode(m_State))
     {

@@ -39,7 +39,7 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
 
   if(ret == VK_SUCCESS)
   {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(instance), *pSurface);
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 

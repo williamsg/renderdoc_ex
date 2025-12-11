@@ -323,7 +323,7 @@ rdcarray<TextureDescription> VulkanReplay::GetTextures()
   for(auto it = m_pDriver->m_ImageStates.begin(); it != m_pDriver->m_ImageStates.end(); ++it)
   {
     // skip textures that aren't from the capture
-    if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     texs.push_back(GetTexture(it->first));
@@ -339,8 +339,8 @@ rdcarray<BufferDescription> VulkanReplay::GetBuffers()
   for(auto it = m_pDriver->m_CreationInfo.m_Buffer.begin();
       it != m_pDriver->m_CreationInfo.m_Buffer.end(); ++it)
   {
-    // skip textures that aren't from the capture
-    if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    // skip buffers that aren't from the capture
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     bufs.push_back(GetBuffer(it->first));
@@ -2253,7 +2253,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     {
       VKPipe::ImageData &img = ret.images[i];
 
-      if(rm->GetOriginalID(it->first) == it->first)
+      if(ResourceIDGen::IsReplayOnlyID(it->first))
         continue;
 
       img.resourceId = rm->GetOriginalID(it->first);
@@ -4251,7 +4251,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     // create render texture similar to readback texture
     vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
     wrappedTmpImage = tmpImage;
-    GetResourceManager()->WrapResource(Unwrap(dev), wrappedTmpImage);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(dev), wrappedTmpImage);
     tmpImageState = ImageState(wrappedTmpImage, ImageInfo(imCreateInfo), eFrameRef_None);
 
     NameVulkanObject(wrappedTmpImage, "GetTextureData tmpImage");
@@ -4509,7 +4509,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     // create resolve texture
     vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
     wrappedTmpImage = tmpImage;
-    GetResourceManager()->WrapResource(Unwrap(dev), wrappedTmpImage);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(dev), wrappedTmpImage);
     tmpImageState = ImageState(wrappedTmpImage, ImageInfo(imCreateInfo), eFrameRef_None);
 
     NameVulkanObject(wrappedTmpImage, "GetTextureData tmpImage");

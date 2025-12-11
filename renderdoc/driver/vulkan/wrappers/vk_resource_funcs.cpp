@@ -366,7 +366,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), mem);
+      ResourceId live = GetResourceManager()->WrapResource(Memory, Unwrap(device), mem);
       GetResourceManager()->AddLiveResource(Memory, mem);
 
       m_CreationInfo.m_Memory[live].Init(GetResourceManager(), m_CreationInfo, &AllocateInfo);
@@ -469,7 +469,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
         {
           RDCASSERT(mrq.size <= AllocateInfo.allocationSize, mrq.size, AllocateInfo.allocationSize);
 
-          ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
+          ResourceId bufid = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), buf);
 
           ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
 
@@ -638,7 +638,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pMemory);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pMemory);
 
     const VkMemoryDedicatedAllocateInfo *dedicated =
         (const VkMemoryDedicatedAllocateInfo *)FindNextStruct(
@@ -709,7 +709,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       if((mrq.memoryTypeBits & (1U << info.memoryTypeIndex)) != 0)
       {
-        bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+        bufid = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), wholeMemBuf);
 
         ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
       }
@@ -733,7 +733,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
           if((mrq.memoryTypeBits & (1U << info.memoryTypeIndex)) != 0)
           {
-            bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+            bufid = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), wholeMemBuf);
 
             ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory),
                                               0);
@@ -2069,7 +2069,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), buf);
+      ResourceId live = GetResourceManager()->WrapResource(Buffer, Unwrap(device), buf);
       GetResourceManager()->AddLiveResource(Buffer, buf);
 
       m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo,
@@ -2162,7 +2162,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pBuffer);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pBuffer);
 
     if(IsCaptureMode(m_State))
     {
@@ -2422,7 +2422,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), view);
+        live = GetResourceManager()->WrapResource(View, Unwrap(device), view);
         GetResourceManager()->AddLiveResource(View, view);
 
         m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
@@ -2448,7 +2448,7 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pView);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pView);
 
     if(IsCaptureMode(m_State))
     {
@@ -2737,7 +2737,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), img);
+      ResourceId live = GetResourceManager()->WrapResource(Image, Unwrap(device), img);
       GetResourceManager()->AddLiveResource(Image, img);
 
       NameVulkanObject(img, StringFormat::Fmt("Image %s", ToStr(Image).c_str()));
@@ -2968,7 +2968,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pImage);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pImage);
 
     const bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
                                                  VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
@@ -3318,7 +3318,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), view);
+        live = GetResourceManager()->WrapResource(View, Unwrap(device), view);
         GetResourceManager()->AddLiveResource(View, view);
 
         m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
@@ -3392,7 +3392,7 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pView);
+    ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pView);
 
     if(IsCaptureMode(m_State))
     {
@@ -3972,7 +3972,7 @@ bool WrappedVulkan::Serialise_vkCreateAccelerationStructureKHR(
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), acc);
+        live = GetResourceManager()->WrapResource(AccelerationStructure, Unwrap(device), acc);
         GetResourceManager()->AddLiveResource(AccelerationStructure, acc);
 
         m_CreationInfo.m_AccelerationStructure[live].Init(GetResourceManager(), m_CreationInfo,
@@ -4021,7 +4021,8 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
 
   if(ret == VK_SUCCESS)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pAccelerationStructure);
+    ResourceId id =
+        GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pAccelerationStructure);
 
     if(IsCaptureMode(m_State))
     {

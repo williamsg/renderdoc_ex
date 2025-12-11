@@ -449,7 +449,7 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
 
   for(uint32_t i = 0; i < VKMeshDisplayPipelines::ePipe_Count; i++)
     if(cache.pipes[i] != VK_NULL_HANDLE)
-      m_pDriver->GetResourceManager()->WrapResource(Unwrap(m_Device), cache.pipes[i]);
+      m_pDriver->GetResourceManager()->WrapResource(ResourceId(), Unwrap(m_Device), cache.pipes[i]);
 
   vt->DestroyRenderPass(Unwrap(m_Device), rp, NULL);
 

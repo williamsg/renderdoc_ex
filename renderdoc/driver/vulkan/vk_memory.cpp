@@ -494,7 +494,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
       return ret;
     }
 
-    GetResourceManager()->WrapResource(Unwrap(d), chunk.mem);
+    GetResourceManager()->WrapResource(ResourceId(), Unwrap(d), chunk.mem);
 
     // push the new chunk
     blockList.push_back(chunk);
