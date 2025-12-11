@@ -662,7 +662,7 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
     ResourceId id = states[ti].first;
     ImageRegionState &t = states[ti].second;
 
-    TRDBG("Applying barrier to %s", ToStr(GetOriginalID(id)).c_str());
+    TRDBG("Applying barrier to %s", ToStr(id).c_str());
 
     auto stit = layouts.find(id);
 
@@ -895,13 +895,13 @@ ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
     {
       WrappedVkDispRes *disp = (WrappedVkDispRes *)res;
       if(disp->real.handle == handle)
-        return IsReplayMode(m_State) ? GetOriginalID(disp->id) : disp->id;
+        return disp->id;
     }
     else
     {
       WrappedVkNonDispRes *nondisp = (WrappedVkNonDispRes *)res;
       if(nondisp->real.handle == handle)
-        return IsReplayMode(m_State) ? GetOriginalID(nondisp->id) : nondisp->id;
+        return nondisp->id;
     }
   }
 

@@ -46,7 +46,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetDepthBias(SerialiserType &
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     bool stateUpdate = false;
 
@@ -118,7 +118,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBufferStripCutValue(
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     bool stateUpdate = false;
 

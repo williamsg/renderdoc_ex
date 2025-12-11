@@ -245,10 +245,8 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
   ResourceId id;
 
-  if(ser.IsWriting() && rm)
+  if(ser.IsWriting() || ser.IsStructurising())
     id = GetResID(el);
-  if(ser.IsStructurising() && rm)
-    id = rm->GetOriginalID(GetResID(el));
 
   DoSerialise(ser, id);
 

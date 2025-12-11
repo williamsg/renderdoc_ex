@@ -3408,7 +3408,7 @@ void WrappedVulkan::AddResource(ResourceId id, ResourceType type, const char *de
 
 void WrappedVulkan::DerivedResource(ResourceId parentLive, ResourceId child)
 {
-  ResourceId parentId = GetResourceManager()->GetOriginalID(parentLive);
+  ResourceId parentId = parentLive;
 
   if(GetReplay()->GetResourceDesc(parentId).derivedResources.contains(child))
     return;
@@ -5890,15 +5890,13 @@ void WrappedVulkan::AddAction(const ActionDescription &a)
           continue;
 
         RDCASSERT(colAtt[i] < atts.size());
-        action.outputs[i] =
-            GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[colAtt[i]]].image);
+        action.outputs[i] = m_CreationInfo.m_ImageView[atts[colAtt[i]]].image;
       }
 
       if(dsAtt != -1)
       {
         RDCASSERT(dsAtt < (int32_t)atts.size());
-        action.depthOut =
-            GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[dsAtt]].image);
+        action.depthOut = m_CreationInfo.m_ImageView[atts[dsAtt]].image;
       }
     }
     else if(state.dynamicRendering.active)
@@ -5910,14 +5908,12 @@ void WrappedVulkan::AddAction(const ActionDescription &a)
         if(dyn.color[i].imageView == VK_NULL_HANDLE)
           continue;
 
-        action.outputs[i] = GetResourceManager()->GetOriginalID(
-            m_CreationInfo.m_ImageView[GetResID(dyn.color[i].imageView)].image);
+        action.outputs[i] = m_CreationInfo.m_ImageView[GetResID(dyn.color[i].imageView)].image;
       }
 
       if(dyn.depth.imageView != VK_NULL_HANDLE)
       {
-        action.depthOut = GetResourceManager()->GetOriginalID(
-            m_CreationInfo.m_ImageView[GetResID(dyn.depth.imageView)].image);
+        action.depthOut = m_CreationInfo.m_ImageView[GetResID(dyn.depth.imageView)].image;
       }
     }
   }
@@ -6090,8 +6086,8 @@ void WrappedVulkan::AddUsageForDescriptorBuffers(VulkanActionTreeNode &actionNod
     if(sh.module == ResourceId())
       continue;
 
-    ResourceId origPipe = GetResourceManager()->GetOriginalID(pipe);
-    ResourceId origShad = GetResourceManager()->GetOriginalID(sh.module);
+    ResourceId origPipe = pipe;
+    ResourceId origShad = sh.module;
 
     for(const ConstantBlock &constantBlock : sh.refl->constantBlocks)
     {
@@ -6225,8 +6221,8 @@ void WrappedVulkan::AddUsageForDescriptorSets(VulkanActionTreeNode &actionNode,
     if(sh.module == ResourceId())
       continue;
 
-    ResourceId origPipe = GetResourceManager()->GetOriginalID(pipe);
-    ResourceId origShad = GetResourceManager()->GetOriginalID(sh.module);
+    ResourceId origPipe = pipe;
+    ResourceId origShad = sh.module;
 
     for(const ConstantBlock &constantBlock : sh.refl->constantBlocks)
     {

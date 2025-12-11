@@ -1927,7 +1927,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents &in
   }
   else if(type == eResImage)
   {
-    ResourceId orig = GetResourceManager()->GetOriginalID(id);
+    ResourceId orig = id;
 
     bool initialized = false;
     InitPolicy policy = GetResourceManager()->GetInitPolicy();
@@ -1958,7 +1958,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents &in
     }
     else if(initialized && boundMemory != ResourceId())
     {
-      ResourceId origMem = GetResourceManager()->GetOriginalID(boundMemory);
+      ResourceId origMem = boundMemory;
       if(origMem != ResourceId())
       {
         MemRefs *memRefs = GetResourceManager()->FindMemRefs(origMem);
@@ -2351,7 +2351,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents &in
   else if(type == eResDeviceMemory)
   {
     Intervals<InitReqType> resetReq;
-    ResourceId orig = GetResourceManager()->GetOriginalID(id);
+    ResourceId orig = id;
     MemRefs *memRefs = GetResourceManager()->FindMemRefs(orig);
 
     if(!memRefs)

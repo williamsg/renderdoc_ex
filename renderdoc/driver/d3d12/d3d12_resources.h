@@ -1144,7 +1144,7 @@ public:
 
   void SetObjectProperties(ID3D12StateObjectProperties *obj) { m_StateObjectProps = obj; }
 
-  ResourceId GetResourceId() { return objectOriginalId; }
+  ResourceId GetResourceId() { return objectId; }
 
   void GrowFrom(D3D12ShaderExportDatabase *existing) { InheritAllCollectionExports(existing); }
   void PopulateDatabase(size_t NumSubobjects, const D3D12_STATE_SUBOBJECT *subobjects);
@@ -1181,9 +1181,9 @@ public:
 private:
   // the state object that originally created this export database. Some of our shader identifiers
   // may come from other databases, but when uploading the unwrap buffer we store information such
-  // that if we want to unwrap an identifier that comes from this id we look up into unwrappedOwnExports
-  // below. This is the original ID since this is used to look up identifiers that came from the application
-  ResourceId objectOriginalId;
+  // that if we want to unwrap an identifier that comes from this id we look up into
+  // unwrappedOwnExports below.
+  ResourceId objectId;
 
   rdcarray<D3D12ShaderExportDatabase *> parents;
 

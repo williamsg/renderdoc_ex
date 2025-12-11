@@ -1837,7 +1837,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
           id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), obj));
 
         if(action.copyDestination == ResourceId())
-          action.copyDestination = GetResourceManager()->GetOriginalID(id);
+          action.copyDestination = id;
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
       }
@@ -2035,7 +2035,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
           id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), obj));
 
         if(action.copyDestination == ResourceId())
-          action.copyDestination = GetResourceManager()->GetOriginalID(id);
+          action.copyDestination = id;
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
       }
@@ -2217,8 +2217,8 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
         {
           if(i == 0)
           {
-            action.copySource = GetResourceManager()->GetOriginalID(srcid);
-            action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+            action.copySource = srcid;
+            action.copyDestination = dstid;
 
             GLint mip = 0, slice = 0;
             if(dsttype == eGL_TEXTURE)
@@ -2240,8 +2240,8 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
              (drawAttachName == eGL_STENCIL_ATTACHMENT &&
               (mask & (GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) == GL_STENCIL_BUFFER_BIT))
           {
-            action.copySource = GetResourceManager()->GetOriginalID(srcid);
-            action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+            action.copySource = srcid;
+            action.copyDestination = dstid;
 
             GLint mip = 0, slice = 0;
             if(dsttype == eGL_TEXTURE)

@@ -45,7 +45,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetFrontAndBackStencilRef(Ser
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     bool stateUpdate = false;
 

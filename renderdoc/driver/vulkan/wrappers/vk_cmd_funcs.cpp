@@ -1016,7 +1016,7 @@ void WrappedVulkan::ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D 
     {
       m_FeedbackRPs.push_back(rpId);
 
-      const rdcstr rpName = ToStr(GetResourceManager()->GetOriginalID(rpId));
+      const rdcstr rpName = ToStr(rpId);
 
       AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::Medium, MessageSource::RuntimeWarning,
@@ -1356,7 +1356,7 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
     {
       ResourceId live = GetResourceManager()->WrapResource(CommandBuffer, Unwrap(device), cmd);
       GetResourceManager()->AddLiveResource(CommandBuffer, cmd);
-      ResourceId poolId = GetResourceManager()->GetOriginalID(GetResID(AllocateInfo.commandPool));
+      ResourceId poolId = GetResID(AllocateInfo.commandPool);
       auto cmdQueueFamilyIt = m_commandQueueFamilies.find(poolId);
       if(cmdQueueFamilyIt == m_commandQueueFamilies.end())
       {
@@ -2118,7 +2118,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
     UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -2474,7 +2474,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -2575,7 +2575,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -2745,7 +2745,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
     UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
     UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedBeginInfo);
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -3110,7 +3110,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
     UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedBeginInfo);
     UnwrapNextChain(m_State, "VkSubpassEndInfo", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -3235,7 +3235,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
 
     UnwrapNextChain(m_State, "VkSubpassEndInfo", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -3408,7 +3408,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -3833,7 +3833,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -3975,7 +3975,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets2(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(&BindDescriptorSetsInfo));
     VkBindDescriptorSetsInfo *unwrappedInfo =
@@ -4128,7 +4128,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -4223,7 +4223,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers2(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -4331,7 +4331,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -4419,7 +4419,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -4491,7 +4491,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants2(SerialiserType &ser, VkCommand
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(&PushConstantsInfo));
     VkPushConstantsInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &PushConstantsInfo);
@@ -4593,7 +4593,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
   // Since it's a convenient place, we unwrap at the same time.
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     for(uint32_t i = 0; i < bufferMemoryBarrierCount; i++)
     {
@@ -4777,7 +4777,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteTimestamp(SerialiserType &ser, VkCommand
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -4844,7 +4844,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
   // Since it's a convenient place, we unwrap at the same time.
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     for(uint32_t i = 0; i < DependencyInfo.bufferMemoryBarrierCount; i++)
     {
@@ -5032,7 +5032,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteTimestamp2(SerialiserType &ser, VkComman
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5095,7 +5095,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5250,7 +5250,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginQuery(SerialiserType &ser, VkCommandBuff
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5303,7 +5303,7 @@ bool WrappedVulkan::Serialise_vkCmdEndQuery(SerialiserType &ser, VkCommandBuffer
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5357,7 +5357,7 @@ bool WrappedVulkan::Serialise_vkCmdResetQueryPool(SerialiserType &ser, VkCommand
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5435,7 +5435,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsLoading(m_State))
     {
@@ -5450,10 +5450,9 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
         for(uint32_t i = 0; i < commandBufferCount; i++)
         {
-          // indirectCopies are stored in m_BakedCmdBufferInfo[m_LastCmdBufferID] which is an
-          // original ID
-          ResourceId origSecondId = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
-          BakedCmdBufferInfo &src = m_BakedCmdBufferInfo[origSecondId];
+          // indirectCopies are stored in m_BakedCmdBufferInfo[m_LastCmdBufferID]
+          ResourceId secondaryId = GetResID(pCommandBuffers[i]);
+          BakedCmdBufferInfo &src = m_BakedCmdBufferInfo[secondaryId];
 
           dst.indirectCopies.append(src.indirectCopies);
 
@@ -5478,7 +5477,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
       for(uint32_t c = 0; c < commandBufferCount; c++)
       {
-        ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[c]));
+        ResourceId cmd = GetResID(pCommandBuffers[c]);
 
         BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
 
@@ -5614,7 +5613,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         // advance m_CurEventID to match the events added when reading
         for(uint32_t c = 0; c < commandBufferCount; c++)
         {
-          ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[c]));
+          ResourceId cmd = GetResID(pCommandBuffers[c]);
 
           // propagate renderpass state if active. If it's inactive the renderpass might be
           // activated inside the secondary which we should not overwrite.
@@ -5657,7 +5656,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
           for(uint32_t c = 0; c < commandBufferCount; c++)
           {
-            ResourceId cmdid = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[c]));
+            ResourceId cmdid = GetResID(pCommandBuffers[c]);
 
             // account for the virtual vkBeginCommandBuffer label at the start of the events here
             // so it matches up to baseEvent
@@ -5709,7 +5708,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
                 for(uint32_t i = 0; i < (uint32_t)rerecordedCmds.size(); i++)
                 {
-                  ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
+                  ResourceId cmd = GetResID(pCommandBuffers[i]);
                   BakedCmdBufferInfo &info = m_BakedCmdBufferInfo[cmd];
                   if(info.action && info.action->children.size() > 0)
                   {
@@ -5806,7 +5805,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5882,7 +5881,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5947,7 +5946,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -6155,7 +6154,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSet(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     ResourceId setId =
         m_BakedCmdBufferInfo[m_LastCmdBufferID].GetPushDescriptorID(pipelineBindPoint, set);
@@ -6438,7 +6437,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplate(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     VkPipelineBindPoint bindPoint =
         m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint;
@@ -6582,7 +6581,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteBufferMarkerAMD(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -6649,7 +6648,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteBufferMarker2AMD(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -6707,7 +6706,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginDebugUtilsLabelEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -6783,7 +6782,7 @@ bool WrappedVulkan::Serialise_vkCmdEndDebugUtilsLabelEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -6846,7 +6845,7 @@ bool WrappedVulkan::Serialise_vkCmdInsertDebugUtilsLabelEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -6917,7 +6916,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDeviceMask(SerialiserType &ser, VkCommandB
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -6973,7 +6972,7 @@ bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffersEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7072,7 +7071,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedbackEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7167,7 +7166,7 @@ bool WrappedVulkan::Serialise_vkCmdEndTransformFeedbackEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7256,7 +7255,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginQueryIndexedEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7315,7 +7314,7 @@ bool WrappedVulkan::Serialise_vkCmdEndQueryIndexedEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7372,7 +7371,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginConditionalRenderingEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7444,7 +7443,7 @@ bool WrappedVulkan::Serialise_vkCmdEndConditionalRenderingEXT(SerialiserType &se
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7507,7 +7506,7 @@ bool WrappedVulkan::Serialise_vkCmdSetVertexInputEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -7594,7 +7593,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(&RenderingInfo));
     VkRenderingInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &RenderingInfo);
@@ -8022,7 +8021,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -8294,7 +8293,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
     byte *tempMem = GetTempMemory(GetNextPatchSize(pRenderingEndInfo));
     VkRenderingEndInfoEXT *unwrappedEndInfo =
         UnwrapStructAndChain(m_State, tempMem, pRenderingEndInfo);
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -8624,7 +8623,7 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresIndirectKHR(
     for(uint32_t i = 0; i < infoCount; ++i)
       tmpMaxPrimitiveCounts[i] = maxPrimitives[i].data();
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -8741,7 +8740,7 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresKHR(
     for(uint32_t i = 0; i < infoCount; ++i)
       tmpBuildRangeInfos[i] = rangeInfos[i].data();
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -8855,7 +8854,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyAccelerationStructureKHR(
     unwrappedInfo.src = Unwrap(unwrappedInfo.src);
     unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -8961,7 +8960,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyMemoryToAccelerationStructureKHR(
     VkCopyMemoryToAccelerationStructureInfoKHR unwrappedInfo = Info;
     unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
 
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -9028,7 +9027,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteAccelerationStructuresPropertiesKHR(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     // don't actually replay - this is purely for user information
   }
@@ -9139,7 +9138,7 @@ bool WrappedVulkan::Serialise_vkCmdBindShadersEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -9259,7 +9258,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer2(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -9345,7 +9344,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorBuffersEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     size_t memSize = 0;
     for(uint32_t b = 0; b < bufferCount; b++)
@@ -9498,7 +9497,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDescriptorBufferOffsetsEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -9632,7 +9631,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorBufferEmbeddedSamplersEXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     if(IsActiveReplaying(m_State))
     {
@@ -9721,7 +9720,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDescriptorBufferOffsets2EXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(&SetDescriptorBufferOffsetsInfo));
     VkSetDescriptorBufferOffsetsInfoEXT *unwrappedInfo =
@@ -9868,7 +9867,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(&BindDescriptorBufferEmbeddedSamplersInfo));
     VkBindDescriptorBufferEmbeddedSamplersInfoEXT *unwrappedInfo =
@@ -9971,7 +9970,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSet2(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     rdcarray<VkPipelineBindPoint> pipelinesAffected =
         PipelinesForStageMask(PushDescriptorSetInfo.stageFlags);
@@ -10140,7 +10139,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplate2(
 
   if(IsReplayingAndReading())
   {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+    m_LastCmdBufferID = GetResID(commandBuffer);
 
     uint32_t set = PushDescriptorSetWithTemplateInfo.set;
 

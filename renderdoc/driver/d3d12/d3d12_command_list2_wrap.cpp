@@ -46,7 +46,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_WriteBufferImmediate(
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     if(IsActiveReplaying(m_State))
     {

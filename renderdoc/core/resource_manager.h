@@ -549,14 +549,9 @@ bool ResourceRecord::MarkResourceFrameReferenced(ResourceId id, FrameRefType ref
 // the resource manager is a utility class that's not required but is likely wanted by any API
 // implementation.
 // It keeps track of resource records, which resources are alive and allows you to query for them by
-// ID. It tracks
-// which resources are marked as dirty (needing their initial contents fetched before capture).
+// ID. It tracks which resources are marked as dirty (needing their initial contents fetched before capture).
 //
 // For APIs that wrap their resources it provides tracking for that.
-//
-// In the replay application it will also track which 'live' resources are representing which
-// 'original'
-// resources from the application when it was captured.
 template <typename Configuration>
 class ResourceManager : public ResourceRecordHandler
 {
@@ -638,23 +633,20 @@ public:
   // Replay-side methods
 
   // Live resources to replace serialised IDs
-  void AddLiveResource(ResourceId origid, WrappedResourceType livePtr);
-  bool HasLiveResource(ResourceId origid);
-  WrappedResourceType GetLiveResource(ResourceId origid, bool optional = false);
-  void EraseLiveResource(ResourceId origid);
+  void AddLiveResource(ResourceId id, WrappedResourceType livePtr);
+  bool HasLiveResource(ResourceId id);
+  WrappedResourceType GetLiveResource(ResourceId id, bool optional = false);
+  void EraseLiveResource(ResourceId id);
 
   // when asked for a given id, return the resource for a replacement id
   void ReplaceResource(ResourceId from, ResourceId to);
   bool HasReplacement(ResourceId from);
   void RemoveReplacement(ResourceId id);
 
-  // get the original ID for a real ID that may be a replacement. i.e. if ID 123 is ID 10000005
-  // live, and 10000005 live is replaced with 10000839, then calling this function with either ID
-  // 10000005 or ID 10000839 will return ID 123.
-  ResourceId GetUnreplacedOriginalID(ResourceId id);
+  // get the canonical ID for an ID that may be the id a replacement. i.e. if ID 123 is replaced
+  // with 456, then calling this function with either ID 123 or ID 456 will return ID 123.
+  ResourceId GetUnreplacedID(ResourceId id);
 
-  // fetch original ID for a real ID or vice-versa.
-  ResourceId GetOriginalID(ResourceId id);
   ResourceId GetLiveID(ResourceId id);
 
   // Serialise in which resources need initial contents and set them up.
@@ -757,10 +749,7 @@ protected:
   // capture and replay.
   std::unordered_map<ResourceId, WrappedResourceType> m_CurrentResourceMap;
 
-  // used during replay - maps back and forth from original id to live id and vice-versa
-  std::unordered_map<ResourceId, ResourceId> m_OriginalIDs, m_LiveIDs;
-
-  // used during replay - holds resources allocated and the original id that they represent
+  // used during replay - holds resources allocated for replay
   std::unordered_map<ResourceId, WrappedResourceType> m_LiveResourceMap;
 
   // used during capture - holds resource records by id.
@@ -770,7 +759,7 @@ protected:
   // used during replay - holds current resource replacements
   // replaced -> replacement
   std::unordered_map<ResourceId, ResourceId> m_Replacements;
-  // replacement -> replaced (for looking up original IDs)
+  // replacement -> replaced (for looking up canonical IDs)
   std::unordered_map<ResourceId, ResourceId> m_Replaced;
 
   // During initial resources preparation, persistent resources are
@@ -1848,64 +1837,63 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetW
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::AddLiveResource(ResourceId origid, WrappedResourceType livePtr)
+void ResourceManager<Configuration>::AddLiveResource(ResourceId id, WrappedResourceType livePtr)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  if(origid == ResourceId() || livePtr == (WrappedResourceType)RecordType::NullResource)
+  if(id == ResourceId() || livePtr == (WrappedResourceType)RecordType::NullResource)
   {
     RDCERR("Invalid state adding resource mapping - id is invalid or live pointer is NULL");
   }
 
-  m_OriginalIDs[GetID(livePtr)] = origid;
-  m_LiveIDs[origid] = GetID(livePtr);
+  RDCASSERT(id == GetID(livePtr));
 
-  if(m_LiveResourceMap.find(origid) != m_LiveResourceMap.end())
+  if(m_LiveResourceMap.find(id) != m_LiveResourceMap.end())
   {
-    RDCERR("Releasing live resource for duplicate creation: %s", ToStr(origid).c_str());
-    ResourceTypeRelease(m_LiveResourceMap[origid]);
-    m_LiveResourceMap.erase(origid);
+    RDCERR("Releasing live resource for duplicate creation: %s", ToStr(id).c_str());
+    ResourceTypeRelease(m_LiveResourceMap[id]);
+    m_LiveResourceMap.erase(id);
   }
 
-  m_LiveResourceMap[origid] = livePtr;
+  m_LiveResourceMap[id] = livePtr;
 }
 
 template <typename Configuration>
-bool ResourceManager<Configuration>::HasLiveResource(ResourceId origid)
+bool ResourceManager<Configuration>::HasLiveResource(ResourceId id)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  if(origid == ResourceId())
+  if(id == ResourceId())
     return false;
 
-  return (m_Replacements.find(origid) != m_Replacements.end() ||
-          m_LiveResourceMap.find(origid) != m_LiveResourceMap.end());
+  return (m_Replacements.find(id) != m_Replacements.end() ||
+          m_LiveResourceMap.find(id) != m_LiveResourceMap.end());
 }
 
 template <typename Configuration>
 typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetLiveResource(
-    ResourceId origid, bool optional)
+    ResourceId id, bool optional)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  if(origid == ResourceId())
+  if(id == ResourceId())
     return (WrappedResourceType)RecordType::NullResource;
 
 #if DISABLED(RDOC_RELEASE)
   if(!optional)
   {
-    RDCASSERT(HasLiveResource(origid), origid);
+    RDCASSERT(HasLiveResource(id), id);
   }
 #endif
 
   {
-    auto it = m_Replacements.find(origid);
+    auto it = m_Replacements.find(id);
     if(it != m_Replacements.end())
       return GetLiveResource(it->second);
   }
 
   {
-    auto it = m_LiveResourceMap.find(origid);
+    auto it = m_LiveResourceMap.find(id);
     if(it != m_LiveResourceMap.end())
       return it->second;
   }
@@ -1914,13 +1902,13 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetL
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::EraseLiveResource(ResourceId origid)
+void ResourceManager<Configuration>::EraseLiveResource(ResourceId id)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
-  RDCASSERT(HasLiveResource(origid), origid);
+  RDCASSERT(HasLiveResource(id), id);
 
-  m_LiveResourceMap.erase(origid);
+  m_LiveResourceMap.erase(id);
 }
 
 template <typename Configuration>
@@ -1973,17 +1961,7 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
 }
 
 template <typename Configuration>
-ResourceId ResourceManager<Configuration>::GetOriginalID(ResourceId id)
-{
-  if(id == ResourceId())
-    return id;
-
-  RDCASSERT(m_OriginalIDs.find(id) != m_OriginalIDs.end(), id);
-  return m_OriginalIDs[id];
-}
-
-template <typename Configuration>
-ResourceId ResourceManager<Configuration>::GetUnreplacedOriginalID(ResourceId id)
+ResourceId ResourceManager<Configuration>::GetUnreplacedID(ResourceId id)
 {
   if(id == ResourceId())
     return id;
@@ -1991,8 +1969,7 @@ ResourceId ResourceManager<Configuration>::GetUnreplacedOriginalID(ResourceId id
   if(m_Replaced.find(id) != m_Replaced.end())
     return m_Replaced[id];
 
-  RDCASSERT(m_OriginalIDs.find(id) != m_OriginalIDs.end(), id);
-  return m_OriginalIDs[id];
+  return id;
 }
 
 template <typename Configuration>
@@ -2005,6 +1982,5 @@ ResourceId ResourceManager<Configuration>::GetLiveID(ResourceId id)
   if(it != m_Replacements.end())
     return it->second;
 
-  RDCASSERT(m_LiveIDs.find(id) != m_LiveIDs.end(), id);
-  return m_LiveIDs[id];
+  return id;
 }

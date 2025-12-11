@@ -717,7 +717,7 @@ created resources.
 
 See :meth:`BuildTargetShader`, :meth:`RemoveReplacement`.
 
-:param ResourceId original: The id of the original resource that should be substituted.
+:param ResourceId original: The id of the resource that should be substituted.
 :param ResourceId replacement: The id of the new resource that should be used instead.
 )");
   virtual void ReplaceResource(ResourceId original, ResourceId replacement) = 0;
@@ -731,7 +731,7 @@ re-initialise any data, including e.g. bindless feedback, printf results or mesh
 
 See :meth:`ReplaceResource`.
 
-:param ResourceId id: The id of the original resource that was previously being substituted.
+:param ResourceId id: The id of the resource that was previously being substituted.
 )");
   virtual void RemoveReplacement(ResourceId id) = 0;
 

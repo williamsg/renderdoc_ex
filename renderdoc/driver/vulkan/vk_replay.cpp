@@ -357,7 +357,7 @@ TextureDescription VulkanReplay::GetTexture(ResourceId id)
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[id];
 
   TextureDescription ret = {};
-  ret.resourceId = m_pDriver->GetResourceManager()->GetOriginalID(id);
+  ret.resourceId = id;
   ret.arraysize = iminfo.arrayLayers;
   ret.creationFlags = iminfo.creationFlags;
   ret.cubemap = iminfo.cube;
@@ -411,7 +411,7 @@ BufferDescription VulkanReplay::GetBuffer(ResourceId id)
   VulkanCreationInfo::Buffer &bufinfo = m_pDriver->m_CreationInfo.m_Buffer[id];
 
   BufferDescription ret;
-  ret.resourceId = m_pDriver->GetResourceManager()->GetOriginalID(id);
+  ret.resourceId = id;
   ret.length = bufinfo.size;
   ret.creationFlags = BufferCategory::NoFlags;
   ret.gpuAddress = bufinfo.gpuAddress;
@@ -1230,14 +1230,14 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   memcpy(ret.pushconsts.data(), state.pushconsts, state.pushConstSize);
 
   // General pipeline properties
-  ret.compute.pipelineResourceId = rm->GetUnreplacedOriginalID(state.compute.pipeline);
-  ret.graphics.pipelineResourceId = rm->GetUnreplacedOriginalID(state.graphics.pipeline);
+  ret.compute.pipelineResourceId = rm->GetUnreplacedID(state.compute.pipeline);
+  ret.graphics.pipelineResourceId = rm->GetUnreplacedID(state.graphics.pipeline);
 
   if(state.compute.pipeline != ResourceId() || state.compute.shaderObject)
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.compute.pipeline];
 
-    ret.compute.pipelineComputeLayoutResourceId = rm->GetOriginalID(p.compLayout);
+    ret.compute.pipelineComputeLayoutResourceId = p.compLayout;
 
     ret.compute.flags = p.flags;
 
@@ -1254,7 +1254,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           stage.shaderObject ? c.m_ShaderObject[state.shaderObjects[i]].pushRanges
                              : c.m_PipelineLayout[p.compLayout].pushRanges;
 
-      stage.resourceId = rm->GetUnreplacedOriginalID(shad.module);
+      stage.resourceId = rm->GetUnreplacedID(shad.module);
       stage.entryPoint = shad.entryPoint;
 
       stage.stage = ShaderStage::Compute;
@@ -1325,13 +1325,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
 
-    ret.graphics.pipelinePreRastLayoutResourceId = rm->GetOriginalID(p.vertLayout);
-    ret.graphics.pipelineFragmentLayoutResourceId = rm->GetOriginalID(p.fragLayout);
+    ret.graphics.pipelinePreRastLayoutResourceId = p.vertLayout;
+    ret.graphics.pipelineFragmentLayoutResourceId = p.fragLayout;
 
     ret.graphics.flags = p.flags;
 
     // Input Assembly
-    ret.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
+    ret.inputAssembly.indexBuffer.resourceId = state.ibuffer.buf;
     ret.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
     ret.inputAssembly.indexBuffer.byteSize = state.ibuffer.size;
     ret.inputAssembly.indexBuffer.byteStride = state.ibuffer.bytewidth;
@@ -1361,7 +1361,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.vertexInput.vertexBuffers.resize(state.vbuffers.size());
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
-      ret.vertexInput.vertexBuffers[i].resourceId = rm->GetOriginalID(state.vbuffers[i].buf);
+      ret.vertexInput.vertexBuffers[i].resourceId = state.vbuffers[i].buf;
       ret.vertexInput.vertexBuffers[i].byteOffset = state.vbuffers[i].offs;
       ret.vertexInput.vertexBuffers[i].byteStride = (uint32_t)state.vbuffers[i].stride;
       ret.vertexInput.vertexBuffers[i].byteSize = (uint32_t)state.vbuffers[i].size;
@@ -1394,7 +1394,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           stages[i]->shaderObject ? c.m_ShaderObject[state.shaderObjects[i]].pushRanges
                                   : c.m_PipelineLayout[p.vertLayout].pushRanges;
 
-      stages[i]->resourceId = rm->GetUnreplacedOriginalID(shad.module);
+      stages[i]->resourceId = rm->GetUnreplacedID(shad.module);
       stages[i]->entryPoint = shad.entryPoint;
 
       stages[i]->stage = StageFromIndex(i);
@@ -1467,7 +1467,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.transformFeedback.buffers.resize(state.xfbbuffers.size());
     for(size_t i = 0; i < state.xfbbuffers.size(); i++)
     {
-      ret.transformFeedback.buffers[i].bufferResourceId = rm->GetOriginalID(state.xfbbuffers[i].buf);
+      ret.transformFeedback.buffers[i].bufferResourceId = state.xfbbuffers[i].buf;
       ret.transformFeedback.buffers[i].byteOffset = state.xfbbuffers[i].offs;
       ret.transformFeedback.buffers[i].byteSize = state.xfbbuffers[i].size;
 
@@ -1481,8 +1481,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         if(xfb < state.xfbcounters.size())
         {
           ret.transformFeedback.buffers[i].active = true;
-          ret.transformFeedback.buffers[i].counterBufferResourceId =
-              rm->GetOriginalID(state.xfbcounters[xfb].buf);
+          ret.transformFeedback.buffers[i].counterBufferResourceId = state.xfbcounters[xfb].buf;
           ret.transformFeedback.buffers[i].counterBufferOffset = state.xfbcounters[xfb].offs;
         }
       }
@@ -1812,9 +1811,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       if(viewid != ResourceId())
       {
-        fbState.attachments.back().view = rm->GetOriginalID(viewid);
-        ret.currentPass.framebuffer.attachments[attIdx].resource =
-            rm->GetOriginalID(c.m_ImageView[viewid].image);
+        fbState.attachments.back().view = viewid;
+        ret.currentPass.framebuffer.attachments[attIdx].resource = c.m_ImageView[viewid].image;
 
         fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
         fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
@@ -1843,9 +1841,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         viewid = GetResID(dyn.color[i].resolveImageView);
 
-        fbState.attachments.back().view = rm->GetOriginalID(viewid);
-        ret.currentPass.framebuffer.attachments[attIdx].resource =
-            rm->GetOriginalID(c.m_ImageView[viewid].image);
+        fbState.attachments.back().view = viewid;
+        ret.currentPass.framebuffer.attachments[attIdx].resource = c.m_ImageView[viewid].image;
 
         fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
         fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
@@ -1867,9 +1864,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       if(dyn.depth.imageView == VK_NULL_HANDLE)
         viewid = GetResID(dyn.stencil.imageView);
 
-      fbState.attachments.back().view = rm->GetOriginalID(viewid);
-      ret.currentPass.framebuffer.attachments[attIdx].resource =
-          rm->GetOriginalID(c.m_ImageView[viewid].image);
+      fbState.attachments.back().view = viewid;
+      ret.currentPass.framebuffer.attachments[attIdx].resource = c.m_ImageView[viewid].image;
 
       fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
       fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
@@ -1892,9 +1888,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       ResourceId viewid = GetResID(dyn.fragmentDensityView);
 
-      fbState.attachments.back().view = rm->GetOriginalID(viewid);
-      ret.currentPass.framebuffer.attachments[attIdx].resource =
-          rm->GetOriginalID(c.m_ImageView[viewid].image);
+      fbState.attachments.back().view = viewid;
+      ret.currentPass.framebuffer.attachments[attIdx].resource = c.m_ImageView[viewid].image;
 
       fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
       fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
@@ -1917,9 +1912,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       ResourceId viewid = GetResID(dyn.shadingRateView);
 
-      fbState.attachments.back().view = rm->GetOriginalID(viewid);
-      ret.currentPass.framebuffer.attachments[attIdx].resource =
-          rm->GetOriginalID(c.m_ImageView[viewid].image);
+      fbState.attachments.back().view = viewid;
+      ret.currentPass.framebuffer.attachments[attIdx].resource = c.m_ImageView[viewid].image;
 
       fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
       fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
@@ -1961,7 +1955,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   {
     // Renderpass
     ret.currentPass.renderpass.dynamic = false;
-    ret.currentPass.renderpass.resourceId = rm->GetOriginalID(state.GetRenderPass());
+    ret.currentPass.renderpass.resourceId = state.GetRenderPass();
     ret.currentPass.renderpass.subpass = state.subpass;
 
     ret.currentPass.renderpass.inputAttachments =
@@ -1991,7 +1985,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     ResourceId fb = state.GetFramebuffer();
 
-    ret.currentPass.framebuffer.resourceId = rm->GetOriginalID(fb);
+    ret.currentPass.framebuffer.resourceId = fb;
 
     if(fb != ResourceId())
     {
@@ -2006,9 +2000,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         if(viewid != ResourceId())
         {
-          ret.currentPass.framebuffer.attachments[i].view = rm->GetOriginalID(viewid);
-          ret.currentPass.framebuffer.attachments[i].resource =
-              rm->GetOriginalID(c.m_ImageView[viewid].image);
+          ret.currentPass.framebuffer.attachments[i].view = viewid;
+          ret.currentPass.framebuffer.attachments[i].resource = c.m_ImageView[viewid].image;
 
           ret.currentPass.framebuffer.attachments[i].format =
               MakeResourceFormat(c.m_ImageView[viewid].format);
@@ -2173,8 +2166,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         {
           destSet.descriptorSetResourceId = ResourceId();
           destSet.pushDescriptor = false;
-          destSet.layoutResourceId =
-              rm->GetOriginalID(c.m_PipelineLayout[setBindingInfo.pipeLayout].descSetLayouts[i]);
+          destSet.layoutResourceId = c.m_PipelineLayout[setBindingInfo.pipeLayout].descSetLayouts[i];
 
           destSet.dynamicOffsets.clear();
 
@@ -2188,8 +2180,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         {
           destSet.descriptorSetResourceId = ResourceId();
           destSet.pushDescriptor = false;
-          destSet.layoutResourceId =
-              rm->GetOriginalID(c.m_PipelineLayout[setBindingInfo.pipeLayout].descSetLayouts[i]);
+          destSet.layoutResourceId = c.m_PipelineLayout[setBindingInfo.pipeLayout].descSetLayouts[i];
 
           destSet.dynamicOffsets.clear();
 
@@ -2216,11 +2207,11 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         ResourceId layoutId = m_pDriver->m_DescriptorSetState[sourceSet].layout;
 
-        destSet.descriptorSetResourceId = rm->GetOriginalID(sourceSet);
+        destSet.descriptorSetResourceId = sourceSet;
         destSet.pushDescriptor = (c.m_DescSetLayout[layoutId].flags &
                                   VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT);
 
-        destSet.layoutResourceId = rm->GetOriginalID(layoutId);
+        destSet.layoutResourceId = layoutId;
       }
     }
 
@@ -2233,12 +2224,12 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           (state.descBufs[i].usage & VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT) != 0;
       ret.compute.descriptorBuffers[i].pushDescriptor =
           (state.descBufs[i].usage & VK_BUFFER_USAGE_PUSH_DESCRIPTORS_DESCRIPTOR_BUFFER_BIT_EXT) != 0;
-      ret.compute.descriptorBuffers[i].pushBuffer = rm->GetOriginalID(state.descBufs[i].pushBuffer);
+      ret.compute.descriptorBuffers[i].pushBuffer = state.descBufs[i].pushBuffer;
 
       ResourceId id;
       m_pDriver->GetResIDFromAddr(state.descBufs[i].address, id,
                                   ret.compute.descriptorBuffers[i].offset);
-      ret.compute.descriptorBuffers[i].buffer = rm->GetOriginalID(id);
+      ret.compute.descriptorBuffers[i].buffer = id;
     }
 
     // these are not actually pipeline specific but for organisation/ease we store them there
@@ -2256,7 +2247,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       if(ResourceIDGen::IsReplayOnlyID(it->first))
         continue;
 
-      img.resourceId = rm->GetOriginalID(it->first);
+      img.resourceId = it->first;
 
       LockedConstImageStateRef imState = it->second.LockRead();
       img.layouts.resize(imState->subresourceStates.size());
@@ -2284,7 +2275,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
   if(state.conditionalRendering.buffer != ResourceId())
   {
-    ret.conditionalRendering.bufferId = rm->GetOriginalID(state.conditionalRendering.buffer);
+    ret.conditionalRendering.bufferId = state.conditionalRendering.buffer;
     ret.conditionalRendering.byteOffset = state.conditionalRendering.offset;
     ret.conditionalRendering.isInverted =
         state.conditionalRendering.flags == VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT;
@@ -2305,7 +2296,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
 void VulkanReplay::FillSamplerDescriptor(SamplerDescriptor &dstel, const DescriptorSetSlot &srcel)
 {
-  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
   if(srcel.type == DescriptorSlotType::Sampler)
@@ -2320,7 +2310,7 @@ void VulkanReplay::FillSamplerDescriptor(SamplerDescriptor &dstel, const Descrip
 
   const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[srcel.sampler];
 
-  dstel.object = rm->GetOriginalID(srcel.sampler);
+  dstel.object = srcel.sampler;
 
   // sampler info
   dstel.filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
@@ -2345,7 +2335,7 @@ void VulkanReplay::FillSamplerDescriptor(SamplerDescriptor &dstel, const Descrip
   if(sampl.ycbcr != ResourceId())
   {
     const VulkanCreationInfo::YCbCrSampler &ycbcr = c.m_YCbCrSampler[sampl.ycbcr];
-    dstel.ycbcrSampler = rm->GetOriginalID(sampl.ycbcr);
+    dstel.ycbcrSampler = sampl.ycbcr;
 
     dstel.ycbcrModel = ycbcr.ycbcrModel;
     dstel.ycbcrRange = ycbcr.ycbcrRange;
@@ -2379,7 +2369,6 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
 {
   DescriptorSlotType descriptorType = srcel.type;
 
-  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
   switch(descriptorType)
@@ -2419,13 +2408,13 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
 
     if(descriptorType == DescriptorSlotType::CombinedImageSampler)
     {
-      dstel.secondary = rm->GetOriginalID(srcel.sampler);
+      dstel.secondary = srcel.sampler;
     }
 
     if(viewid != ResourceId())
     {
-      dstel.view = rm->GetOriginalID(viewid);
-      dstel.resource = rm->GetOriginalID(c.m_ImageView[viewid].image);
+      dstel.view = viewid;
+      dstel.resource = c.m_ImageView[viewid].image;
       dstel.format = MakeResourceFormat(c.m_ImageView[viewid].format);
 
       Convert(dstel.swizzle, c.m_ImageView[viewid].componentMapping);
@@ -2496,8 +2485,8 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
       {
         ResourceId viewid = srcel.resource;
 
-        dstel.view = rm->GetOriginalID(viewid);
-        dstel.resource = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
+        dstel.view = viewid;
+        dstel.resource = c.m_BufferView[viewid].buffer;
         dstel.byteOffset = c.m_BufferView[viewid].offset;
         dstel.format = MakeResourceFormat(c.m_BufferView[viewid].format);
         dstel.byteSize = c.m_BufferView[viewid].size;
@@ -2506,7 +2495,7 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
       else if(c.m_Buffer.find(srcel.resource) != c.m_Buffer.end())
       {
         dstel.view = ResourceId();
-        dstel.resource = rm->GetOriginalID(srcel.resource);
+        dstel.resource = srcel.resource;
         dstel.byteOffset = srcel.offset;
         dstel.format = MakeResourceFormat(VkFormat(srcel.imageLayoutOrFormat));
         dstel.byteSize = srcel.range;
@@ -2529,7 +2518,7 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
     dstel.view = ResourceId();
 
     if(srcel.resource != ResourceId())
-      dstel.resource = rm->GetOriginalID(srcel.resource);
+      dstel.resource = srcel.resource;
 
     dstel.byteOffset = srcel.offset;
     dstel.byteSize = srcel.GetRange();
@@ -2540,7 +2529,7 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
 
     if(srcel.resource != ResourceId())
     {
-      dstel.resource = rm->GetOriginalID(srcel.resource);
+      dstel.resource = srcel.resource;
       dstel.byteSize = c.m_AccelerationStructure[srcel.resource].size;
     }
   }
@@ -2570,7 +2559,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
         Descriptor &d = ret[dst++];
 
         d.type = DescriptorType::ConstantBuffer;
-        d.resource = rm->GetOriginalID(m_pDriver->m_InlineBuffers[descriptorStore]);
+        d.resource = m_pDriver->m_InlineBuffers[descriptorStore];
         d.byteOffset = r.offset;
         d.byteSize = r.descriptorSize;
       }
@@ -2591,7 +2580,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
       d.type = DescriptorType::ConstantBuffer;
       d.flags = DescriptorFlags::InlineData;
       d.view = ResourceId();
-      d.resource = rm->GetOriginalID(descriptorStore);
+      d.resource = descriptorStore;
       // specialisation constants implicitly always view the whole data, the shader reflection
       // offsets are absolute (by specialisation ID)
       d.byteOffset = 0;
@@ -2613,7 +2602,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
       d.type = DescriptorType::ConstantBuffer;
       d.flags = DescriptorFlags::InlineData;
       d.view = ResourceId();
-      d.resource = rm->GetOriginalID(descriptorStore);
+      d.resource = descriptorStore;
       // push constants also implicitly always view the whole data, since the ranges specified in
       // the pipeline must match offsets declared in the shader
       d.byteOffset = 0;
@@ -2718,7 +2707,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
         if(ret[dst].flags & DescriptorFlags::InlineData)
         {
           // inline data stored in the descriptor set
-          ret[dst].resource = rm->GetOriginalID(descriptorStore);
+          ret[dst].resource = descriptorStore;
         }
       }
 
@@ -2884,8 +2873,6 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
 
 rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
 {
-  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
-
   const VulkanRenderState &state = m_pDriver->m_RenderState;
 
   rdcarray<DescriptorAccess> ret;
@@ -2940,7 +2927,7 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
         }
         else
         {
-          access.descriptorStore = rm->GetOriginalID(descSets[setIdx].descSet);
+          access.descriptorStore = descSets[setIdx].descSet;
         }
       }
       else if(action == NULL || ((!compute && access.stage == ShaderStage::Compute) ||
@@ -2970,8 +2957,8 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
 
           if(bufSet.descBufferEmbeddedSamplers)
           {
-            access.descriptorStore = rm->GetOriginalID(
-                m_pDriver->m_CreationInfo.m_PipelineLayout[bufSet.pipeLayout].descSetLayouts[i]);
+            access.descriptorStore =
+                m_pDriver->m_CreationInfo.m_PipelineLayout[bufSet.pipeLayout].descSetLayouts[i];
             access.byteOffset = 0;
           }
           else if(bufSet.descBufferIdx >= state.descBufs.size())
@@ -2986,7 +2973,7 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
             if(inlinebufSetIdx >= 0)
               access.descriptorStore = m_pDriver->m_CreationInfo.m_Buffer[id].inlineDescriptorId;
             else
-              access.descriptorStore = rm->GetOriginalID(id);
+              access.descriptorStore = id;
             access.byteOffset += uint32_t(offs + bufSet.descBufferOffset);
           }
         }
@@ -5291,7 +5278,7 @@ void VulkanReplay::RefreshDerivedReplacements()
       }
     }
 
-    ResourceId origsrcid = rm->GetOriginalID(pipesrcid);
+    ResourceId origsrcid = pipesrcid;
 
     // only look at pipelines from the capture, no replay-time programs.
     if(origsrcid == pipesrcid)
@@ -5308,7 +5295,7 @@ void VulkanReplay::RefreshDerivedReplacements()
     bool usesReplacedShader = false;
     for(size_t i = 0; i < ARRAY_COUNT(it->second.shaders); i++)
     {
-      if(rm->HasReplacement(rm->GetOriginalID(it->second.shaders[i].module)))
+      if(rm->HasReplacement(it->second.shaders[i].module))
       {
         usesReplacedShader = true;
         break;
@@ -5335,11 +5322,11 @@ void VulkanReplay::RefreshDerivedReplacements()
           VkPipelineShaderStageCreateInfo &sh =
               (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
 
-          ResourceId shadOrigId = rm->GetOriginalID(GetResID(sh.module));
+          ResourceId shadId = GetResID(sh.module);
 
-          sh.module = rm->GetLiveHandle<VkShaderModule>(shadOrigId);
+          sh.module = rm->GetLiveHandle<VkShaderModule>(shadId);
 
-          if(rm->HasReplacement(shadOrigId))
+          if(rm->HasReplacement(shadId))
           {
             rdcarray<ShaderEntryPoint> entries =
                 m_pDriver->m_CreationInfo.m_ShaderModule[GetResID(sh.module)].spirv.EntryPoints();
@@ -5388,12 +5375,12 @@ void VulkanReplay::RefreshDerivedReplacements()
 
         // replace the module by going via the live ID to pick up any replacements
         VkPipelineShaderStageCreateInfo &sh = pipeCreateInfo.stage;
-        ResourceId shadOrigId = rm->GetOriginalID(pipeInfo.shaders[5].module);
-        sh.module = rm->GetLiveHandle<VkShaderModule>(shadOrigId);
+        ResourceId shadId = pipeInfo.shaders[5].module;
+        sh.module = rm->GetLiveHandle<VkShaderModule>(shadId);
 
         rdcarray<ShaderEntryPoint> entries;
 
-        if(rm->HasReplacement(shadOrigId))
+        if(rm->HasReplacement(shadId))
         {
           entries = m_pDriver->m_CreationInfo.m_ShaderModule[GetResID(sh.module)].spirv.EntryPoints();
           if(entries.size() > 1)

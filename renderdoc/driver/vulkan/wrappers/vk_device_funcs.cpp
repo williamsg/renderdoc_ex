@@ -562,7 +562,7 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
 
   // these are only used internally, since due to physical device remapping the actual registered
   // resource is created as a fake physical device and that's where we register them by their
-  // original ID. These can safely be created with replay-only IDs.
+  // capture-time ID. These can safely be created with replay-only IDs.
   for(uint32_t i = 0; i < count; i++)
     GetResourceManager()->WrapResource(ResourceId(), m_Instance, m_ReplayPhysicalDevices[i]);
 
@@ -1712,7 +1712,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
   if(IsReplayingAndReading())
   {
     // kept around only to call DerivedResource below, as this is the resource that actually has an
-    // original resource ID.
+    // capture time resource ID.
     VkPhysicalDevice origPhysDevice = physicalDevice;
 
     // see above in Serialise_vkEnumeratePhysicalDevices where this is encoded

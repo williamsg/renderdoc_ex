@@ -1329,7 +1329,7 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageMemEXT(SerialiserType &ser, GL
     m_Buffers[id].size = size;
 
     AddResourceInitChunk(buffer);
-    DerivedResource(memory, GetResourceManager()->GetOriginalID(id));
+    DerivedResource(memory, id);
   }
 
   return true;
@@ -1442,7 +1442,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem1DEXT(SerialiserType &ser, GLui
     GL.glTextureStorage1DEXT(texture.name, m_Textures[liveId].curType, levels, internalFormat, width);
 
     AddResourceInitChunk(texture);
-    DerivedResource(memory, GetResourceManager()->GetOriginalID(liveId));
+    DerivedResource(memory, liveId);
   }
 
   return true;
@@ -1552,7 +1552,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem2DEXT(SerialiserType &ser, GLui
                              width, height);
 
     AddResourceInitChunk(texture);
-    DerivedResource(memory, GetResourceManager()->GetOriginalID(liveId));
+    DerivedResource(memory, liveId);
   }
 
   return true;
@@ -1671,7 +1671,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem2DMultisampleEXT(
                                         internalFormat, width, height, fixedSampleLocations);
 
     AddResourceInitChunk(texture);
-    DerivedResource(memory, GetResourceManager()->GetOriginalID(liveId));
+    DerivedResource(memory, liveId);
   }
 
   return true;
@@ -1791,7 +1791,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem3DEXT(SerialiserType &ser, GLui
                              width, height, depth);
 
     AddResourceInitChunk(texture);
-    DerivedResource(memory, GetResourceManager()->GetOriginalID(liveId));
+    DerivedResource(memory, liveId);
   }
 
   return true;
@@ -1906,7 +1906,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem3DMultisampleEXT(
                                         internalFormat, width, height, depth, fixedSampleLocations);
 
     AddResourceInitChunk(texture);
-    DerivedResource(memory, GetResourceManager()->GetOriginalID(liveId));
+    DerivedResource(memory, liveId);
   }
 
   return true;

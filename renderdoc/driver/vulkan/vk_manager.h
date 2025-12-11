@@ -217,10 +217,10 @@ public:
 
   // easy path for getting the wrapped handle cast to the correct type
   template <typename realtype>
-  realtype GetLiveHandle(ResourceId origid)
+  realtype GetLiveHandle(ResourceId id)
   {
     return realtype((uint64_t)((
-        typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid)));
+        typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(id)));
   }
 
   template <typename realtype>
@@ -388,7 +388,7 @@ public:
     if(IsReplayMode(m_State))
     {
       if(!ResourceIDGen::IsReplayOnlyID(id))
-        EraseLiveResource(origit->second);
+        EraseLiveResource(id);
 
       ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
     }

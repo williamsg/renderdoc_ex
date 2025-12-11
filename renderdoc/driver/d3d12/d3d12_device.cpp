@@ -2116,11 +2116,11 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
   // it.
   bool gpuUpload = false;
 
-  ResourceId origid;
+  ResourceId id;
   if(IsReplayingAndReading() && Resource)
   {
-    origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
-    if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
+    id = GetResID(Resource);
+    if(m_UploadResourceIds.find(id) != m_UploadResourceIds.end())
       gpuUpload = true;
   }
 
@@ -2238,7 +2238,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
         SetObjName(uploadBuf,
                    StringFormat::Fmt("Map data write, %llu bytes for %s/%u @ %llu", rangeSize,
-                                     ToStr(origid).c_str(), Subresource, cmd.m_CurChunkOffset));
+                                     ToStr(id).c_str(), Subresource, cmd.m_CurChunkOffset));
 
         D3D12_RANGE maprange = {0, 0};
         void *dst = NULL;
@@ -2395,8 +2395,8 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
     if(IsLoading(m_State))
       cmd.AddCPUUsage(GetResID(Resource), ResourceUsage::CPUWrite);
 
-    ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
-    if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
+    ResourceId id = GetResID(Resource);
+    if(m_UploadResourceIds.find(id) != m_UploadResourceIds.end())
     {
       ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, dataSize);
 
@@ -3839,7 +3839,7 @@ void WrappedID3D12Device::DumpDRED(D3D12_AUTO_BREADCRUMB_NODE *node,
     ID3D12CommandList *cmd =
         (ID3D12CommandList *)GetResourceManager()->GetWrapper(node->pCommandList);
     if(cmd)
-      cmdName = ToStr(GetResourceManager()->GetOriginalID(GetResID(cmd)));
+      cmdName = ToStr(GetResID(cmd));
   }
 
   if(node->pCommandQueueDebugNameA)
@@ -3852,7 +3852,7 @@ void WrappedID3D12Device::DumpDRED(D3D12_AUTO_BREADCRUMB_NODE *node,
     ID3D12CommandQueue *q =
         (ID3D12CommandQueue *)GetResourceManager()->GetWrapper(node->pCommandList);
     if(q)
-      qName = ToStr(GetResourceManager()->GetOriginalID(GetResID(q)));
+      qName = ToStr(GetResID(q));
   }
 
   uint32_t lastExecuted = *node->pLastBreadcrumbValue;
@@ -4017,9 +4017,9 @@ bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChi
 
   if(IsReplayingAndReading() && pResource)
   {
-    ResourceId origId = GetResourceManager()->GetOriginalID(GetResID(pResource));
+    ResourceId id = GetResID(pResource);
 
-    ResourceDescription &descr = GetReplay()->GetResourceDesc(origId);
+    ResourceDescription &descr = GetReplay()->GetResourceDesc(id);
     if(Name && Name[0])
     {
       descr.SetCustomName(Name);
@@ -4104,9 +4104,8 @@ bool WrappedID3D12Device::Serialise_CreateAS(SerialiserType &ser, ID3D12Resource
       {
         RDCLOG("Creating %s AS %s at %s + %llu (%llu bytes): %llx remapped to %llx",
                type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL ? "blas" : "tlas",
-               ToStr(asId).c_str(),
-               ToStr(GetResourceManager()->GetOriginalID(GetResID(pResource))).c_str(),
-               resourceOffset, byteSize, asbWrappedResource->GetOriginalVA() + resourceOffset,
+               ToStr(asId).c_str(), ToStr(GetResID(pResource)).c_str(), resourceOffset, byteSize,
+               asbWrappedResource->GetOriginalVA() + resourceOffset,
                accStructAtOffset->GetVirtualAddress());
 
         RDCASSERTEQUAL(accStructAtOffset->GetVirtualAddress(),
@@ -5190,7 +5189,7 @@ void WrappedID3D12Device::DerivedResource(ID3D12DeviceChild *parent, ResourceId 
   if(!parent)
     return;
 
-  ResourceId parentId = GetResourceManager()->GetOriginalID(GetResID(parent));
+  ResourceId parentId = GetResID(parent);
 
   DerivedResource(parentId, child);
 }

@@ -871,7 +871,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
 }
 
 D3D12ShaderExportDatabase::D3D12ShaderExportDatabase(ResourceId id, D3D12RTManager *rayManager)
-    : RefCounter12(NULL), objectOriginalId(id), m_RayManager(rayManager)
+    : RefCounter12(NULL), objectId(id), m_RayManager(rayManager)
 {
   m_RayManager->RegisterExportDatabase(this);
 }
@@ -1257,7 +1257,7 @@ void D3D12ShaderExportDatabase::AddExport(const rdcstr &exportName)
   {
     // store the wrapped identifier here in this database, ready to return to the application in
     // this object or any child objects.
-    wrappedIdentifiers.push_back({objectOriginalId, (uint32_t)ownExports.size()});
+    wrappedIdentifiers.push_back({objectId, (uint32_t)ownExports.size()});
 
     // store the unwrapping information to go into the giant lookup table
     ownExports.push_back({});
@@ -1327,7 +1327,7 @@ void D3D12ShaderExportDatabase::InheritExport(const rdcstr &exportName,
     ownExports.push_back({});
 
     // we expect this identifier to have come from the object we're inheriting
-    RDCASSERTEQUAL(wrappedIdentifiers.back().id, existing->objectOriginalId);
+    RDCASSERTEQUAL(wrappedIdentifiers.back().id, existing->objectId);
     // which means we can copy any root signature it had associated even if it wasn't complete
     ownExports.back() = existing->ownExports[wrappedIdentifiers.back().index];
 
@@ -1336,7 +1336,7 @@ void D3D12ShaderExportDatabase::InheritExport(const rdcstr &exportName,
       memcpy(ownExports.back().real, identifier, sizeof(ShaderIdentifier));
 
     // and re-point this to point to ourselves when queried as we have the best data for it.
-    wrappedIdentifiers.back() = {objectOriginalId, (uint32_t)ownExports.size() - 1};
+    wrappedIdentifiers.back() = {objectId, (uint32_t)ownExports.size() - 1};
 
     // if this is an incomplete hitgroup, also grab the hitgroup component data
     if(exportLookups.back().hitgroup)
@@ -1369,7 +1369,7 @@ void D3D12ShaderExportDatabase::ApplyRoot(SubObjectPriority priority, const rdcs
 void D3D12ShaderExportDatabase::ApplyRoot(const ShaderIdentifier &identifier,
                                           SubObjectPriority priority, uint32_t localRootSigIndex)
 {
-  if(identifier.id == objectOriginalId)
+  if(identifier.id == objectId)
   {
     // set this anywhere we have a looser/lower priority association already (including the most
     // common case presumably where one isn't set at all)
@@ -1400,7 +1400,7 @@ void D3D12ShaderExportDatabase::UpdateHitGroupAssociations()
       {
         // if the export is our own (ie. not complete and finished in a parent), we might need to
         // update its root sig
-        if(wrappedIdentifiers[e].id == objectOriginalId)
+        if(wrappedIdentifiers[e].id == objectId)
         {
           // if the hit group got a code association already we assume it must match, but a DXIL
           // association or a default association could be overridden since it's unclear if a
@@ -1415,7 +1415,7 @@ void D3D12ShaderExportDatabase::UpdateHitGroupAssociations()
               {
                 if(shaderExport == exportLookups[e2].name || shaderExport == exportLookups[e2].altName)
                 {
-                  RDCASSERTEQUAL(wrappedIdentifiers[e2].id, objectOriginalId);
+                  RDCASSERTEQUAL(wrappedIdentifiers[e2].id, objectId);
                   uint32_t idx = wrappedIdentifiers[e2].index;
                   ApplyRoot(wrappedIdentifiers[e], ownExports[idx].rootSigPrio,
                             ownExports[idx].localRootSigIndex);

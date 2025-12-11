@@ -117,7 +117,6 @@ public:
     {
       BufferDescription buf;
 
-      // no original ID for this one
       buf.resourceId = pair.first;
       buf.length = 4;
       buf.gpuAddress = 0;

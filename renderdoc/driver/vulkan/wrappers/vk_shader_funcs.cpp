@@ -303,8 +303,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevi
         ObjDisp(device)->DestroyPipelineLayout(Unwrap(device), layout, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(PipelineLayout,
-                                              GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(PipelineLayout, live);
       }
       else
       {
@@ -430,8 +429,7 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
         ObjDisp(device)->DestroyShaderModule(Unwrap(device), sh, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(ShaderModule,
-                                              GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(ShaderModule, live);
       }
       else
       {
@@ -534,7 +532,7 @@ bool WrappedVulkan::Serialise_vkCreateShadersEXT(SerialiserType &ser, VkDevice d
         ObjDisp(device)->DestroyShaderEXT(Unwrap(device), sh, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(Shader, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(Shader, live);
       }
       else
       {
@@ -843,7 +841,6 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
           if(shadInstantiations[s].module == VK_NULL_HANDLE)
             return false;
 
-          // this will be a replay ID, there is no equivalent original ID
           ResourceId shadId = GetResID(shadInstantiations[s].module);
 
           AddResource(shadId, ResourceType::Shader, "Shader Module");
@@ -1203,7 +1200,6 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
         if(shadInstantiated.module == VK_NULL_HANDLE)
           return false;
 
-        // this will be a replay ID, there is no equivalent original ID
         ResourceId shadId = GetResID(shadInstantiated.module);
 
         AddResource(shadId, ResourceType::Shader, "Shader Module");

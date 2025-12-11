@@ -260,7 +260,7 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
   }
   else if(res.Namespace == eResTexture)
   {
-    PrepareTextureInitialContents(id, id, res);
+    PrepareTextureInitialContents(id, res);
     return;
   }
   else if(res.Namespace == eResFramebuffer)
@@ -547,10 +547,7 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
     RDCERR("Unexpected type of resource requiring initial state");
   }
 
-  if(IsReplayMode(m_State))
-    SetInitialContents(GetOriginalID(id), initContents);
-  else
-    SetInitialContents(id, initContents);
+  SetInitialContents(id, initContents);
 }
 
 bool GLResourceManager::Prepare_InitialState(GLResource res)
@@ -605,10 +602,9 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   return true;
 }
 
-void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, ResourceId origid,
-                                                      GLResource res)
+void GLResourceManager::PrepareTextureInitialContents(ResourceId id, GLResource res)
 {
-  WrappedOpenGL::TextureData &details = m_Driver->m_Textures[liveid];
+  WrappedOpenGL::TextureData &details = m_Driver->m_Textures[id];
 
   GLInitialContents initContents;
 
@@ -977,7 +973,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                        (GLint *)&state.texBufSize);
   }
 
-  SetInitialContents(origid, initContents);
+  SetInitialContents(id, initContents);
 }
 
 uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLInitialContents &initial)
@@ -1900,7 +1896,7 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
 
     // in future if we skip RT contents for write-before-read RTs, we could mark
     // textures to be cleared instead of copied.
-    PrepareTextureInitialContents(GetID(live), id, live);
+    PrepareTextureInitialContents(id, live);
   }
   else if(live.Namespace == eResBuffer)
   {
@@ -2483,7 +2479,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents &i
             stages |= ShaderBit(b);
 
         // go via ID to pick up replacements
-        ResourceId id = GetOriginalID(GetID(data.programs[a]));
+        ResourceId id = GetID(data.programs[a]);
         GLuint prog = GetLiveResource(id).name;
 
         // bind the program on all relevant stages
@@ -2497,7 +2493,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents &i
       // shared
       if(data.programs[5].name)
       {
-        ResourceId id = GetOriginalID(GetID(data.programs[5]));
+        ResourceId id = GetID(data.programs[5]);
         GLuint prog = GetLiveResource(id).name;
 
         m_Driver->glUseProgramStages(live.name, eGL_COMPUTE_SHADER_BIT, prog);

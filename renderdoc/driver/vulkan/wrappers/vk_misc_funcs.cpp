@@ -729,7 +729,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
         ObjDisp(device)->DestroySampler(Unwrap(device), samp, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(Sampler, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(Sampler, live);
       }
       else
       {
@@ -948,7 +948,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
         ObjDisp(device)->DestroyFramebuffer(Unwrap(device), fb, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(Framebuffer, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(Framebuffer, live);
       }
       else
       {
@@ -1246,7 +1246,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
         ObjDisp(device)->DestroyRenderPass(Unwrap(device), rp, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(RenderPass, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(RenderPass, live);
       }
       else
       {
@@ -1554,7 +1554,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
         ObjDisp(device)->DestroyRenderPass(Unwrap(device), rp, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(RenderPass, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(RenderPass, live);
       }
       else
       {
@@ -1953,8 +1953,8 @@ bool WrappedVulkan::Serialise_vkCopyImageToImage(SerialiserType &ser, VkDevice d
     {
       AddEvent();
 
-      ResourceId srcid = GetResourceManager()->GetOriginalID(GetResID(CopyImageToImageInfo.srcImage));
-      ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(CopyImageToImageInfo.dstImage));
+      ResourceId srcid = GetResID(CopyImageToImageInfo.srcImage);
+      ResourceId dstid = GetResID(CopyImageToImageInfo.dstImage);
 
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
@@ -2054,7 +2054,7 @@ bool WrappedVulkan::Serialise_vkCopyImageToMemory(SerialiserType &ser, VkDevice 
     {
       AddEvent();
 
-      ResourceId srcid = GetResourceManager()->GetOriginalID(GetResID(srcImage));
+      ResourceId srcid = GetResID(srcImage);
 
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
@@ -2141,7 +2141,7 @@ bool WrappedVulkan::Serialise_vkCopyMemoryToImage(SerialiserType &ser, VkDevice 
     {
       AddEvent();
 
-      ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(dstImage));
+      ResourceId dstid = GetResID(dstImage);
 
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
@@ -2298,8 +2298,7 @@ bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversion(
         ObjDisp(device)->DestroySamplerYcbcrConversion(Unwrap(device), conv, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(ycbcrConversion,
-                                              GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(ycbcrConversion, live);
       }
       else
       {
@@ -2718,7 +2717,7 @@ bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderMo
     m_CreationInfo.m_ShaderModule[GetResID(ShaderObject)].unstrippedPath = DebugPath;
     m_CreationInfo.m_ShaderModule[GetResID(ShaderObject)].Reinit();
 
-    AddResourceCurChunk(GetResourceManager()->GetOriginalID(GetResID(ShaderObject)));
+    AddResourceCurChunk(GetResID(ShaderObject));
   }
 
   return true;
@@ -2778,7 +2777,7 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
       ObjectName = "";
 
     // if we don't have a live resource, this is probably a command buffer being named on the
-    // virtual non-existant parent, not any of the baked IDs. Just save the name on the original ID
+    // virtual non-existant parent, not any of the baked IDs. Just save the name on the base ID
     // and we'll propagate it in Serialise_vkBeginCommandBuffer
     if(!GetResourceManager()->HasLiveResource(Object) || GetResourceManager()->HasReplacement(Object))
       m_CreationInfo.m_Names[Object] = ObjectName;
@@ -2922,7 +2921,7 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
       ObjectName = "";
 
     // if we don't have a live resource, this is probably a command buffer being named on the
-    // virtual non-existant parent, not any of the baked IDs. Just save the name on the original ID
+    // virtual non-existant parent, not any of the baked IDs. Just save the name on the base ID
     // and we'll propagate it in Serialise_vkBeginCommandBuffer
     if(!GetResourceManager()->HasLiveResource(Object) || GetResourceManager()->HasReplacement(Object))
       m_CreationInfo.m_Names[Object] = ObjectName;

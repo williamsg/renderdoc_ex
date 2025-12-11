@@ -2385,13 +2385,12 @@ void D3D12CommandData::AddAction(const ActionDescription &a)
     for(size_t i = 0; i < ARRAY_COUNT(action.outputs); i++)
     {
       if(i < rts.size())
-        action.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(rts[i]);
+        action.outputs[i] = rts[i];
       else
         action.outputs[i] = ResourceId();
     }
 
-    action.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
-        m_BakedCmdListInfo[m_LastCmdListID].state.GetDSVID());
+    action.depthOut = m_BakedCmdListInfo[m_LastCmdListID].state.GetDSVID();
   }
 
   // markers don't increment action ID

@@ -398,9 +398,6 @@ public:
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPU() const;
   PortableHandle GetPortableHandle() const;
 
-  // these IDs are the live IDs during replay, not the original IDs. Treat them as if you called
-  // GetResID(resource).
-  //
   // descriptor heap itself
   ResourceId GetHeapResourceId() const;
   //

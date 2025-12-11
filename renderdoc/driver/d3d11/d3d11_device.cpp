@@ -1509,7 +1509,7 @@ RDResult WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
     for(const BufferDescription &b : counterBuffers)
     {
       ID3D11UnorderedAccessView *uav = GetDebugManager()->GetCounterBufferUAV(b.resourceId);
-      ResourceId uavId = GetResourceManager()->GetOriginalID(GetIDForDeviceChild(uav));
+      ResourceId uavId = GetIDForDeviceChild(uav);
 
       ResourceDescription &uavDesc = GetReplay()->GetResourceDesc(uavId);
       ResourceDescription &bufDesc = GetReplay()->GetResourceDesc(b.resourceId);
@@ -2868,7 +2868,7 @@ void WrappedID3D11Device::AddResourceCurChunk(ResourceId id)
 
 void WrappedID3D11Device::DerivedResource(ID3D11DeviceChild *parent, ResourceId child)
 {
-  ResourceId parentId = GetResourceManager()->GetOriginalID(GetIDForDeviceChild(parent));
+  ResourceId parentId = GetIDForDeviceChild(parent);
 
   if(GetReplay()->GetResourceDesc(parentId).derivedResources.contains(child))
     return;
@@ -2888,7 +2888,7 @@ bool WrappedID3D11Device::Serialise_SetShaderDebugPath(SerialiserType &ser,
 
   if(IsReplayingAndReading() && pResource)
   {
-    ResourceId resId = GetResourceManager()->GetOriginalID(GetIDForDeviceChild(pResource));
+    ResourceId resId = GetIDForDeviceChild(pResource);
 
     AddResourceCurChunk(resId);
 
@@ -2941,8 +2941,7 @@ bool WrappedID3D11Device::Serialise_SetResourceName(SerialiserType &ser,
 
   if(IsReplayingAndReading() && pResource)
   {
-    ResourceDescription &descr = GetReplay()->GetResourceDesc(
-        GetResourceManager()->GetOriginalID(GetIDForDeviceChild(pResource)));
+    ResourceDescription &descr = GetReplay()->GetResourceDesc(GetIDForDeviceChild(pResource));
     if(Name && Name[0])
       descr.SetCustomName(Name);
     AddResourceCurChunk(descr);

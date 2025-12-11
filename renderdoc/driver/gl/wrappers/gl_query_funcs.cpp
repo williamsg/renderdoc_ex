@@ -595,7 +595,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjectui64v(SerialiserType &ser, G
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copyDestination = dstid;
 
       AddAction(action);
 
@@ -678,7 +678,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjectuiv(SerialiserType &ser, GLu
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copyDestination = dstid;
 
       AddAction(action);
 
@@ -761,7 +761,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjecti64v(SerialiserType &ser, GL
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copyDestination = dstid;
 
       AddAction(action);
 
@@ -843,7 +843,7 @@ bool WrappedOpenGL::Serialise_glGetQueryBufferObjectiv(SerialiserType &ser, GLui
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copyDestination = dstid;
 
       AddAction(action);
 

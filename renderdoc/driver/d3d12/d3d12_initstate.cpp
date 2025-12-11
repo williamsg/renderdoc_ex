@@ -1590,7 +1590,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
                 continue;
               }
 
-              if(id < GetOriginalID(blasCheck->GetResourceID()))
+              if(id < blasCheck->GetResourceID())
               {
                 RDCWARN("  %u: BLAS referenced by TLAS is newer than TLAS - possibly stale TLAS", i);
                 instances[i].AccelerationStructure = 0;
@@ -2221,8 +2221,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
 
         if(D3D12_Debug_RT_Auditing())
         {
-          RDCLOG("Apply TLAS - Rebuilding %s to %llx",
-                 ToStr(GetOriginalID(as->GetResourceID())).c_str(),
+          RDCLOG("Apply TLAS - Rebuilding %s to %llx", ToStr(as->GetResourceID()).c_str(),
                  desc.DestAccelerationStructureData);
 
           // verify that all children we intended to reference have now been built.
@@ -2263,7 +2262,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
         if(!data.cachedBuiltAS)
           return;
 
-        ResourceId origId = GetOriginalID(as->GetResourceID());
+        ResourceId id = as->GetResourceID();
 
         UINT numPostBuilds = 0;
         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC postDesc[2] = {};
@@ -2290,7 +2289,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
 
         if(D3D12_Debug_RT_Auditing())
         {
-          RDCLOG("Apply BLAS - Caching %s to %llx then copying to %llx", ToStr(origId).c_str(),
+          RDCLOG("Apply BLAS - Caching %s to %llx then copying to %llx", ToStr(id).c_str(),
                  desc.DestAccelerationStructureData, as->GetVirtualAddress());
 
           if(GetRTManager()->PostbuildReadbackBuffer)
@@ -2331,9 +2330,8 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
 
         if(D3D12_Debug_RT_Auditing())
         {
-          RDCLOG("Apply BLAS - Copying %s from %llx to %llx",
-                 ToStr(GetOriginalID(as->GetResourceID())).c_str(), data.cachedBuiltAS->Address(),
-                 as->GetVirtualAddress());
+          RDCLOG("Apply BLAS - Copying %s from %llx to %llx", ToStr(as->GetResourceID()).c_str(),
+                 data.cachedBuiltAS->Address(), as->GetVirtualAddress());
         }
       }
 

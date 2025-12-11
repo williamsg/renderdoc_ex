@@ -107,10 +107,8 @@ void DoSerialiseViaResourceId(SerialiserType &ser, Interface *&el)
 
   ResourceId id;
 
-  if(ser.IsWriting())
+  if(ser.IsWriting() || ser.IsStructurising())
     id = GetResID(el);
-  if(ser.IsStructurising() && rm)
-    id = rm->GetOriginalID(GetResID(el));
 
   DoSerialise(ser, id);
 
@@ -262,8 +260,6 @@ void DoSerialise(SerialiserType &ser, D3D12_CPU_DESCRIPTOR_HANDLE &el)
 
   if(ser.IsWriting() || ser.IsStructurising())
     ph = ToPortableHandle(el);
-  if(ser.IsStructurising() && rm)
-    ph.heap = rm->GetOriginalID(ph.heap);
 
   DoSerialise(ser, ph);
 
@@ -285,8 +281,6 @@ void DoSerialise(SerialiserType &ser, D3D12_GPU_DESCRIPTOR_HANDLE &el)
 
   if(ser.IsWriting() || ser.IsStructurising())
     ph = ToPortableHandle(el);
-  if(ser.IsStructurising() && rm)
-    ph.heap = rm->GetOriginalID(ph.heap);
 
   DoSerialise(ser, ph);
 
@@ -312,11 +306,6 @@ void DoSerialise(SerialiserType &ser, DynamicDescriptorCopy &el)
   {
     dst = ToPortableHandle(el.dst);
     src = ToPortableHandle(el.src);
-  }
-  if(ser.IsStructurising() && rm)
-  {
-    dst.heap = rm->GetOriginalID(dst.heap);
-    src.heap = rm->GetOriginalID(src.heap);
   }
 
   ser.Serialise("dst"_lit, dst).Important();
@@ -347,8 +336,6 @@ void DoSerialise(SerialiserType &ser, D3D12BufferLocation &el)
 
   if(ser.IsWriting() || ser.IsStructurising())
     WrappedID3D12Resource::GetResIDFromAddrAllowOutOfBounds(el.Location, buffer, offs);
-  if(ser.IsStructurising() && rm)
-    buffer = rm->GetOriginalID(buffer);
 
   ser.Serialise("Buffer"_lit, buffer).Important();
   ser.Serialise("Offset"_lit, offs).OffsetOrSize();
@@ -393,11 +380,6 @@ void DoSerialise(SerialiserType &ser, D3D12ASLocation &el, bool useSideband)
           asId = as->GetResourceID();
       }
     }
-  }
-  if(ser.IsStructurising() && rm)
-  {
-    buffer = rm->GetOriginalID(buffer);
-    asId = rm->GetOriginalID(asId);
   }
 
   // we get a little dynamic with this. If we successfully got an AS (or it was a zero location)
@@ -498,9 +480,6 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     {
       ResourceId Resource = el.data.nonsamp.resource;
 
-      if(ser.IsStructurising())
-        Resource = rm->GetOriginalID(Resource);
-
       ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
 
       // convert to Live ID on replay
@@ -521,9 +500,6 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     {
       ResourceId Resource = el.data.nonsamp.resource;
 
-      if(ser.IsStructurising())
-        Resource = rm->GetOriginalID(Resource);
-
       ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
 
       // convert to Live ID on replay
@@ -537,9 +513,6 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     case D3D12DescriptorType::DSV:
     {
       ResourceId Resource = el.data.nonsamp.resource;
-
-      if(ser.IsStructurising())
-        Resource = rm->GetOriginalID(Resource);
 
       ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
 
@@ -555,12 +528,6 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     {
       ResourceId Resource = el.data.nonsamp.resource;
       ResourceId CounterResource = el.data.nonsamp.counterResource;
-
-      if(ser.IsStructurising())
-      {
-        Resource = rm->GetOriginalID(Resource);
-        CounterResource = rm->GetOriginalID(CounterResource);
-      }
 
       ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
       ser.Serialise("CounterResource"_lit, CounterResource).TypedAs("ID3D12Resource *"_lit);

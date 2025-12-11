@@ -211,7 +211,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     // patch the parameters so that we point into our local CPU descriptor handles that are up
     // to date
@@ -555,7 +555,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     bool stateUpdate = false;
 
@@ -1003,7 +1003,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
 
   if(IsReplayingAndReading())
   {
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
     BakedCmdListInfo &bakedCmdInfo = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID];
     BakedCmdListInfo::PatchRaytracing &patchInfo =
         bakedCmdInfo.m_patchRaytracingInfo[bakedCmdInfo.curEventID];
@@ -1369,7 +1369,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStruc
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     if(IsActiveReplaying(m_State))
     {
@@ -1389,8 +1389,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStruc
       m_Cmd->AddEvent();
 
       ActionDescription action;
-      action.copyDestination = GetResourceManager()->GetOriginalID(
-          WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer));
+      action.copyDestination = WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer);
       action.copyDestinationSubresource = Subresource();
 
       action.flags |= ActionFlags::Copy;
@@ -1480,7 +1479,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyRaytracingAccelerationStruc
 
   if(IsReplayingAndReading())
   {
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     if(IsActiveReplaying(m_State))
     {
@@ -1737,7 +1736,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState1(SerialiserTyp
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     bool stateUpdate = false;
 
@@ -1816,7 +1815,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     const D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 

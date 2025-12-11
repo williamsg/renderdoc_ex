@@ -1120,8 +1120,8 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
 
-      action.copySource = GetResourceManager()->GetOriginalID(srcid);
-      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copySource = srcid;
+      action.copyDestination = dstid;
 
       AddAction(action);
 
@@ -2009,7 +2009,7 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferData(SerialiserType &ser, GLuint
       ActionDescription action;
       action.flags |= ActionFlags::Clear;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(id);
+      action.copyDestination = id;
 
       AddAction(action);
 
@@ -2086,7 +2086,7 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLu
       ActionDescription action;
       action.flags |= ActionFlags::Clear;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(id);
+      action.copyDestination = id;
 
       AddAction(action);
 

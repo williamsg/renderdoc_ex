@@ -981,8 +981,8 @@ private:
   // so we just set this command buffer
   VkCommandBuffer m_OutsideCmdBuffer = VK_NULL_HANDLE;
 
-  // stores the currently re-recording command buffer for any original command buffer ID (not bake
-  // ID). This allows a quick check to see if an original command should be recorded, and also to
+  // stores the currently re-recording command buffer for any base command buffer ID (not bake
+  // ID). This allows a quick check to see if a command should be recorded, and also to
   // fetch the command buffer to record into.
   std::map<ResourceId, VkCommandBuffer> m_RerecordCmds;
 
@@ -993,7 +993,6 @@ private:
 
   // There is only a state while currently partially replaying, it's
   // undefined/empty otherwise.
-  // All IDs are original IDs, not live.
   VulkanRenderState m_RenderState;
 
   bool InRerecordRange(ResourceId cmdid);

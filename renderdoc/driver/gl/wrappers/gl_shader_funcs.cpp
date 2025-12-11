@@ -762,8 +762,7 @@ bool WrappedOpenGL::Serialise_glCompileShader(SerialiserType &ser, GLuint shader
 
     GL.glCompileShader(shader.name);
 
-    m_Shaders[liveId].ProcessCompilation(*this, GetResourceManager()->GetOriginalID(liveId),
-                                         shader.name);
+    m_Shaders[liveId].ProcessCompilation(*this, liveId, shader.name);
 
     AddResourceInitChunk(shader);
   }
@@ -837,7 +836,7 @@ bool WrappedOpenGL::Serialise_glAttachShader(SerialiserType &ser, GLuint program
     GL.glAttachShader(program.name, shader.name);
 
     AddResourceInitChunk(program);
-    DerivedResource(program, GetResourceManager()->GetOriginalID(liveShadId));
+    DerivedResource(program, liveShadId);
   }
 
   return true;
@@ -2171,7 +2170,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
 
     GL.glCompileShaderIncludeARB(shader.name, count, path, NULL);
 
-    shadDetails.ProcessCompilation(*this, GetResourceManager()->GetOriginalID(liveId), shader.name);
+    shadDetails.ProcessCompilation(*this, liveId, shader.name);
 
     AddResourceInitChunk(shader);
   }
@@ -2329,9 +2328,9 @@ bool WrappedOpenGL::Serialise_glSpecializeShader(SerialiserType &ser, GLuint sha
 
     m_Shaders[liveId].spirv.Parse(m_Shaders[liveId].spirvWords);
 
-    m_Shaders[liveId].ProcessSPIRVCompilation(*this, GetResourceManager()->GetOriginalID(liveId),
-                                              shader.name, pEntryPoint, numSpecializationConstants,
-                                              pConstantIndex, pConstantValue);
+    m_Shaders[liveId].ProcessSPIRVCompilation(*this, liveId, shader.name, pEntryPoint,
+                                              numSpecializationConstants, pConstantIndex,
+                                              pConstantValue);
 
     AddResourceInitChunk(shader);
   }

@@ -720,22 +720,22 @@ bool WrappedOpenGL::Serialise_glTextureView(SerialiserType &ser, GLuint textureH
       EmulateLuminanceFormat(texture.name, target, intformat, dummy);
     }
 
-    ResourceId liveTexId = GetResourceManager()->GetResID(texture);
-    ResourceId liveOrigId = GetResourceManager()->GetResID(origtexture);
+    ResourceId viewId = GetResourceManager()->GetResID(texture);
+    ResourceId texId = GetResourceManager()->GetResID(origtexture);
 
-    m_Textures[liveTexId].curType = TextureTarget(target);
-    m_Textures[liveTexId].internalFormat = internalformat;
-    m_Textures[liveTexId].view = true;
-    m_Textures[liveTexId].width = RDCMAX(1, m_Textures[liveOrigId].width >> minlevel);
-    m_Textures[liveTexId].height = RDCMAX(1, m_Textures[liveOrigId].height >> minlevel);
-    m_Textures[liveTexId].depth = numlayers;
+    m_Textures[viewId].curType = TextureTarget(target);
+    m_Textures[viewId].internalFormat = internalformat;
+    m_Textures[viewId].view = true;
+    m_Textures[viewId].width = RDCMAX(1, m_Textures[texId].width >> minlevel);
+    m_Textures[viewId].height = RDCMAX(1, m_Textures[texId].height >> minlevel);
+    m_Textures[viewId].depth = numlayers;
     if(target == eGL_TEXTURE_3D)
-      m_Textures[liveTexId].depth = RDCMAX(1, m_Textures[liveOrigId].depth >> minlevel);
-    m_Textures[liveTexId].mipsValid = (1 << numlevels) - 1;
-    m_Textures[liveTexId].emulated = emulated;
+      m_Textures[viewId].depth = RDCMAX(1, m_Textures[texId].depth >> minlevel);
+    m_Textures[viewId].mipsValid = (1 << numlevels) - 1;
+    m_Textures[viewId].emulated = emulated;
 
     AddResourceInitChunk(texture);
-    DerivedResource(origtexture, GetResourceManager()->GetOriginalID(liveTexId));
+    DerivedResource(origtexture, viewId);
   }
 
   return true;
@@ -1030,7 +1030,7 @@ bool WrappedOpenGL::Serialise_glInvalidateTexImage(SerialiserType &ser, GLuint t
       ActionDescription action;
       action.flags |= ActionFlags::Clear;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+      action.copyDestination = liveId;
 
       AddAction(action);
 
@@ -1182,7 +1182,7 @@ bool WrappedOpenGL::Serialise_glInvalidateTexSubImage(SerialiserType &ser, GLuin
       ActionDescription action;
       action.flags |= ActionFlags::Clear;
 
-      action.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+      action.copyDestination = liveId;
 
       AddAction(action);
 
@@ -1278,8 +1278,8 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
       ActionDescription action;
       action.flags |= ActionFlags::Copy;
 
-      action.copySource = GetResourceManager()->GetOriginalID(srcid);
-      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copySource = srcid;
+      action.copyDestination = dstid;
 
       action.copyDestinationSubresource.mip = dstLevel;
       if(dstTarget != eGL_TEXTURE_3D)
@@ -6971,7 +6971,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(SerialiserType &ser, GLuin
                               (GLsizei)size);
 
     AddResourceInitChunk(texture);
-    DerivedResource(buffer, GetResourceManager()->GetOriginalID(liveId));
+    DerivedResource(buffer, liveId);
   }
 
   return true;
@@ -7147,7 +7147,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(SerialiserType &ser, GLuint tex
       GL.glTextureBuffer(texture.name, internalformat, buffer.name);
 
     AddResourceInitChunk(texture);
-    DerivedResource(buffer, GetResourceManager()->GetOriginalID(liveId));
+    DerivedResource(buffer, liveId);
   }
 
   return true;

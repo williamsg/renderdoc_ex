@@ -2111,7 +2111,7 @@ ShaderDirectAccess D3D12APIWrapper::FetchShaderDirectAccess(DescriptorType type,
       if(heapType == HeapDescriptorType::Sampler)
       {
         RDCASSERTEQUAL(CategoryForDescriptorType(type), DescriptorCategory::Sampler);
-        return ShaderDirectAccess(type, rm->GetOriginalID(heapId), byteOffset, byteSize);
+        return ShaderDirectAccess(type, heapId, byteOffset, byteSize);
       }
     }
     else
@@ -2120,7 +2120,7 @@ ShaderDirectAccess D3D12APIWrapper::FetchShaderDirectAccess(DescriptorType type,
       if(heapType == HeapDescriptorType::CBV_SRV_UAV)
       {
         RDCASSERTNOTEQUAL(CategoryForDescriptorType(type), DescriptorCategory::Sampler);
-        return ShaderDirectAccess(type, rm->GetOriginalID(heapId), byteOffset, byteSize);
+        return ShaderDirectAccess(type, heapId, byteOffset, byteSize);
       }
     }
   }

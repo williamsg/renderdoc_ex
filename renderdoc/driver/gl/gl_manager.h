@@ -332,7 +332,7 @@ private:
   bool Prepare_InitialState(GLResource res);
   uint64_t GetSize_InitialState(ResourceId resid, const GLInitialContents &initial);
 
-  void PrepareTextureInitialContents(ResourceId liveid, ResourceId origid, GLResource res);
+  void PrepareTextureInitialContents(ResourceId id, GLResource res);
 
   void Create_InitialState(ResourceId id, GLResource live, bool hasData);
   void Apply_InitialState(GLResource live, GLInitialContents &initial);

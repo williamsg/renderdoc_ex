@@ -1786,7 +1786,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
         ObjDisp(device)->DestroyDescriptorSetLayout(Unwrap(device), layout, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(SetLayout, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(SetLayout, live);
       }
       else
       {
@@ -1932,8 +1932,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
       RDCWARN(
           "Failed to allocate descriptor set %s from pool %s on replay. Assuming pool was "
           "reset and re-used mid-capture, so overflowing.",
-          ToStr(DescriptorSet).c_str(),
-          ToStr(GetResourceManager()->GetOriginalID(GetResID(AllocateInfo.descriptorPool))).c_str());
+          ToStr(DescriptorSet).c_str(), ToStr(GetResID(AllocateInfo.descriptorPool)).c_str());
 
       VulkanCreationInfo::DescSetPool &poolInfo =
           m_CreationInfo.m_DescSetPool[GetResID(AllocateInfo.descriptorPool)];

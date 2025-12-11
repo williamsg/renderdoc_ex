@@ -993,7 +993,7 @@ static void ProcessStaticDescriptorAccess(VulkanResourceManager *resourceMan,
     }
     else if(setLayout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_EMBEDDED_IMMUTABLE_SAMPLERS_BIT_EXT)
     {
-      access.descriptorStore = resourceMan->GetOriginalID(setLayout->resourceId);
+      access.descriptorStore = setLayout->resourceId;
       access.byteSize = 1;
       access.byteOffset = bind.fixedBindNumber;
     }
@@ -1183,8 +1183,7 @@ void VulkanCreationInfo::ShaderObject::Init(VulkanResourceManager *resourceMan,
   for(ResourceId setLayout : descSetLayouts)
     setLayoutInfos.push_back(&info.m_DescSetLayout[setLayout]);
 
-  ProcessStaticDescriptorAccess(resourceMan, shad.refl, resourceMan->GetOriginalID(id),
-                                staticDescriptorAccess, setLayoutInfos);
+  ProcessStaticDescriptorAccess(resourceMan, shad.refl, id, staticDescriptorAccess, setLayoutInfos);
 }
 
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
@@ -1925,8 +1924,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     setLayoutInfos.push_back(&info.m_DescSetLayout[setLayout]);
 
   for(const ShaderEntry &shad : shaders)
-    ProcessStaticDescriptorAccess(resourceMan, shad.refl, resourceMan->GetOriginalID(id),
-                                  staticDescriptorAccess, setLayoutInfos);
+    ProcessStaticDescriptorAccess(resourceMan, shad.refl, id, staticDescriptorAccess, setLayoutInfos);
 }
 
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
@@ -2061,8 +2059,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     setLayoutInfos.push_back(&info.m_DescSetLayout[setLayout]);
 
   for(const ShaderEntry &shad : shaders)
-    ProcessStaticDescriptorAccess(resourceMan, shad.refl, resourceMan->GetOriginalID(id),
-                                  staticDescriptorAccess, setLayoutInfos);
+    ProcessStaticDescriptorAccess(resourceMan, shad.refl, id, staticDescriptorAccess, setLayoutInfos);
 }
 
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
@@ -2885,7 +2882,7 @@ void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *res
     spv.MakeReflection(GraphicsAPI::Vulkan, ShaderStage(stageIndex), entryPoint, specInfo, *refl,
                        patchData);
 
-    refl->resourceId = resourceMan->GetOriginalID(id);
+    refl->resourceId = id;
   }
 }
 

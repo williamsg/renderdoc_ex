@@ -475,8 +475,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
     if(m_PrevQueueId != GetResID(pQueue))
     {
       RDCDEBUG("Previous queue execution was on queue %s, now executing %s, syncing GPU",
-               ToStr(GetResourceManager()->GetOriginalID(m_PrevQueueId)).c_str(),
-               ToStr(GetResourceManager()->GetOriginalID(GetResID(pQueue))).c_str());
+               ToStr(m_PrevQueueId).c_str(), ToStr(GetResID(pQueue)).c_str());
       if(m_PrevQueueId != ResourceId())
         m_pDevice->DeviceWaitForIdle();
 
@@ -492,7 +491,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
       for(uint32_t i = 0; i < NumCommandLists; i++)
       {
-        ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[i]));
+        ResourceId cmd = GetResID(ppCommandLists[i]);
 
         ID3D12CommandList *list = Unwrap(ppCommandLists[i]);
         real->ExecuteCommandLists(1, &list);
@@ -558,7 +557,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
                 continue;
               }
 
-              if(id < GetResourceManager()->GetOriginalID(blasCheck->GetResourceID()))
+              if(id < blasCheck->GetResourceID())
               {
                 RDCERR("%s[%u]: BLAS referenced by TLAS is newer than TLAS", ToStr(id).c_str(), desc);
                 continue;
@@ -607,7 +606,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
       for(uint32_t c = 0; c < NumCommandLists; c++)
       {
-        ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[c]));
+        ResourceId cmd = GetResID(ppCommandLists[c]);
 
         BakedCmdListInfo &cmdListInfo = m_Cmd.m_BakedCmdListInfo[cmd];
 
@@ -700,7 +699,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
       // advance m_CurEventID to match the events added when reading
       for(uint32_t c = 0; c < NumCommandLists; c++)
       {
-        ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[c]));
+        ResourceId cmd = GetResID(ppCommandLists[c]);
 
         m_Cmd.m_RootEventID += m_Cmd.m_BakedCmdListInfo[cmd].eventCount;
         m_Cmd.m_RootActionID += m_Cmd.m_BakedCmdListInfo[cmd].actionCount;
@@ -737,7 +736,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         for(uint32_t c = 0; c < NumCommandLists; c++)
         {
-          ResourceId cmdId = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[c]));
+          ResourceId cmdId = GetResID(ppCommandLists[c]);
 
           // account for the virtual label at the start of the events here
           // so it matches up to baseEvent

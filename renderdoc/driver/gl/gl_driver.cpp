@@ -1812,7 +1812,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
     ResourceId progsrcid = it->first;
     const ProgramData &progdata = it->second;
 
-    ResourceId origsrcid = GetResourceManager()->GetOriginalID(progsrcid);
+    ResourceId origsrcid = progsrcid;
 
     // only look at programs from the capture, no replay-time programs.
     if(origsrcid == progsrcid)
@@ -1834,8 +1834,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 
     for(size_t i = 0; i < NumShaderStages; i++)
     {
-      if(GetResourceManager()->HasReplacement(
-             GetResourceManager()->GetOriginalID(progdata.stageShaders[i])))
+      if(GetResourceManager()->HasReplacement(progdata.stageShaders[i]))
       {
         usesReplacedShader = true;
         break;
@@ -1852,13 +1851,13 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 
       ResourceId progdstid = GetResourceManager()->GetResID(ProgramRes(GetCtx(), progdst));
 
-      // attach shaders, going via the original ID to pick up replacements
+      // attach shaders, this will pick up replacements
       for(size_t i = 0; i < NumShaderStages; i++)
       {
         if(progdata.stageShaders[i] != ResourceId())
         {
-          ResourceId shaderorigid = GetResourceManager()->GetOriginalID(progdata.stageShaders[i]);
-          glAttachShader(progdst, GetResourceManager()->GetLiveResource(shaderorigid).name);
+          glAttachShader(progdst,
+                         GetResourceManager()->GetLiveResource(progdata.stageShaders[i]).name);
         }
       }
 
@@ -1946,7 +1945,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
     ResourceId pipesrcid = it->first;
     const PipelineData &pipedata = it->second;
 
-    ResourceId origsrcid = GetResourceManager()->GetOriginalID(pipesrcid);
+    ResourceId origsrcid = pipesrcid;
 
     // only look at programs from the capture, no replay-time programs.
     if(origsrcid == pipesrcid)
@@ -1963,8 +1962,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 
     for(size_t i = 0; i < NumShaderStages; i++)
     {
-      if(GetResourceManager()->HasReplacement(
-             GetResourceManager()->GetOriginalID(pipedata.stagePrograms[i])))
+      if(GetResourceManager()->HasReplacement(pipedata.stagePrograms[i]))
       {
         usesReplacedProgram = true;
         break;
@@ -1980,14 +1978,13 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 
       ResourceId pipedstid = GetResourceManager()->GetResID(ProgramPipeRes(GetCtx(), pipedst));
 
-      // attach programs, going via the original ID to pick up replacements
+      // attach programs, this will pick up replacements
       for(size_t i = 0; i < NumShaderStages; i++)
       {
         if(pipedata.stagePrograms[i] != ResourceId())
         {
-          ResourceId progorigid = GetResourceManager()->GetOriginalID(pipedata.stagePrograms[i]);
           glUseProgramStages(pipedst, ShaderBit(i),
-                             GetResourceManager()->GetLiveResource(progorigid).name);
+                             GetResourceManager()->GetLiveResource(pipedata.stagePrograms[i]).name);
         }
       }
 
@@ -2731,8 +2728,7 @@ bool WrappedOpenGL::Serialise_Present(SerialiserType &ser)
                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                      (GLint *)&col);
 
-    action.copyDestination = GetResourceManager()->GetOriginalID(
-        GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
+    action.copyDestination = GetResourceManager()->GetResID(TextureRes(GetCtx(), col));
 
     action.customName = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
                                           ToStr(action.copyDestination).c_str());
@@ -3352,7 +3348,7 @@ void WrappedOpenGL::AddResource(ResourceId id, ResourceType type, const char *de
 
 void WrappedOpenGL::DerivedResource(GLResource parent, ResourceId child)
 {
-  ResourceId parentId = GetResourceManager()->GetOriginalID(GetResourceManager()->GetResID(parent));
+  ResourceId parentId = GetResourceManager()->GetResID(parent);
 
   if(GetReplay()->GetResourceDesc(parentId).derivedResources.contains(child))
     return;
@@ -3377,7 +3373,7 @@ void WrappedOpenGL::AddResourceInitChunk(GLResource res)
   if(m_CurEventID == 0)
   {
     GLResourceManager *rm = GetResourceManager();
-    AddResourceCurChunk(rm->GetOriginalID(rm->GetResID(res)));
+    AddResourceCurChunk(rm->GetResID(res));
   }
 }
 
@@ -3618,8 +3614,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                          (GLint *)&col);
 
-        action.copyDestination = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
+        action.copyDestination = GetResourceManager()->GetResID(TextureRes(GetCtx(), col));
 
         AddAction(action);
       }
@@ -5723,11 +5718,9 @@ void WrappedOpenGL::AddAction(const ActionDescription &a)
           eGL_DRAW_FRAMEBUFFER, dbEnum, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
       if(type == eGL_TEXTURE)
-        action.outputs[att] = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetResID(TextureRes(GetCtx(), depth)));
+        action.outputs[att] = GetResourceManager()->GetResID(TextureRes(GetCtx(), depth));
       else
-        action.outputs[att] = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), depth)));
+        action.outputs[att] = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), depth));
       att++;
     }
 
@@ -5739,11 +5732,9 @@ void WrappedOpenGL::AddAction(const ActionDescription &a)
     GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
                                              eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
     if(type == eGL_TEXTURE)
-      action.depthOut = GetResourceManager()->GetOriginalID(
-          GetResourceManager()->GetResID(TextureRes(GetCtx(), depth)));
+      action.depthOut = GetResourceManager()->GetResID(TextureRes(GetCtx(), depth));
     else
-      action.depthOut = GetResourceManager()->GetOriginalID(
-          GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), depth)));
+      action.depthOut = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), depth));
   }
 
   // markers don't increment action ID

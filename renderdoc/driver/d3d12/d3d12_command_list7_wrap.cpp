@@ -45,7 +45,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Barrier(SerialiserType &ser, UI
       return false;
     }
 
-    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
     rdcarray<D3D12_BUFFER_BARRIER> filteredUnwrappedBuf;
     rdcarray<D3D12_TEXTURE_BARRIER> filteredUnwrappedTex;

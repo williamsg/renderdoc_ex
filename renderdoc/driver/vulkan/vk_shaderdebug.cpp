@@ -215,7 +215,7 @@ public:
         const VulkanCreationInfo::PipelineLayout &pipeLayoutInfo =
             m_Creation.GetPipelineLayoutInfo(srcData.pipeLayout);
 
-        ResourceId setOrig = m_pDriver->GetResourceManager()->GetOriginalID(sourceSet);
+        ResourceId setOrig = sourceSet;
 
         const BindingStorage &bindStorage =
             m_pDriver->GetCurrentDescSetBindingStorage(srcData.descSet);

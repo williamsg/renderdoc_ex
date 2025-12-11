@@ -1160,16 +1160,16 @@ void WrappedID3D11DeviceContext::AddAction(const ActionDescription &a)
   {
     action.outputs[i] = ResourceId();
     if(m_CurrentPipelineState->OM.RenderTargets[i])
-      action.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(
+      action.outputs[i] =
           ((WrappedID3D11RenderTargetView1 *)m_CurrentPipelineState->OM.RenderTargets[i])
-              ->GetResourceResID());
+              ->GetResourceResID();
   }
 
   {
     action.depthOut = ResourceId();
     if(m_CurrentPipelineState->OM.DepthView)
-      action.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
-          ((WrappedID3D11DepthStencilView *)m_CurrentPipelineState->OM.DepthView)->GetResourceResID());
+      action.depthOut =
+          ((WrappedID3D11DepthStencilView *)m_CurrentPipelineState->OM.DepthView)->GetResourceResID();
   }
 
   // markers don't increment action ID

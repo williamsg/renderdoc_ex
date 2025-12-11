@@ -233,7 +233,6 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
 
   if(IsReplayingAndReading())
   {
-    // use original ID because we don't create a live version of the swapchain
     SwapchainInfo &swapInfo = m_CreationInfo.m_SwapChain[Swapchain];
 
     ResourceId liveId = GetResourceManager()->WrapResource(
@@ -439,7 +438,6 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
 
   if(IsReplayingAndReading())
   {
-    // use original ID because we don't create a live version of the swapchain
     SwapchainInfo &swapinfo = m_CreationInfo.m_SwapChain[SwapChain];
 
     AddResource(SwapChain, ResourceType::SwapchainImage, "Swapchain");

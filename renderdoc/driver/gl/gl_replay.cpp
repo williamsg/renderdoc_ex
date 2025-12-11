@@ -439,7 +439,7 @@ void GLReplay::CacheTexture(ResourceId id)
   WrappedOpenGL::TextureData &res = m_pDriver->m_Textures[id];
   WrappedOpenGL &drv = *m_pDriver;
 
-  tex.resourceId = m_pDriver->GetResourceManager()->GetOriginalID(id);
+  tex.resourceId = id;
 
   if(res.resource.Namespace == eResUnknown || res.curType == eGL_NONE)
   {
@@ -700,7 +700,7 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
 
   WrappedOpenGL &drv = *m_pDriver;
 
-  ret.resourceId = m_pDriver->GetResourceManager()->GetOriginalID(id);
+  ret.resourceId = id;
 
   GLint prevBind = 0;
   if(res.curType != eGL_NONE)
@@ -854,11 +854,11 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
   GLuint vao = 0;
   drv.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&vao);
-  pipe.vertexInput.vertexArrayObject = rm->GetOriginalID(rm->GetResID(VertexArrayRes(ctx, vao)));
+  pipe.vertexInput.vertexArrayObject = rm->GetResID(VertexArrayRes(ctx, vao));
 
   GLuint ibuffer = 0;
   drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
-  pipe.vertexInput.indexBuffer = rm->GetOriginalID(rm->GetResID(BufferRes(ctx, ibuffer)));
+  pipe.vertexInput.indexBuffer = rm->GetResID(BufferRes(ctx, ibuffer));
 
   pipe.vertexInput.primitiveRestart = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart] ||
                                       rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex];
@@ -885,8 +885,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   {
     GLuint buffer = GetBoundVertexBuffer(i);
 
-    pipe.vertexInput.vertexBuffers[i].resourceId =
-        rm->GetOriginalID(rm->GetResID(BufferRes(ctx, buffer)));
+    pipe.vertexInput.vertexBuffers[i].resourceId = rm->GetResID(BufferRes(ctx, buffer));
 
     drv.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i,
                         (GLint *)&pipe.vertexInput.vertexBuffers[i].byteStride);
@@ -1088,7 +1087,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         ResourceId id = rm->GetResID(ProgramPipeRes(ctx, curPipe));
         const WrappedOpenGL::PipelineData &pipeDetails = m_pDriver->GetPipeline(id);
 
-        pipe.pipelineResourceId = rm->GetUnreplacedOriginalID(id);
+        pipe.pipelineResourceId = rm->GetUnreplacedID(id);
 
         for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
         {
@@ -1133,8 +1132,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     if(progForStage[i])
     {
       progForStage[i] = rm->GetCurrentResource(progIds[i]).name;
-      stages[i]->programResourceId = rm->GetUnreplacedOriginalID(progIds[i]);
-      stages[i]->shaderResourceId = rm->GetUnreplacedOriginalID(shadIds[i]);
+      stages[i]->programResourceId = rm->GetUnreplacedID(progIds[i]);
+      stages[i]->shaderResourceId = rm->GetUnreplacedID(shadIds[i]);
 
       const WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->GetShader(shadIds[i]);
 
@@ -1461,8 +1460,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     drv.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&feedback);
 
     if(feedback != 0)
-      pipe.transformFeedback.feedbackResourceId =
-          rm->GetOriginalID(rm->GetResID(FeedbackRes(ctx, feedback)));
+      pipe.transformFeedback.feedbackResourceId = rm->GetResID(FeedbackRes(ctx, feedback));
     else
       pipe.transformFeedback.feedbackResourceId = ResourceId();
 
@@ -1473,8 +1471,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     {
       GLuint buffer = 0;
       drv.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&buffer);
-      pipe.transformFeedback.bufferResourceId[i] =
-          rm->GetOriginalID(rm->GetResID(BufferRes(ctx, buffer)));
+      pipe.transformFeedback.bufferResourceId[i] = rm->GetResID(BufferRes(ctx, buffer));
       drv.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i,
                             (GLint64 *)&pipe.transformFeedback.byteOffset[i]);
       drv.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, i,
@@ -1677,15 +1674,14 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     if(type == eGL_RENDERBUFFER)
       rbStencil = true;
 
-    pipe.framebuffer.drawFBO.resourceId =
-        rm->GetOriginalID(rm->GetResID(FramebufferRes(ctx, curDrawFBO)));
+    pipe.framebuffer.drawFBO.resourceId = rm->GetResID(FramebufferRes(ctx, curDrawFBO));
     pipe.framebuffer.drawFBO.colorAttachments.resize(numCols);
     for(GLint i = 0; i < numCols; i++)
     {
       ResourceId id =
           rm->GetResID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i]));
 
-      pipe.framebuffer.drawFBO.colorAttachments[i].resource = rm->GetOriginalID(id);
+      pipe.framebuffer.drawFBO.colorAttachments[i].resource = id;
 
       if(id != ResourceId())
         pipe.framebuffer.drawFBO.colorAttachments[i].format = GetTexture(id).format;
@@ -1751,9 +1747,9 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
     ResourceId id =
         rm->GetResID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth));
-    pipe.framebuffer.drawFBO.depthAttachment.resource = rm->GetOriginalID(id);
-    pipe.framebuffer.drawFBO.stencilAttachment.resource = rm->GetOriginalID(
-        rm->GetResID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+    pipe.framebuffer.drawFBO.depthAttachment.resource = id;
+    pipe.framebuffer.drawFBO.stencilAttachment.resource =
+        rm->GetResID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil));
 
     if(pipe.framebuffer.drawFBO.depthAttachment.resource != ResourceId() && !rbDepth)
       GetFramebufferMipAndLayer(curDrawFBO, eGL_DEPTH_ATTACHMENT,
@@ -1857,13 +1853,12 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     if(type == eGL_RENDERBUFFER)
       rbStencil = true;
 
-    pipe.framebuffer.readFBO.resourceId =
-        rm->GetOriginalID(rm->GetResID(FramebufferRes(ctx, curReadFBO)));
+    pipe.framebuffer.readFBO.resourceId = rm->GetResID(FramebufferRes(ctx, curReadFBO));
     pipe.framebuffer.readFBO.colorAttachments.resize(numCols);
     for(GLint i = 0; i < numCols; i++)
     {
-      pipe.framebuffer.readFBO.colorAttachments[i].resource = rm->GetOriginalID(
-          rm->GetResID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
+      pipe.framebuffer.readFBO.colorAttachments[i].resource =
+          rm->GetResID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i]));
 
       if(pipe.framebuffer.readFBO.colorAttachments[i].resource != ResourceId() && !rbCol[i])
         GetFramebufferMipAndLayer(curReadFBO, GLenum(eGL_COLOR_ATTACHMENT0 + i),
@@ -1871,10 +1866,10 @@ void GLReplay::SavePipelineState(uint32_t eventId)
                                   &pipe.framebuffer.readFBO.colorAttachments[i].firstSlice);
     }
 
-    pipe.framebuffer.readFBO.depthAttachment.resource = rm->GetOriginalID(
-        rm->GetResID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
-    pipe.framebuffer.readFBO.stencilAttachment.resource = rm->GetOriginalID(
-        rm->GetResID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+    pipe.framebuffer.readFBO.depthAttachment.resource =
+        rm->GetResID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth));
+    pipe.framebuffer.readFBO.stencilAttachment.resource =
+        rm->GetResID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil));
 
     if(pipe.framebuffer.readFBO.depthAttachment.resource != ResourceId() && !rbDepth)
       GetFramebufferMipAndLayer(curReadFBO, eGL_DEPTH_ATTACHMENT,
@@ -2028,7 +2023,7 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         if(rs.UniformBinding[idx.idx].res.name != 0)
         {
           ResourceId id = rm->GetResID(rs.UniformBinding[idx.idx].res);
-          ret[dst].resource = rm->GetOriginalID(id);
+          ret[dst].resource = id;
           ret[dst].byteOffset = rs.UniformBinding[idx.idx].start;
           ret[dst].byteSize = rs.UniformBinding[idx.idx].size;
 
@@ -2042,7 +2037,7 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         if(rs.AtomicCounter[idx.idx].res.name != 0)
         {
           ResourceId id = rm->GetResID(rs.AtomicCounter[idx.idx].res);
-          ret[dst].resource = rm->GetOriginalID(id);
+          ret[dst].resource = id;
           ret[dst].byteOffset = rs.AtomicCounter[idx.idx].start;
           ret[dst].byteSize = rs.AtomicCounter[idx.idx].size;
 
@@ -2056,7 +2051,7 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         if(rs.ShaderStorage[idx.idx].res.name != 0)
         {
           ResourceId id = rm->GetResID(rs.ShaderStorage[idx.idx].res);
-          ret[dst].resource = rm->GetOriginalID(id);
+          ret[dst].resource = id;
           ret[dst].byteOffset = rs.ShaderStorage[idx.idx].start;
           ret[dst].byteSize = rs.ShaderStorage[idx.idx].size;
 
@@ -2070,7 +2065,7 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         if(rs.Images[idx.idx].res.name != 0)
         {
           ResourceId id = rm->GetResID(rs.Images[idx.idx].res);
-          ret[dst].resource = rm->GetOriginalID(id);
+          ret[dst].resource = id;
           ret[dst].firstMip = rs.Images[idx.idx].level & 0xff;
           ret[dst].numMips = 1;
           ret[dst].firstSlice = rs.Images[idx.idx].layer & 0xffff;
@@ -2215,7 +2210,7 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         }
 
         ResourceId id = rm->GetResID(TextureRes(ctx, tex));
-        ret[dst].resource = rm->GetOriginalID(id);
+        ret[dst].resource = id;
         ret[dst].firstMip = firstMip & 0xff;
         ret[dst].numMips = numMips & 0xff;
 
@@ -2255,7 +2250,7 @@ rdcarray<Descriptor> GLReplay::GetDescriptors(ResourceId descriptorStore,
         if(HasExt[ARB_sampler_objects])
           drv.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
 
-        ret[dst].secondary = rm->GetOriginalID(rm->GetResID(SamplerRes(ctx, samp)));
+        ret[dst].secondary = rm->GetResID(SamplerRes(ctx, samp));
       }
     }
   }
@@ -2384,7 +2379,7 @@ rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descripto
       if(samp == 0 && tex == 0)
         continue;
 
-      ret[dst].object = rm->GetOriginalID(rm->GetResID(SamplerRes(ctx, samp)));
+      ret[dst].object = rm->GetResID(SamplerRes(ctx, samp));
 
       // GL has separate sampler objects but they don't exist as separate sampler descriptors
       ret[dst].type = DescriptorType::ImageSampler;
