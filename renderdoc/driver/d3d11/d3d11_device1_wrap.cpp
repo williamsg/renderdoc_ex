@@ -112,7 +112,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(SerialiserType &ser,
       }
       else
       {
-        ret = new WrappedID3D11BlendState1(ret, this);
+        ret = new WrappedID3D11BlendState1(pState, ret, this);
 
         GetResourceManager()->AddLiveResource(pState, ret);
       }
@@ -154,7 +154,7 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
       return ret;
     }
 
-    ID3D11BlendState1 *wrapped = new WrappedID3D11BlendState1(real, this);
+    ID3D11BlendState1 *wrapped = new WrappedID3D11BlendState1(ResourceId(), real, this);
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -230,7 +230,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
       }
       else
       {
-        ret = new WrappedID3D11RasterizerState2(ret, this);
+        ret = new WrappedID3D11RasterizerState2(pState, ret, this);
 
         GetResourceManager()->AddLiveResource(pState, ret);
       }
@@ -272,7 +272,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState1(const D3D11_RASTERIZER_DESC1
       return ret;
     }
 
-    ID3D11RasterizerState1 *wrapped = new WrappedID3D11RasterizerState2(real, this);
+    ID3D11RasterizerState1 *wrapped = new WrappedID3D11RasterizerState2(ResourceId(), real, this);
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -326,7 +326,8 @@ HRESULT WrappedID3D11Device::CreateDeviceContextState(UINT Flags,
   {
     SCOPED_LOCK(m_D3DLock);
 
-    WrappedID3DDeviceContextState *wrapped = new WrappedID3DDeviceContextState(real, this);
+    WrappedID3DDeviceContextState *wrapped =
+        new WrappedID3DDeviceContextState(ResourceId(), real, this);
 
     wrapped->state->CopyState(*m_pImmediateContext->GetCurrentPipelineState());
 

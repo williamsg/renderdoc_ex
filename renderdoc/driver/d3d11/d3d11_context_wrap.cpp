@@ -5476,7 +5476,7 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
     cmdListSuccessful = false;
 
   WrappedID3D11CommandList *wrapped =
-      new WrappedID3D11CommandList(real, m_pDevice, this, cmdListSuccessful);
+      new WrappedID3D11CommandList(ResourceId(), real, m_pDevice, this, cmdListSuccessful);
 
   if(IsCaptureMode(m_State))
   {

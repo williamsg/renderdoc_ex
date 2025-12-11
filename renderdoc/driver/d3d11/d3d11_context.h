@@ -295,6 +295,8 @@ public:
   WrappedID3D11DeviceContext(WrappedID3D11Device *realDevice, ID3D11DeviceContext *context);
   virtual ~WrappedID3D11DeviceContext();
 
+  void SetReplayResourceID(ResourceId id) { m_ResourceID = id; }
+
   void VerifyState();
 
   ResourceId GetDescriptorsID()

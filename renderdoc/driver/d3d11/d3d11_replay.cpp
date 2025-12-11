@@ -102,7 +102,7 @@ IReplayDriver *D3D11Replay::MakeDummyDriver()
   return dummy;
 }
 
-void D3D11Replay::CreateResources(IDXGIFactory *factory)
+void D3D11Replay::InitReplayOnDevice(IDXGIFactory *factory)
 {
   bool wrapped =
       RefCountDXGIObject::HandleWrap("D3D11Replay", __uuidof(IDXGIFactory), (void **)&factory);
@@ -110,8 +110,6 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
   m_pFactory = factory;
 
   HRESULT hr = S_OK;
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
 
   IDXGIDevice *pDXGIDevice;
   hr = m_pDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
@@ -159,50 +157,6 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
       }
     }
   }
-
-  m_pDevice->GetShaderCache()->SetCaching(true);
-
-  InitStreamOut();
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.1f);
-
-  m_General.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
-
-  m_TexRender.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.3f);
-
-  m_Overlay.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
-
-  m_MeshRender.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.5f);
-
-  m_VertexPick.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
-
-  m_PixelPick.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.65f);
-
-  m_ShaderDebug.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.7f);
-
-  m_Histogram.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
-
-  m_PixelHistory.Init(m_pDevice);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
-
-  m_pDevice->GetShaderCache()->SetCaching(false);
 
   if(!m_Proxy && D3D11_HardwareCounters())
   {
@@ -273,6 +227,55 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
       m_pIntelCounters = NULL;
     }
   }
+}
+
+void D3D11Replay::CreateResources()
+{
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
+
+  m_pDevice->GetShaderCache()->SetCaching(true);
+
+  InitStreamOut();
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.1f);
+
+  m_General.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.2f);
+
+  m_TexRender.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.3f);
+
+  m_Overlay.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
+
+  m_MeshRender.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.5f);
+
+  m_VertexPick.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
+
+  m_PixelPick.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.65f);
+
+  m_ShaderDebug.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.7f);
+
+  m_Histogram.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
+
+  m_PixelHistory.Init(m_pDevice);
+
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
+
+  m_pDevice->GetShaderCache()->SetCaching(false);
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 }
@@ -684,7 +687,7 @@ rdcarray<BufferDescription> D3D11Replay::GetBuffers()
       it != WrappedID3D11Buffer::m_BufferList.end(); ++it)
   {
     // skip buffers that aren't from the log
-    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     ret.push_back(GetBuffer(it->first));
@@ -707,7 +710,7 @@ rdcarray<TextureDescription> D3D11Replay::GetTextures()
       it != WrappedID3D11Texture1D::m_TextureList.end(); ++it)
   {
     // skip textures that aren't from the log
-    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     ret.push_back(GetTexture(it->first));
@@ -717,7 +720,7 @@ rdcarray<TextureDescription> D3D11Replay::GetTextures()
       it != WrappedID3D11Texture2D1::m_TextureList.end(); ++it)
   {
     // skip textures that aren't from the log
-    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     ret.push_back(GetTexture(it->first));
@@ -727,7 +730,7 @@ rdcarray<TextureDescription> D3D11Replay::GetTextures()
       it != WrappedID3D11Texture3D1::m_TextureList.end(); ++it)
   {
     // skip textures that aren't from the log
-    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
       continue;
 
     ret.push_back(GetTexture(it->first));
@@ -4444,7 +4447,7 @@ RDResult D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
     D3D11Replay *replay = wrappedDev->GetReplay();
 
     replay->SetProxy(isProxy, warpFallback);
-    replay->CreateResources(factory);
+    replay->InitReplayOnDevice(factory);
     if(warpFallback)
     {
       wrappedDev->AddDebugMessage(

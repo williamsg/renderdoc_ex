@@ -714,9 +714,10 @@ void GetDXTextureProperties(void *dxObject, ResourceFormat &fmt, uint32_t &width
   RDCERR("Getting DX texture properties for unknown/unhandled objects %p", dxObject);
 }
 
-WrappedID3DDeviceContextState::WrappedID3DDeviceContextState(ID3DDeviceContextState *real,
+WrappedID3DDeviceContextState::WrappedID3DDeviceContextState(ResourceId id,
+                                                             ID3DDeviceContextState *real,
                                                              WrappedID3D11Device *device)
-    : WrappedDeviceChild11(real, device)
+    : WrappedDeviceChild11(id, real, device)
 {
   state = new D3D11RenderState(D3D11RenderState::Empty);
 

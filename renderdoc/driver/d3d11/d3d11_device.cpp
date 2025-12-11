@@ -1035,6 +1035,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       if(IsReplayingAndReading())
       {
         m_pImmediateContext->AddRef();
+        m_pImmediateContext->SetReplayResourceID(ImmediateContext);
         m_ResourceManager->AddLiveResource(ImmediateContext, m_pImmediateContext);
 
         ResourceId descId = m_pImmediateContext->GetDescriptorsID();
@@ -1463,6 +1464,8 @@ RDResult WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
 
       if(!IsStructuredExporting(m_State))
       {
+        GetReplay()->CreateResources();
+
         rdcarray<DebugMessage> savedDebugMessages;
 
         // save any debug messages we built up
@@ -1725,7 +1728,7 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
     else
     {
       WrappedID3D11Texture2D1 *wrapped =
-          new WrappedID3D11Texture2D1(fakeBB, this, TEXDISPLAY_INDIRECT_VIEW);
+          new WrappedID3D11Texture2D1(SwapbufferID, fakeBB, this, TEXDISPLAY_INDIRECT_VIEW);
       fakeBB = wrapped;
 
       wrapped->m_RealDescriptor = new D3D11_TEXTURE2D_DESC(realDescriptor);
@@ -1758,7 +1761,8 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   }
   else
   {
-    pTex = new WrappedID3D11Texture2D1((ID3D11Texture2D *)realSurface, this, TEXDISPLAY_UNKNOWN);
+    pTex = new WrappedID3D11Texture2D1(ResourceId(), (ID3D11Texture2D *)realSurface, this,
+                                       TEXDISPLAY_UNKNOWN);
 
     // this is only used to indicate that this texture is a backbuffer
     pTex->m_RealDescriptor = new D3D11_TEXTURE2D_DESC();

@@ -2216,7 +2216,7 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
     }
     else if(prev)
     {
-      wrapped = new WrappedID3DDeviceContextState(prev, m_pDevice);
+      wrapped = new WrappedID3DDeviceContextState(ResourceId(), prev, m_pDevice);
     }
 
     if(wrapped)

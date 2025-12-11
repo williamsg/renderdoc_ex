@@ -147,7 +147,10 @@ public:
   RDResult FatalErrorCheck();
   IReplayDriver *MakeDummyDriver();
 
-  void CreateResources(IDXGIFactory *factory);
+  void InitReplayOnDevice(IDXGIFactory *factory);
+
+  void CreateResources();
+
   void DestroyResources();
 
   DriverInformation GetDriverInfo() { return m_DriverInfo; }

@@ -125,7 +125,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
     }
     else
     {
-      ret = new WrappedID3D11Buffer(ret, Descriptor.ByteWidth, this);
+      ret = new WrappedID3D11Buffer(pBuffer, ret, Descriptor.ByteWidth, this);
 
       GetResourceManager()->AddLiveResource(pBuffer, ret);
     }
@@ -224,7 +224,7 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11Buffer(real, pDesc->ByteWidth, this);
+    wrapped = new WrappedID3D11Buffer(ResourceId(), real, pDesc->ByteWidth, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -439,7 +439,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Texture1D(ret, this, dispType);
+      ret = new WrappedID3D11Texture1D(pTexture, ret, this, dispType);
 
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
@@ -479,7 +479,7 @@ HRESULT WrappedID3D11Device::CreateTexture1D(const D3D11_TEXTURE1D_DESC *pDesc,
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11Texture1D(real, this);
+    wrapped = new WrappedID3D11Texture1D(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -578,7 +578,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Texture2D1(ret, this, dispType);
+      ret = new WrappedID3D11Texture2D1(pTexture, ret, this, dispType);
 
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
@@ -622,7 +622,7 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11Texture2D1(real, this);
+    wrapped = new WrappedID3D11Texture2D1(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -720,7 +720,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Texture3D1(ret, this, dispType);
+      ret = new WrappedID3D11Texture3D1(pTexture, ret, this, dispType);
 
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
@@ -760,7 +760,7 @@ HRESULT WrappedID3D11Device::CreateTexture3D(const D3D11_TEXTURE3D_DESC *pDesc,
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11Texture3D1(real, this);
+    wrapped = new WrappedID3D11Texture3D1(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -861,7 +861,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
     }
     else
     {
-      ret = new WrappedID3D11ShaderResourceView1(ret, pResource, this);
+      ret = new WrappedID3D11ShaderResourceView1(pView, ret, pResource, this);
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
@@ -892,7 +892,7 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(ID3D11Resource *pResource,
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11ShaderResourceView1(real, pResource, this);
+    wrapped = new WrappedID3D11ShaderResourceView1(ResourceId(), real, pResource, this);
 
     Chunk *chunk = NULL;
 
@@ -989,7 +989,7 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
     }
     else
     {
-      ret = new WrappedID3D11UnorderedAccessView1(ret, pResource, this);
+      ret = new WrappedID3D11UnorderedAccessView1(pView, ret, pResource, this);
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
@@ -1033,7 +1033,7 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11UnorderedAccessView1(real, pResource, this);
+    wrapped = new WrappedID3D11UnorderedAccessView1(ResourceId(), real, pResource, this);
 
     Chunk *chunk = NULL;
 
@@ -1141,7 +1141,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11RenderTargetView1(ret, pResource, this);
+      ret = new WrappedID3D11RenderTargetView1(pView, ret, pResource, this);
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
@@ -1172,7 +1172,7 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(ID3D11Resource *pResource,
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11RenderTargetView1(real, pResource, this);
+    wrapped = new WrappedID3D11RenderTargetView1(ResourceId(), real, pResource, this);
 
     Chunk *chunk = NULL;
 
@@ -1241,7 +1241,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
     }
     else
     {
-      ret = new WrappedID3D11DepthStencilView(ret, pResource, this);
+      ret = new WrappedID3D11DepthStencilView(pView, ret, pResource, this);
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
@@ -1272,7 +1272,7 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(ID3D11Resource *pResource,
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11DepthStencilView(real, pResource, this);
+    wrapped = new WrappedID3D11DepthStencilView(ResourceId(), real, pResource, this);
 
     Chunk *chunk = NULL;
 
@@ -1349,7 +1349,7 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
     }
     else
     {
-      ret = new WrappedID3D11InputLayout(ret, this);
+      ret = new WrappedID3D11InputLayout(pInputLayout, ret, this);
 
       GetResourceManager()->AddLiveResource(pInputLayout, ret);
     }
@@ -1360,9 +1360,9 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
       m_LayoutDescs[ret] = rdcarray<D3D11_INPUT_ELEMENT_DESC>(pInputElementDescs, NumElements);
 
     if(BytecodeLength > 0 && pShaderBytecodeWithInputSignature)
-      m_LayoutShaders[ret] = new WrappedShader(this, pInputLayout, GetIDForDeviceChild(ret),
-                                               (const byte *)pShaderBytecodeWithInputSignature,
-                                               (size_t)BytecodeLength);
+      m_LayoutShaders[ret] =
+          new WrappedShader(this, pInputLayout, (const byte *)pShaderBytecodeWithInputSignature,
+                            (size_t)BytecodeLength);
   }
 
   return true;
@@ -1391,7 +1391,7 @@ HRESULT WrappedID3D11Device::CreateInputLayout(const D3D11_INPUT_ELEMENT_DESC *p
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11InputLayout(real, this);
+    wrapped = new WrappedID3D11InputLayout(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -1448,7 +1448,7 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Shader<ID3D11VertexShader>(ret, pShader, (const byte *)pShaderBytecode,
+      ret = new WrappedID3D11Shader<ID3D11VertexShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                         (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
@@ -1492,7 +1492,7 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
 
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11VertexShader>(
-        real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+        ResourceId(), real, (const byte *)pShaderBytecode, BytecodeLength, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -1584,7 +1584,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Shader<ID3D11GeometryShader>(
-          ret, pShader, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
+          pShader, ret, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1627,7 +1627,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
 
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(
-        real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+        ResourceId(), real, (const byte *)pShaderBytecode, BytecodeLength, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -1728,7 +1728,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
     else
     {
       ret = new WrappedID3D11Shader<ID3D11GeometryShader>(
-          ret, pShader, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
+          pShader, ret, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -1811,7 +1811,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(
-        real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+        ResourceId(), real, (const byte *)pShaderBytecode, BytecodeLength, this);
 
     D3D_PRIMITIVE_TOPOLOGY topo =
         DXBC::DXBCContainer::GetOutputTopology(pShaderBytecode, BytecodeLength);
@@ -1941,7 +1941,7 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Shader<ID3D11PixelShader>(ret, pShader, (const byte *)pShaderBytecode,
+      ret = new WrappedID3D11Shader<ID3D11PixelShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                        (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
@@ -1985,7 +1985,7 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
 
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11PixelShader>(
-        real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+        ResourceId(), real, (const byte *)pShaderBytecode, BytecodeLength, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -2075,7 +2075,7 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
     }
     else
     {
-      ret = new WrappedID3D11Shader<ID3D11HullShader>(ret, pShader, (const byte *)pShaderBytecode,
+      ret = new WrappedID3D11Shader<ID3D11HullShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                       (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
@@ -2119,7 +2119,7 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
 
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11HullShader>(
-        real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+        ResourceId(), real, (const byte *)pShaderBytecode, BytecodeLength, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -2211,7 +2211,7 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Shader<ID3D11DomainShader>(ret, pShader, (const byte *)pShaderBytecode,
+      ret = new WrappedID3D11Shader<ID3D11DomainShader>(pShader, ret, (const byte *)pShaderBytecode,
                                                         (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
@@ -2255,7 +2255,7 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
 
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11DomainShader>(
-        real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+        ResourceId(), real, (const byte *)pShaderBytecode, BytecodeLength, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -2349,7 +2349,7 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Shader<ID3D11ComputeShader>(
-          ret, pShader, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
+          pShader, ret, (const byte *)pShaderBytecode, (size_t)BytecodeLength, this);
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
@@ -2392,7 +2392,7 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
 
     FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11ComputeShader>(
-        real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
+        ResourceId(), real, (const byte *)pShaderBytecode, BytecodeLength, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -2495,7 +2495,7 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
     else
     {
       FlushPendingDead();
-      wrapped = new WrappedID3D11ClassInstance(real, pClassLinkage, this);
+      wrapped = new WrappedID3D11ClassInstance(pInstance, real, pClassLinkage, this);
 
       GetResourceManager()->AddLiveResource(pInstance, wrapped);
     }
@@ -2518,7 +2518,7 @@ ID3D11ClassInstance *WrappedID3D11Device::CreateClassInstance(
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11ClassInstance(*ppInstance, pClassLinkage, this);
+    wrapped = new WrappedID3D11ClassInstance(ResourceId(), *ppInstance, pClassLinkage, this);
 
     {
       USE_SCRATCH_SERIALISER();
@@ -2569,7 +2569,7 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
     else
     {
       FlushPendingDead();
-      wrapped = new WrappedID3D11ClassInstance(real, pClassLinkage, this);
+      wrapped = new WrappedID3D11ClassInstance(pInstance, real, pClassLinkage, this);
 
       GetResourceManager()->AddLiveResource(pInstance, wrapped);
     }
@@ -2593,7 +2593,7 @@ ID3D11ClassInstance *WrappedID3D11Device::GetClassInstance(LPCSTR pClassInstance
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11ClassInstance(*ppInstance, pClassLinkage, this);
+    wrapped = new WrappedID3D11ClassInstance(ResourceId(), *ppInstance, pClassLinkage, this);
 
     {
       USE_SCRATCH_SERIALISER();
@@ -2634,7 +2634,7 @@ bool WrappedID3D11Device::Serialise_CreateClassLinkage(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11ClassLinkage(ret, this);
+      ret = new WrappedID3D11ClassLinkage(pLinkage, ret, this);
 
       GetResourceManager()->AddLiveResource(pLinkage, ret);
     }
@@ -2660,7 +2660,7 @@ HRESULT WrappedID3D11Device::CreateClassLinkage(ID3D11ClassLinkage **ppLinkage)
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11ClassLinkage(real, this);
+    wrapped = new WrappedID3D11ClassLinkage(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -2715,7 +2715,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(SerialiserType &ser,
       }
       else
       {
-        ret = new WrappedID3D11BlendState1(ret, this);
+        ret = new WrappedID3D11BlendState1(pState, ret, this);
 
         GetResourceManager()->AddLiveResource(pState, ret);
       }
@@ -2758,7 +2758,7 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
     }
 
     FlushPendingDead();
-    ID3D11BlendState *wrapped = new WrappedID3D11BlendState1(real, this);
+    ID3D11BlendState *wrapped = new WrappedID3D11BlendState1(ResourceId(), real, this);
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -2830,7 +2830,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
       }
       else
       {
-        ret = new WrappedID3D11DepthStencilState(ret, this);
+        ret = new WrappedID3D11DepthStencilState(pState, ret, this);
 
         GetResourceManager()->AddLiveResource(pState, ret);
       }
@@ -2873,7 +2873,7 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
     }
 
     FlushPendingDead();
-    ID3D11DepthStencilState *wrapped = new WrappedID3D11DepthStencilState(real, this);
+    ID3D11DepthStencilState *wrapped = new WrappedID3D11DepthStencilState(ResourceId(), real, this);
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -2943,7 +2943,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(SerialiserType &ser,
       }
       else
       {
-        ret = new WrappedID3D11RasterizerState2(ret, this);
+        ret = new WrappedID3D11RasterizerState2(pState, ret, this);
 
         GetResourceManager()->AddLiveResource(pState, ret);
       }
@@ -2986,7 +2986,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
     }
 
     FlushPendingDead();
-    ID3D11RasterizerState *wrapped = new WrappedID3D11RasterizerState2(real, this);
+    ID3D11RasterizerState *wrapped = new WrappedID3D11RasterizerState2(ResourceId(), real, this);
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -3056,7 +3056,7 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(SerialiserType &ser,
       }
       else
       {
-        ret = new WrappedID3D11SamplerState(ret, this);
+        ret = new WrappedID3D11SamplerState(pState, ret, this);
 
         GetResourceManager()->AddLiveResource(pState, ret);
       }
@@ -3099,7 +3099,7 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
     }
 
     FlushPendingDead();
-    ID3D11SamplerState *wrapped = new WrappedID3D11SamplerState(real, this);
+    ID3D11SamplerState *wrapped = new WrappedID3D11SamplerState(ResourceId(), real, this);
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -3158,7 +3158,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Query1(ret, this);
+      ret = new WrappedID3D11Query1(pQuery, ret, this);
 
       GetResourceManager()->AddLiveResource(pQuery, ret);
     }
@@ -3185,7 +3185,7 @@ HRESULT WrappedID3D11Device::CreateQuery(const D3D11_QUERY_DESC *pQueryDesc, ID3
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11Query1(real, this);
+    wrapped = new WrappedID3D11Query1(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -3243,7 +3243,7 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Predicate(ret, this);
+      ret = new WrappedID3D11Predicate(pPredicate, ret, this);
 
       GetResourceManager()->AddLiveResource(pPredicate, ret);
     }
@@ -3277,7 +3277,7 @@ HRESULT WrappedID3D11Device::CreatePredicate(const D3D11_QUERY_DESC *pPredicateD
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11Predicate(real, this);
+    wrapped = new WrappedID3D11Predicate(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -3336,7 +3336,7 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Query1(ret, this);
+      ret = new WrappedID3D11Query1(pCounter, ret, this);
 
       GetResourceManager()->AddLiveResource(pCounter, ret);
     }
@@ -3364,7 +3364,7 @@ HRESULT WrappedID3D11Device::CreateCounter(const D3D11_COUNTER_DESC *pCounterDes
     SCOPED_LOCK(m_D3DLock);
 
     FlushPendingDead();
-    wrapped = new WrappedID3D11Counter(real, this);
+    wrapped = new WrappedID3D11Counter(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -3420,7 +3420,10 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11DeviceContext(this, ret);
+      WrappedID3D11DeviceContext *ctx = new WrappedID3D11DeviceContext(this, ret);
+      ctx->SetReplayResourceID(pDeferredContext);
+
+      ret = ctx;
 
       AddDeferredContext((WrappedID3D11DeviceContext *)ret);
 
@@ -3549,7 +3552,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       }
       else
       {
-        ret = new WrappedID3D11Buffer(ret, Descriptor.ByteWidth, this);
+        ret = new WrappedID3D11Buffer(pResource, ret, Descriptor.ByteWidth, this);
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
@@ -3624,7 +3627,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       }
       else
       {
-        ret = new WrappedID3D11Texture1D(ret, this, dispType);
+        ret = new WrappedID3D11Texture1D(pResource, ret, this, dispType);
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
@@ -3669,7 +3672,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       }
       else
       {
-        ret = new WrappedID3D11Texture2D1(ret, this, dispType);
+        ret = new WrappedID3D11Texture2D1(pResource, ret, this, dispType);
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
@@ -3714,7 +3717,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       }
       else
       {
-        ret = new WrappedID3D11Texture3D1(ret, this, dispType);
+        ret = new WrappedID3D11Texture3D1(pResource, ret, this, dispType);
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
@@ -3762,7 +3765,7 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
   // fences aren't serialised
   if(ReturnedInterface == __uuidof(ID3D11Fence))
   {
-    WrappedID3D11Fence *w = new WrappedID3D11Fence((ID3D11Fence *)*ppResource, this);
+    WrappedID3D11Fence *w = new WrappedID3D11Fence(ResourceId(), (ID3D11Fence *)*ppResource, this);
 
     *ppResource = (ID3D11Fence *)w;
 
@@ -3850,7 +3853,7 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
 
     if(isBuf)
     {
-      WrappedID3D11Buffer *w = new WrappedID3D11Buffer((ID3D11Buffer *)res, 0, this);
+      WrappedID3D11Buffer *w = new WrappedID3D11Buffer(ResourceId(), (ID3D11Buffer *)res, 0, this);
       wrappedID = w->GetResourceID();
 
       ppvWrapped = (ID3D11Buffer *)w;
@@ -3871,7 +3874,8 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
     }
     else if(isTex1D)
     {
-      WrappedID3D11Texture1D *w = new WrappedID3D11Texture1D((ID3D11Texture1D *)res, this);
+      WrappedID3D11Texture1D *w =
+          new WrappedID3D11Texture1D(ResourceId(), (ID3D11Texture1D *)res, this);
       wrappedID = w->GetResourceID();
 
       ppvWrapped = (ID3D11Texture1D *)w;
@@ -3896,7 +3900,7 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
       if(ReturnedInterface == __uuidof(ID3D11Texture2D1))
         tex2d = (ID3D11Texture2D1 *)res;
 
-      WrappedID3D11Texture2D1 *w = new WrappedID3D11Texture2D1(tex2d, this);
+      WrappedID3D11Texture2D1 *w = new WrappedID3D11Texture2D1(ResourceId(), tex2d, this);
       wrappedID = w->GetResourceID();
 
       ppvWrapped = (ID3D11Texture2D *)w;
@@ -3923,7 +3927,7 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
       if(ReturnedInterface == __uuidof(ID3D11Texture3D1))
         tex3d = (ID3D11Texture3D1 *)res;
 
-      WrappedID3D11Texture3D1 *w = new WrappedID3D11Texture3D1(tex3d, this);
+      WrappedID3D11Texture3D1 *w = new WrappedID3D11Texture3D1(ResourceId(), tex3d, this);
       wrappedID = w->GetResourceID();
 
       ppvWrapped = (ID3D11Texture3D *)w;
