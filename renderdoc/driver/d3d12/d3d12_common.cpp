@@ -545,6 +545,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x14)
     return true;
 
+  // 0x15 -> 0x16 - added IDs generated at capture time for shaders in pipelines
+  if(ver == 0x15)
+    return true;
+
   return false;
 }
 
