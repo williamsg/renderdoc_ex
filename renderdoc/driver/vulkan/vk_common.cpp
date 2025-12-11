@@ -433,6 +433,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0x17 -> 0x18 - added IDs generated at capture time for inline shaders
+  if(ver == 0x17)
+    return true;
+
   // 0x16 -> 0x17 - added indication of reserved descriptors and descriptor buffer support for swapchains
   if(ver == 0x16)
     return true;

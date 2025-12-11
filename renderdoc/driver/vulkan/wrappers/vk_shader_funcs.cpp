@@ -708,6 +708,29 @@ VkResult WrappedVulkan::vkCreatePipelineCache(VkDevice device,
   return ret;
 }
 
+VkShaderModule WrappedVulkan::CreateFakeInlineShaderModule(ResourceId id, VkDevice device,
+                                                           const VkShaderModuleCreateInfo *pCreateInfo)
+{
+  RDCASSERT(IsLoading(m_State));
+
+  VkShaderModule module = VK_NULL_HANDLE;
+  VkResult ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), pCreateInfo, NULL, &module);
+
+  if(ret != VK_SUCCESS)
+  {
+    SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                     "Failed creating inline shader module, VkResult: %s", ToStr(ret).c_str());
+    return VK_NULL_HANDLE;
+  }
+
+  GetResourceManager()->WrapResource(id, Unwrap(device), module);
+  GetResourceManager()->AddLiveResource(id, module);
+
+  m_CreationInfo.m_ShaderModule[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
+
+  return module;
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     SerialiserType &ser, VkDevice device, VkPipelineCache pipelineCache, uint32_t count,
@@ -720,6 +743,34 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Pipeline, GetResID(*pPipelines)).TypedAs("VkPipeline"_lit);
+
+  rdcarray<ResourceId> InlineShaderIDs;
+
+  if(IsCaptureMode(m_State))
+  {
+    InlineShaderIDs.resize(CreateInfo.stageCount);
+    for(uint32_t s = 0; s < CreateInfo.stageCount; s++)
+    {
+      if(CreateInfo.pStages[s].module == VK_NULL_HANDLE)
+      {
+        const VkShaderModuleCreateInfo *inlineShad = (const VkShaderModuleCreateInfo *)FindNextStruct(
+            &CreateInfo.pStages[s], VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
+        if(inlineShad)
+        {
+          InlineShaderIDs[s] = ResourceIDGen::GetNewUniqueID();
+        }
+      }
+    }
+  }
+
+  if(ser.VersionAtLeast(0x18))
+  {
+    SERIALISE_ELEMENT(InlineShaderIDs).Hidden();
+  }
+  else
+  {
+    InlineShaderIDs.resize(CreateInfo.stageCount);
+  }
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -784,7 +835,13 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
                 &shadInstantiations[s], VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
         if(inlineShad)
         {
-          vkCreateShaderModule(device, inlineShad, NULL, &shadInstantiations[s].module);
+          // should always be resized, even if it's empty from not having the data
+          RDCASSERT(s < InlineShaderIDs.size(), s, InlineShaderIDs.size());
+          ResourceId id = InlineShaderIDs[s];
+          shadInstantiations[s].module = CreateFakeInlineShaderModule(id, device, inlineShad);
+
+          if(shadInstantiations[s].module == VK_NULL_HANDLE)
+            return false;
 
           // this will be a replay ID, there is no equivalent original ID
           ResourceId shadId = GetResID(shadInstantiations[s].module);
@@ -1069,6 +1126,26 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Pipeline, GetResID(*pPipelines)).TypedAs("VkPipeline"_lit);
 
+  ResourceId InlineShaderID;
+
+  if(IsCaptureMode(m_State))
+  {
+    if(CreateInfo.stage.module == VK_NULL_HANDLE)
+    {
+      const VkShaderModuleCreateInfo *inlineShad = (const VkShaderModuleCreateInfo *)FindNextStruct(
+          &CreateInfo.stage, VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
+      if(inlineShad)
+      {
+        InlineShaderID = ResourceIDGen::GetNewUniqueID();
+      }
+    }
+  }
+
+  if(ser.VersionAtLeast(0x18))
+  {
+    SERIALISE_ELEMENT(InlineShaderID).Hidden();
+  }
+
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
@@ -1121,7 +1198,10 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
               &shadInstantiated, VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
       if(inlineShad)
       {
-        vkCreateShaderModule(device, inlineShad, NULL, &shadInstantiated.module);
+        shadInstantiated.module = CreateFakeInlineShaderModule(InlineShaderID, device, inlineShad);
+
+        if(shadInstantiated.module == VK_NULL_HANDLE)
+          return false;
 
         // this will be a replay ID, there is no equivalent original ID
         ResourceId shadId = GetResID(shadInstantiated.module);
