@@ -3935,7 +3935,7 @@ void D3D12ResourceManager::SerialiseResourceStates(
     for(auto it = initialStates.begin(); it != initialStates.end(); ++it)
     {
       // ignore internal resources, we only care about restoring states for captured resources
-      if(GetOriginalID(it->first) == it->first)
+      if(ResourceIDGen::IsReplayOnlyID(it->first))
         continue;
 
       if(processed.find(it->first) == processed.end())

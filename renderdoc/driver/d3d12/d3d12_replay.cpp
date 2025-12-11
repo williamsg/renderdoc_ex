@@ -407,7 +407,7 @@ rdcarray<TextureDescription> D3D12Replay::GetTextures()
   for(auto it = m_pDevice->GetResourceList().begin(); it != m_pDevice->GetResourceList().end(); it++)
   {
     if(it->second->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER &&
-       m_pDevice->GetResourceManager()->GetOriginalID(it->first) != it->first)
+       !ResourceIDGen::IsReplayOnlyID(it->first))
       ret.push_back(GetTexture(it->first));
   }
 
@@ -3578,7 +3578,7 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
   byteCode.BytecodeLength = dxbcLength;
   byteCode.pShaderBytecode = dxbcBytes;
 
-  WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_pDevice);
+  WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(ResourceId(), byteCode, m_pDevice);
 
   sh->AddRef();
 

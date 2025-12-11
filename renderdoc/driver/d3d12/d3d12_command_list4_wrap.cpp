@@ -745,7 +745,7 @@ bool WrappedID3D12GraphicsCommandList::ProcessASBuildAfterSubmission(
   //
   // CreateAccStruct deletes any previous overlapping ASs on the ASB
   D3D12AccelerationStructure *accStructAtDestOffset = NULL;
-  if(dstASB->CreateAccStruct(destASBOffset, type, byteSize, dstASId, &accStructAtDestOffset))
+  if(dstASB->CreateAccStruct(dstASId, destASBOffset, type, byteSize, &accStructAtDestOffset))
   {
     D3D12ResourceRecord *record = rm->AddResourceRecord(accStructAtDestOffset->GetResourceID());
     record->type = Resource_AccelerationStructure;

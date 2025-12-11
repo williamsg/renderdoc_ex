@@ -40,7 +40,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -112,7 +112,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {

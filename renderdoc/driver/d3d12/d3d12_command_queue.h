@@ -215,7 +215,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue1,
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue);
 
-  WrappedID3D12CommandQueue(ID3D12CommandQueue *real, WrappedID3D12Device *device,
+  WrappedID3D12CommandQueue(ResourceId id, ID3D12CommandQueue *real, WrappedID3D12Device *device,
                             CaptureState &state);
   virtual ~WrappedID3D12CommandQueue();
 

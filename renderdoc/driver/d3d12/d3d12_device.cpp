@@ -809,7 +809,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_ResourceManager = new D3D12ResourceManager(m_State, this);
 
-  // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
   m_DeviceRecord = NULL;
@@ -1894,7 +1893,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
     }
     else
     {
-      WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, NULL, 0, this);
+      WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(SwapbufferID, fakeBB, NULL, 0, this);
       fakeBB = wrapped;
 
       fakeBB->SetName(L"Swap Chain Buffer");
@@ -1936,7 +1935,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   }
   else
   {
-    pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, NULL, 0, this);
+    pRes = new WrappedID3D12Resource(ResourceId(), (ID3D12Resource *)realSurface, NULL, 0, this);
 
     ResourceId id = GetResID(pRes);
 
@@ -4097,8 +4096,7 @@ bool WrappedID3D12Device::Serialise_CreateAS(SerialiserType &ser, ID3D12Resource
   {
     WrappedID3D12Resource *asbWrappedResource = (WrappedID3D12Resource *)pResource;
     D3D12AccelerationStructure *accStructAtOffset = NULL;
-    if(asbWrappedResource->CreateAccStruct(resourceOffset, type, byteSize, ResourceId(),
-                                           &accStructAtOffset))
+    if(asbWrappedResource->CreateAccStruct(asId, resourceOffset, type, byteSize, &accStructAtOffset))
     {
       GetResourceManager()->AddLiveResource(asId, accStructAtOffset);
 
@@ -5363,7 +5361,7 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
 
       if(IsStructuredExporting(m_State))
       {
-        m_Queue = new WrappedID3D12CommandQueue(NULL, this, m_State);
+        m_Queue = new WrappedID3D12CommandQueue(ResourceId(), NULL, this, m_State);
         m_Queues.push_back(m_Queue);
       }
 

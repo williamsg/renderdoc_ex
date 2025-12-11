@@ -43,7 +43,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress1(const void *pAddress, 
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {

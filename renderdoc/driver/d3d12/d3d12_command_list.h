@@ -207,8 +207,8 @@ private:
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList);
 
-  WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
-                                   CaptureState &state);
+  WrappedID3D12GraphicsCommandList(ResourceId id, ID3D12GraphicsCommandList *real,
+                                   WrappedID3D12Device *device, CaptureState &state);
   virtual ~WrappedID3D12GraphicsCommandList();
 
   ResourceId GetResourceID() { return m_ResourceID; }

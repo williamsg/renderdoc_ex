@@ -1459,6 +1459,11 @@ public:
                                        ID3D12PipelineState *pInitialState, REFIID riid,
                                        void **ppCommandList);
 
+  ResourceId m_NextListID;
+  HRESULT CreateCommandList(ResourceId id, UINT nodeMask, D3D12_COMMAND_LIST_TYPE type,
+                            ID3D12CommandAllocator *pCommandAllocator,
+                            ID3D12PipelineState *pInitialState, REFIID riid, void **ppCommandList);
+
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CheckFeatureSupport,
                                        D3D12_FEATURE Feature, void *pFeatureSupportData,
                                        UINT FeatureSupportDataSize);

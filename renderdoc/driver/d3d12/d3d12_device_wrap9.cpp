@@ -43,7 +43,8 @@ HRESULT WrappedID3D12Device::CreateShaderCacheSession(_In_ const D3D12_SHADER_CA
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12ShaderCacheSession *wrapped = new WrappedID3D12ShaderCacheSession(real, this);
+    WrappedID3D12ShaderCacheSession *wrapped =
+        new WrappedID3D12ShaderCacheSession(ResourceId(), real, this);
 
     if(riid == __uuidof(ID3D12ShaderCacheSession))
       *ppvSession = (ID3D12ShaderCacheSession *)wrapped;
@@ -98,7 +99,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue1(SerialiserType &ser,
     {
       SetObjName(ret, StringFormat::Fmt("Command Queue %s", ToStr(pCommandQueue).c_str()));
 
-      ret = new WrappedID3D12CommandQueue(ret, this, m_State);
+      ret = new WrappedID3D12CommandQueue(pCommandQueue, ret, this, m_State);
 
       GetResourceManager()->AddLiveResource(pCommandQueue, ret);
 
@@ -145,7 +146,8 @@ HRESULT WrappedID3D12Device::CreateCommandQueue1(const D3D12_COMMAND_QUEUE_DESC 
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12CommandQueue *wrapped = new WrappedID3D12CommandQueue(real, this, m_State);
+    WrappedID3D12CommandQueue *wrapped =
+        new WrappedID3D12CommandQueue(ResourceId(), real, this, m_State);
 
     if(IsCaptureMode(m_State))
     {

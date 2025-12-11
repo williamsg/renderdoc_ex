@@ -248,7 +248,7 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   SetObjName(ret, StringFormat::Fmt("%s Resource %s %s", ResourceTypeName,
                                     ToStr(desc.Dimension).c_str(), ToStr(pResource).c_str()));
 
-  ret = new WrappedID3D12Resource(ret, pHeap, HeapOffset, this, gpuAddress);
+  ret = new WrappedID3D12Resource(pResource, ret, pHeap, HeapOffset, this, gpuAddress);
 
   switch(chunkType)
   {
@@ -448,7 +448,8 @@ HRESULT WrappedID3D12Device::CreateResource(
 
   UINT NumSubresources = GetNumSubresources(m_pDevice, &desc);
 
-  WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(realRes, pHeap, HeapOffset, this);
+  WrappedID3D12Resource *wrapped =
+      new WrappedID3D12Resource(ResourceId(), realRes, pHeap, HeapOffset, this);
 
   if(IsCaptureMode(m_State))
   {
@@ -824,7 +825,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       }
       else
       {
-        ret = new WrappedID3D12Fence(ret, this);
+        ret = new WrappedID3D12Fence(resourceId, ret, this);
 
         GetResourceManager()->AddLiveResource(resourceId, ret);
       }
@@ -896,7 +897,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       }
       else
       {
-        ret = new WrappedID3D12Heap(ret, this);
+        ret = new WrappedID3D12Heap(resourceId, ret, this);
 
         GetResourceManager()->AddLiveResource(resourceId, ret);
       }
@@ -1055,7 +1056,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType,
       if(riid_internal == __uuidof(ID3D12Fence1))
         real = (ID3D12Fence1 *)ret;
 
-      WrappedID3D12Fence *wrapped = new WrappedID3D12Fence(real, this);
+      WrappedID3D12Fence *wrapped = new WrappedID3D12Fence(ResourceId(), real, this);
 
       wrappedDeviceChild = wrapped;
 
@@ -1080,7 +1081,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType,
     }
     else if(isHeap)
     {
-      WrappedID3D12Heap *wrapped = new WrappedID3D12Heap((ID3D12Heap *)ret, this);
+      WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(ResourceId(), (ID3D12Heap *)ret, this);
 
       if(HeapFlags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
         wrapped->Evict();

@@ -118,7 +118,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignatureFromSubobjectInLibrary(
       }
       else
       {
-        ret = new WrappedID3D12RootSignature(ret, this);
+        ret = new WrappedID3D12RootSignature(pRootSignature, ret, this);
 
         GetResourceManager()->AddLiveResource(pRootSignature, ret);
       }
@@ -179,7 +179,7 @@ HRESULT WrappedID3D12Device::CreateRootSignatureFromSubobjectInLibrary(
         return ret;
       }
 
-      wrapped = new WrappedID3D12RootSignature(real, this);
+      wrapped = new WrappedID3D12RootSignature(ResourceId(), real, this);
     }
 
     wrapped->sig =

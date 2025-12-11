@@ -214,11 +214,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         }
       }
 
-      if(rerecord)
       {
         ID3D12GraphicsCommandList *listptr = NULL;
         HRESULT hr =
-            m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState,
+            m_pDevice->CreateCommandList(BakedCommandList, nodeMask, type, pAllocator, pInitialState,
                                          __uuidof(ID3D12GraphicsCommandList), (void **)&listptr);
 
         if(FAILED(hr))
@@ -231,19 +230,30 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         // this is a safe upcast because it's a wrapped object
         ID3D12GraphicsCommandListX *list = (ID3D12GraphicsCommandListX *)listptr;
 
-        // we store under both baked and non baked ID.
-        // The baked ID is the 'real' entry, the non baked is simply so it
-        // can be found in the subsequent serialised commands that ref the
-        // non-baked ID. The baked ID is referenced by the submit itself.
-        //
-        // In Close() we erase the non-baked reference, and since
-        // we know you can only be recording a command list once at a time
-        // (even if it's baked to several command listsin the frame)
-        // there's no issue with clashes here.
-        m_Cmd->m_RerecordCmds[BakedCommandList] = list;
-        m_Cmd->m_RerecordCmds[CommandList] = list;
+        if(rerecord)
+        {
+          // we store under both baked and non baked ID.
+          // The baked ID is the 'real' entry, the non baked is simply so it
+          // can be found in the subsequent serialised commands that ref the
+          // non-baked ID. The baked ID is referenced by the submit itself.
+          //
+          // In Close() we erase the non-baked reference, and since
+          // we know you can only be recording a command list once at a time
+          // (even if it's baked to several command listsin the frame)
+          // there's no issue with clashes here.
+          m_Cmd->m_RerecordCmds[BakedCommandList] = list;
+          m_Cmd->m_RerecordCmds[CommandList] = list;
+        }
+        else
+        {
+          list->Close();
+        }
 
+        // always create a version of this list even if we're not re-recording, so the serialisation
+        // has an object to find
         m_Cmd->m_RerecordCmdList.push_back(list);
+
+        GetResourceManager()->AddLiveResource(BakedCommandList, list);
       }
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
@@ -287,7 +297,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       {
         ID3D12GraphicsCommandList *list = NULL;
         HRESULT hr =
-            m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState,
+            m_pDevice->CreateCommandList(BakedCommandList, nodeMask, type, pAllocator, pInitialState,
                                          __uuidof(ID3D12GraphicsCommandList), (void **)&list);
         RDCASSERTEQUAL(hr, S_OK);
 
@@ -312,6 +322,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
           GetResourceManager()->RemoveReplacement(CommandList);
 
         GetResourceManager()->ReplaceResource(CommandList, BakedCommandList);
+
+        // this is a safe upcast because it's a wrapped object
+        ID3D12GraphicsCommandListX *listX = (ID3D12GraphicsCommandListX *)list;
+        m_Cmd->m_RerecordCmdList.push_back(listX);
       }
       else
       {

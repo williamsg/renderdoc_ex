@@ -493,7 +493,7 @@ HRESULT STDMETHODCALLTYPE WrappedDownlevelQueue::Present(ID3D12GraphicsCommandLi
   return m_pQueue.Present(pOpenCommandList, pSourceTex2D, hWindow, Flags);
 }
 
-WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
+WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ResourceId id, ID3D12CommandQueue *real,
                                                      WrappedID3D12Device *device, CaptureState &state)
     : RefCounter12(real),
       m_pDevice(device),
@@ -519,13 +519,14 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    m_ReplayList = new WrappedID3D12GraphicsCommandList(NULL, m_pDevice, state);
+    m_ReplayList = new WrappedID3D12GraphicsCommandList(ResourceId(), NULL, m_pDevice, state);
 
     m_ReplayList->SetCommandData(&m_Cmd);
   }
 
-  // create a temporary and grab its resource ID
-  m_ResourceID = ResourceIDGen::GetNewUniqueID();
+  if(id == ResourceId())
+    id = ResourceIDGen::GetNewUniqueID();
+  m_ResourceID = id;
 
   m_QueueRecord = NULL;
   m_CreationRecord = NULL;
@@ -557,6 +558,8 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
+  SAFE_DELETE(m_ReplayList);
+
   SAFE_DELETE(m_FrameReader);
 
   SAFE_RELEASE(m_RayFence);
@@ -1119,6 +1122,14 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
 {
   m_State = readType;
 
+  if(!partial)
+  {
+    for(size_t i = 0; i < m_Cmd.m_RerecordCmdList.size(); i++)
+      SAFE_RELEASE(m_Cmd.m_RerecordCmdList[i]);
+
+    m_Cmd.m_RerecordCmdList.clear();
+  }
+
   if(!m_FrameReader)
   {
     RETURN_ERROR_RESULT(ResultCode::InvalidParameter,
@@ -1328,16 +1339,13 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
 
   m_StructuredFile = NULL;
 
-  for(size_t i = 0; i < m_Cmd.m_RerecordCmdList.size(); i++)
-    SAFE_RELEASE(m_Cmd.m_RerecordCmdList[i]);
-
   m_Cmd.m_RerecordCmds.clear();
-  m_Cmd.m_RerecordCmdList.clear();
 
   return ResultCode::Succeeded;
 }
 
-WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,
+WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ResourceId id,
+                                                                   ID3D12GraphicsCommandList *real,
                                                                    WrappedID3D12Device *device,
                                                                    CaptureState &state)
     : m_RefCounter(real, false), m_pList(real), m_pDevice(device), m_State(state)
@@ -1370,8 +1378,9 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList10), (void **)&m_pList10);
   }
 
-  // create a temporary and grab its resource ID
-  m_ResourceID = ResourceIDGen::GetNewUniqueID();
+  m_ResourceID = id;
+  if(id == ResourceId())
+    m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
   RDCEraseEl(m_Init);
 
@@ -1444,6 +1453,9 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
     m_ListRecord->Delete(m_pDevice->GetResourceManager());
 
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
+
+  if(IsReplayMode(m_State) && m_pDevice->GetResourceManager()->HasLiveResource(GetResourceID()))
+    m_pDevice->GetResourceManager()->EraseLiveResource(GetResourceID());
 
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);

@@ -130,7 +130,7 @@ bool WrappedID3D12Device::Serialise_AddToStateObject(SerialiserType &ser,
     }
 
     WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(
-        GetResourceManager()->CreateDeferredHandle<ID3D12StateObject>(), true, this);
+        pNewStateObject, GetResourceManager()->CreateDeferredHandle<ID3D12StateObject>(), true, this);
 
     // TODO: Apply m_GlobalEXTUAV, m_GlobalEXTUAVSpace for processing extensions in the DXBC files?
 
@@ -230,7 +230,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(real, false, this);
+    WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(ResourceId(), real, false, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -321,7 +321,7 @@ HRESULT WrappedID3D12Device::CreateProtectedResourceSession1(
   if(SUCCEEDED(ret))
   {
     WrappedID3D12ProtectedResourceSession *wrapped =
-        new WrappedID3D12ProtectedResourceSession(real, this);
+        new WrappedID3D12ProtectedResourceSession(ResourceId(), real, this);
 
     if(riid == __uuidof(ID3D12ProtectedResourceSession))
       *ppSession = (ID3D12ProtectedResourceSession *)wrapped;

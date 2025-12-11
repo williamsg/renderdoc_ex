@@ -110,7 +110,7 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
     }
 
     WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(
-        GetResourceManager()->CreateDeferredHandle<ID3D12PipelineState>(), this);
+        pPipelineState, GetResourceManager()->CreateDeferredHandle<ID3D12PipelineState>(), this);
 
     D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *storedDesc =
         new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(OrigDescriptor);
@@ -133,7 +133,7 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
       }
       else
       {
-        WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this);
+        WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(ResourceId(), *shaders[i], this);
         entry->AddRef();
 
         shaders[i]->pShaderBytecode = entry;
@@ -277,7 +277,7 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(real, this);
+    WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -357,7 +357,7 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
         }
         else
         {
-          WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(*shaders[i], this);
+          WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(ResourceId(), *shaders[i], this);
           sh->AddRef();
           shaders[i]->pShaderBytecode = sh;
         }

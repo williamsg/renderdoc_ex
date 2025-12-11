@@ -142,10 +142,10 @@ ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr)
 WRAPPED_POOL_INST(D3D12AccelerationStructure);
 
 D3D12AccelerationStructure::D3D12AccelerationStructure(
-    WrappedID3D12Device *wrappedDevice, ResourceId id, WrappedID3D12Resource *bufferRes,
+    ResourceId id, WrappedID3D12Device *wrappedDevice, WrappedID3D12Resource *bufferRes,
     D3D12BufferOffset bufferOffset, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE type,
     UINT64 byteSize)
-    : WrappedDeviceChild12(NULL, wrappedDevice, id),
+    : WrappedDeviceChild12(id, NULL, wrappedDevice),
       m_asbWrappedResource(bufferRes),
       m_asbWrappedResourceBufferOffset(bufferOffset),
       type(type),
@@ -159,8 +159,8 @@ D3D12AccelerationStructure::~D3D12AccelerationStructure()
   Shutdown();
 }
 
-WrappedID3D12Heap::WrappedID3D12Heap(ID3D12Heap *real, WrappedID3D12Device *device)
-    : WrappedDeviceChild12(real, device)
+WrappedID3D12Heap::WrappedID3D12Heap(ResourceId id, ID3D12Heap *real, WrappedID3D12Device *device)
+    : WrappedDeviceChild12(id, real, device)
 {
   D3D12_HEAP_DESC desc = GetDesc();
   if((desc.Flags & D3D12_HEAP_FLAG_DENY_BUFFERS) == 0)
@@ -190,10 +190,9 @@ WrappedID3D12Heap::WrappedID3D12Heap(ID3D12Heap *real, WrappedID3D12Device *devi
   }
 }
 
-bool WrappedID3D12Resource::CreateAccStruct(D3D12BufferOffset bufferOffset,
+bool WrappedID3D12Resource::CreateAccStruct(ResourceId id, D3D12BufferOffset bufferOffset,
                                             D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE type,
-                                            UINT64 byteSize, ResourceId id,
-                                            D3D12AccelerationStructure **accStruct)
+                                            UINT64 byteSize, D3D12AccelerationStructure **accStruct)
 {
   SCOPED_LOCK(m_accStructResourcesCS);
   auto existing = m_accelerationStructMap.find(bufferOffset);
@@ -205,7 +204,7 @@ bool WrappedID3D12Resource::CreateAccStruct(D3D12BufferOffset bufferOffset,
   }
 
   m_accelerationStructMap[bufferOffset] =
-      new D3D12AccelerationStructure(m_pDevice, id, this, bufferOffset, type, byteSize);
+      new D3D12AccelerationStructure(id, m_pDevice, this, bufferOffset, type, byteSize);
 
   *accStruct = m_accelerationStructMap[bufferOffset];
 
@@ -571,11 +570,11 @@ void WrappedID3D12DescriptorHeap::SetToDescriptorCache(uint32_t index, const Des
   cachedDescriptors[index] = view;
 }
 
-WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,
+WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ResourceId id, ID3D12DescriptorHeap *real,
                                                          WrappedID3D12Device *device,
                                                          const D3D12_DESCRIPTOR_HEAP_DESC &desc,
                                                          UINT UnpatchedNumDescriptors)
-    : WrappedDeviceChild12(real, device)
+    : WrappedDeviceChild12(id, real, device)
 {
   realCPUBase = real->GetCPUDescriptorHandleForHeapStart();
   if(desc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)

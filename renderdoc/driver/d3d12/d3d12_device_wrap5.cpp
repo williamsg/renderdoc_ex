@@ -173,7 +173,7 @@ bool WrappedID3D12Device::Serialise_CreateStateObject(SerialiserType &ser,
     }
 
     WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(
-        GetResourceManager()->CreateDeferredHandle<ID3D12StateObject>(), true, this);
+        pStateObject, GetResourceManager()->CreateDeferredHandle<ID3D12StateObject>(), true, this);
 
     wrapped->exports =
         new D3D12ShaderExportDatabase(pStateObject, GetResourceManager()->GetRTManager());
@@ -266,7 +266,7 @@ WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REF
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(real, false, this);
+    WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(ResourceId(), real, false, this);
 
     if(IsCaptureMode(m_State))
     {

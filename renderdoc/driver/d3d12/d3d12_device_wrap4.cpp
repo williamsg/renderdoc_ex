@@ -134,7 +134,7 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
   if(SUCCEEDED(ret))
   {
     WrappedID3D12GraphicsCommandList *wrapped =
-        new WrappedID3D12GraphicsCommandList(real, this, m_State);
+        new WrappedID3D12GraphicsCommandList(ResourceId(), real, this, m_State);
 
     if(m_pAMDExtObject)
     {
@@ -219,7 +219,7 @@ HRESULT WrappedID3D12Device::CreateProtectedResourceSession(
   if(SUCCEEDED(ret))
   {
     WrappedID3D12ProtectedResourceSession *wrapped =
-        new WrappedID3D12ProtectedResourceSession(real, this);
+        new WrappedID3D12ProtectedResourceSession(ResourceId(), real, this);
 
     if(riid == __uuidof(ID3D12ProtectedResourceSession))
       *ppSession = (ID3D12ProtectedResourceSession *)wrapped;
@@ -277,7 +277,7 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
     }
     else
     {
-      ret = new WrappedID3D12Heap(ret, this);
+      ret = new WrappedID3D12Heap(pHeap, ret, this);
 
       GetResourceManager()->AddLiveResource(pHeap, ret);
     }
@@ -312,7 +312,7 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(ResourceId(), real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -370,7 +370,7 @@ ID3D12Fence *WrappedID3D12Device::CreateProtectedSessionFence(ID3D12Fence *real)
 
     // we basically treat this kind of like CreateFence and serialise it as such, and guess at the
     // parameters to CreateFence.
-    wrapped = new WrappedID3D12Fence(real, this);
+    wrapped = new WrappedID3D12Fence(ResourceId(), real, this);
   }
 
   if(IsCaptureMode(m_State))
