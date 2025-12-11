@@ -294,7 +294,6 @@ public:
   rdcarray<uint32_t> GetPassEvents(uint32_t eventId) { return rdcarray<uint32_t>(); }
   rdcarray<EventUsage> GetUsage(ResourceId id) { return rdcarray<EventUsage>(); }
   bool IsRenderOutput(ResourceId id) { return false; }
-  ResourceId GetLiveID(ResourceId id) { return id; }
   rdcarray<GPUCounter> EnumerateCounters() { return {}; }
   CounterDescription DescribeCounter(GPUCounter counterID)
   {

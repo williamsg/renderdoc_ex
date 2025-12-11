@@ -1174,9 +1174,9 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
     if(IsReplayingAndReading())
     {
       // need to write to serialise the location translation table
-      WrappedOpenGL::ProgramData &details = m_Driver->GetWriteableProgram(GetLiveID(id));
+      WrappedOpenGL::ProgramData &details = m_Driver->GetWriteableProgram(id);
 
-      m_Driver->FillReflectionArray(GetLiveID(id), stages);
+      m_Driver->FillReflectionArray(id, stages);
 
       GLuint initProg = drv.glCreateProgram();
 
@@ -1389,9 +1389,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
     // Otherwise this texture has no initial state to apply
     if(TextureState.internalformat != eGL_NONE && !ser.IsErrored())
     {
-      WrappedOpenGL::TextureData &details = (ser.IsWriting() || IsStructuredExporting(m_State))
-                                                ? m_Driver->m_Textures[id]
-                                                : m_Driver->m_Textures[GetLiveID(id)];
+      WrappedOpenGL::TextureData &details = m_Driver->m_Textures[id];
 
       if(TextureState.type == eGL_TEXTURE_BUFFER || TextureState.isView)
       {

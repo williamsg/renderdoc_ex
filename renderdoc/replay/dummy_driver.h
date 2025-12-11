@@ -82,8 +82,6 @@ public:
   void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(const rdcarray<uint32_t> &passEvents);
 
-  ResourceId GetLiveID(ResourceId id);
-
   MeshFormat GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
                               MeshDataStage stage);
 

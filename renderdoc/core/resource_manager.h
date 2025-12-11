@@ -647,8 +647,6 @@ public:
   // with 456, then calling this function with either ID 123 or ID 456 will return ID 123.
   ResourceId GetUnreplacedID(ResourceId id);
 
-  ResourceId GetLiveID(ResourceId id);
-
   // Serialise in which resources need initial contents and set them up.
   void CreateInitialContents(ReadSerialiser &ser);
 
@@ -1968,19 +1966,6 @@ ResourceId ResourceManager<Configuration>::GetUnreplacedID(ResourceId id)
 
   if(m_Replaced.find(id) != m_Replaced.end())
     return m_Replaced[id];
-
-  return id;
-}
-
-template <typename Configuration>
-ResourceId ResourceManager<Configuration>::GetLiveID(ResourceId id)
-{
-  if(id == ResourceId())
-    return id;
-
-  auto it = m_Replacements.find(id);
-  if(it != m_Replacements.end())
-    return it->second;
 
   return id;
 }

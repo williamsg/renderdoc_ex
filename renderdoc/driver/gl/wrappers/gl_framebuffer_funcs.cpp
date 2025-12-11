@@ -2567,8 +2567,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    ResourceId liveId = GetResourceManager()->GetResID(renderbuffer);
-    TextureData &texDetails = m_Textures[liveId];
+    TextureData &texDetails = m_Textures[GetResourceManager()->GetResID(renderbuffer)];
 
     GLenum fmt = GetBaseFormat(internalformat);
 
@@ -2769,8 +2768,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     // present
     CheckReplayFunctionPresent(glRenderbufferStorageMultisample);
 
-    ResourceId liveId = GetResourceManager()->GetResID(renderbuffer);
-    TextureData &texDetails = m_Textures[liveId];
+    TextureData &texDetails = m_Textures[GetResourceManager()->GetResID(renderbuffer)];
 
     GLenum fmt = GetBaseFormat(internalformat);
 
@@ -3006,8 +3004,7 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
   {
     CheckReplayFunctionPresent(glRenderbufferStorageMultisampleEXT);
 
-    ResourceId liveId = GetResourceManager()->GetResID(renderbuffer);
-    TextureData &texDetails = m_Textures[liveId];
+    TextureData &texDetails = m_Textures[GetResourceManager()->GetResID(renderbuffer)];
 
     GLenum fmt = GetBaseFormat(internalformat);
 

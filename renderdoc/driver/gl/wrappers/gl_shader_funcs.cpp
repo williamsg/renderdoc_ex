@@ -613,10 +613,10 @@ bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLenum type, G
 
     GLResource res = ShaderRes(GetCtx(), real);
 
-    ResourceId liveId = GetResourceManager()->RegisterResource(Shader, res);
+    ResourceId id = GetResourceManager()->RegisterResource(Shader, res);
     GetResourceManager()->AddLiveResource(Shader, res);
 
-    m_Shaders[liveId].type = type;
+    m_Shaders[id].type = type;
 
     AddResource(Shader, ResourceType::Shader, "Shader");
   }
@@ -691,9 +691,9 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     for(size_t i = 0; i < sources.size(); i++)
       strs.push_back(sources[i].c_str());
 
-    ResourceId liveId = GetResourceManager()->GetResID(shader);
+    ResourceId id = GetResourceManager()->GetResID(shader);
 
-    m_Shaders[liveId].sources = sources;
+    m_Shaders[id].sources = sources;
 
     GL.glShaderSource(shader.name, (GLsizei)sources.size(), strs.data(), NULL);
 
@@ -704,9 +704,9 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     // Doing this means we support the case of recompiling a shader different ways
     // and relinking a program before use, which is still moderately crazy and
     // so people who do that should be moderately ashamed.
-    if(m_Shaders[liveId].GetReflection()->resourceId != ResourceId())
+    if(m_Shaders[id].GetReflection()->resourceId != ResourceId())
     {
-      m_Shaders[liveId].ClearReflection();
+      m_Shaders[id].ClearReflection();
     }
 
     AddResourceInitChunk(shader);
@@ -758,11 +758,11 @@ bool WrappedOpenGL::Serialise_glCompileShader(SerialiserType &ser, GLuint shader
 
   if(IsReplayingAndReading())
   {
-    ResourceId liveId = GetResourceManager()->GetResID(shader);
+    ResourceId id = GetResourceManager()->GetResID(shader);
 
     GL.glCompileShader(shader.name);
 
-    m_Shaders[liveId].ProcessCompilation(*this, liveId, shader.name);
+    m_Shaders[id].ProcessCompilation(*this, id, shader.name);
 
     AddResourceInitChunk(shader);
   }
@@ -973,17 +973,17 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
 
     GLResource res = ProgramRes(GetCtx(), real);
 
-    ResourceId liveId = m_ResourceManager->RegisterResource(Program, res);
+    ResourceId id = m_ResourceManager->RegisterResource(Program, res);
     GetResourceManager()->AddLiveResource(Program, res);
 
-    WrappedOpenGL::ProgramData &progDetails = m_Programs[liveId];
+    WrappedOpenGL::ProgramData &progDetails = m_Programs[id];
 
     progDetails.linked = true;
-    progDetails.shaders.push_back(liveId);
-    progDetails.stageShaders[ShaderIdx(type)] = liveId;
+    progDetails.shaders.push_back(id);
+    progDetails.stageShaders[ShaderIdx(type)] = id;
     progDetails.shaderProgramUnlinkable = true;
 
-    WrappedOpenGL::ShaderData &shadDetails = m_Shaders[liveId];
+    WrappedOpenGL::ShaderData &shadDetails = m_Shaders[id];
 
     shadDetails.type = type;
     shadDetails.sources.swap(src);
@@ -1059,10 +1059,10 @@ bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint progra
 
     GLResource res = ProgramRes(GetCtx(), real);
 
-    ResourceId liveId = m_ResourceManager->RegisterResource(Program, res);
+    ResourceId id = m_ResourceManager->RegisterResource(Program, res);
     GetResourceManager()->AddLiveResource(Program, res);
 
-    m_Programs[liveId].linked = false;
+    m_Programs[id].linked = false;
 
     AddResource(Program, ResourceType::StateObject, "Program");
   }
@@ -1686,11 +1686,11 @@ bool WrappedOpenGL::Serialise_glShaderBinary(SerialiserType &ser, GLsizei count,
 
   if(IsReplayingAndReading())
   {
-    ResourceId liveId = GetResourceManager()->GetResID(shader);
+    ResourceId id = GetResourceManager()->GetResID(shader);
 
     GL.glShaderBinary(1, &shader.name, binaryformat, binary, length);
 
-    m_Shaders[liveId].spirvWords.assign((uint32_t *)binary, length / sizeof(uint32_t));
+    m_Shaders[id].spirvWords.assign((uint32_t *)binary, length / sizeof(uint32_t));
 
     AddResourceInitChunk(shader);
   }
@@ -1711,8 +1711,8 @@ void WrappedOpenGL::glShaderBinary(GLsizei count, const GLuint *shaders, GLenum 
     {
       for(GLsizei i = 0; i < count; i++)
       {
-        ResourceId liveId = GetResourceManager()->GetResID(ShaderRes(GetCtx(), shaders[i]));
-        m_Shaders[liveId].spirvWords.assign((uint32_t *)binary, length / sizeof(uint32_t));
+        ResourceId id = GetResourceManager()->GetResID(ShaderRes(GetCtx(), shaders[i]));
+        m_Shaders[id].spirvWords.assign((uint32_t *)binary, length / sizeof(uint32_t));
       }
     }
   }
@@ -2158,9 +2158,9 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
   {
     CheckReplayFunctionPresent(glCompileShaderIncludeARB);
 
-    ResourceId liveId = GetResourceManager()->GetResID(shader);
+    ResourceId id = GetResourceManager()->GetResID(shader);
 
-    WrappedOpenGL::ShaderData &shadDetails = m_Shaders[liveId];
+    WrappedOpenGL::ShaderData &shadDetails = m_Shaders[id];
 
     shadDetails.includepaths.clear();
     shadDetails.includepaths.reserve(count);
@@ -2170,7 +2170,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
 
     GL.glCompileShaderIncludeARB(shader.name, count, path, NULL);
 
-    shadDetails.ProcessCompilation(*this, liveId, shader.name);
+    shadDetails.ProcessCompilation(*this, id, shader.name);
 
     AddResourceInitChunk(shader);
   }
@@ -2321,16 +2321,15 @@ bool WrappedOpenGL::Serialise_glSpecializeShader(SerialiserType &ser, GLuint sha
   {
     CheckReplayFunctionPresent(glSpecializeShader);
 
-    ResourceId liveId = GetResourceManager()->GetResID(shader);
+    ResourceId id = GetResourceManager()->GetResID(shader);
 
     GL.glSpecializeShader(shader.name, pEntryPoint, numSpecializationConstants, pConstantIndex,
                           pConstantValue);
 
-    m_Shaders[liveId].spirv.Parse(m_Shaders[liveId].spirvWords);
+    m_Shaders[id].spirv.Parse(m_Shaders[id].spirvWords);
 
-    m_Shaders[liveId].ProcessSPIRVCompilation(*this, liveId, shader.name, pEntryPoint,
-                                              numSpecializationConstants, pConstantIndex,
-                                              pConstantValue);
+    m_Shaders[id].ProcessSPIRVCompilation(*this, id, shader.name, pEntryPoint,
+                                          numSpecializationConstants, pConstantIndex, pConstantValue);
 
     AddResourceInitChunk(shader);
   }
@@ -2369,13 +2368,12 @@ void WrappedOpenGL::glSpecializeShader(GLuint shader, const GLchar *pEntryPoint,
   }
   else
   {
-    ResourceId liveId = GetResourceManager()->GetResID(ShaderRes(GetCtx(), shader));
+    ResourceId id = GetResourceManager()->GetResID(ShaderRes(GetCtx(), shader));
 
-    m_Shaders[liveId].spirv.Parse(m_Shaders[liveId].spirvWords);
+    m_Shaders[id].spirv.Parse(m_Shaders[id].spirvWords);
 
-    m_Shaders[liveId].ProcessSPIRVCompilation(*this, liveId, shader, pEntryPoint,
-                                              numSpecializationConstants, pConstantIndex,
-                                              pConstantValue);
+    m_Shaders[id].ProcessSPIRVCompilation(
+        *this, id, shader, pEntryPoint, numSpecializationConstants, pConstantIndex, pConstantValue);
   }
 }
 

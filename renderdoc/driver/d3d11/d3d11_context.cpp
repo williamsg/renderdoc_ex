@@ -445,8 +445,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
     {
       if(m_pDevice->GetResourceManager()->HasLiveResource(c.id))
       {
-        StreamOutData &so =
-            m_pDevice->GetSOHiddenCounterForBuffer(m_pDevice->GetResourceManager()->GetLiveID(c.id));
+        StreamOutData &so = m_pDevice->GetSOHiddenCounterForBuffer(c.id);
         so.numPrims = c.counterValue;
         so.stride = c.stride;
       }

@@ -129,7 +129,7 @@ rdcarray<Descriptor> ReplayController::GetDescriptors(ResourceId descriptorStore
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetDescriptors(m_pDevice->GetLiveID(descriptorStore), ranges);
+  return m_pDevice->GetDescriptors(descriptorStore, ranges);
 }
 
 const rdcarray<DescriptorAccess> &ReplayController::GetDescriptorAccess()
@@ -144,7 +144,7 @@ rdcarray<DescriptorLogicalLocation> ReplayController::GetDescriptorLocations(
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetDescriptorLocations(m_pDevice->GetLiveID(descriptorStore), ranges);
+  return m_pDevice->GetDescriptorLocations(descriptorStore, ranges);
 }
 
 rdcarray<SamplerDescriptor> ReplayController::GetSamplerDescriptors(
@@ -152,7 +152,7 @@ rdcarray<SamplerDescriptor> ReplayController::GetSamplerDescriptors(
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetSamplerDescriptors(m_pDevice->GetLiveID(descriptorStore), ranges);
+  return m_pDevice->GetSamplerDescriptors(descriptorStore, ranges);
 }
 
 rdcarray<rdcstr> ReplayController::GetDisassemblyTargets(bool withPipeline)
@@ -187,7 +187,7 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
     if(t == target)
       return GCNISA::Disassemble(refl->encoding, refl->stage, refl->rawBytes, target);
 
-  rdcstr ret = m_pDevice->DisassembleShader(m_pDevice->GetLiveID(pipeline), refl, target);
+  rdcstr ret = m_pDevice->DisassembleShader(pipeline, refl, target);
   FatalErrorCheck();
   return ret;
 }
@@ -513,7 +513,7 @@ rdcarray<ShaderEntryPoint> ReplayController::GetShaderEntryPoints(ResourceId sha
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetShaderEntryPoints(m_pDevice->GetLiveID(shader));
+  return m_pDevice->GetShaderEntryPoints(shader);
 }
 
 const ShaderReflection *ReplayController::GetShader(ResourceId pipeline, ResourceId shader,
@@ -521,14 +521,13 @@ const ShaderReflection *ReplayController::GetShader(ResourceId pipeline, Resourc
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetShader(m_pDevice->GetLiveID(pipeline), m_pDevice->GetLiveID(shader), entry);
+  return m_pDevice->GetShader(pipeline, shader, entry);
 }
 
 rdcarray<EventUsage> ReplayController::GetUsage(ResourceId id)
 {
   CHECK_REPLAY_THREAD();
 
-  id = m_pDevice->GetLiveID(id);
   if(id == ResourceId())
     return {EventUsage(0, ResourceUsage::Unused)};
   return m_pDevice->GetUsage(id);
@@ -563,15 +562,7 @@ bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64
   if(buff == ResourceId())
     return retData;
 
-  ResourceId liveId = m_pDevice->GetLiveID(buff);
-
-  if(liveId == ResourceId())
-  {
-    RDCERR("Couldn't get Live ID for %s getting buffer data", ToStr(buff).c_str());
-    return retData;
-  }
-
-  m_pDevice->GetBufferData(liveId, offset, len, retData);
+  m_pDevice->GetBufferData(buff, offset, len, retData);
   FatalErrorCheck();
 
   return retData;
@@ -584,15 +575,10 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
 
   bytebuf ret;
 
-  ResourceId liveId = m_pDevice->GetLiveID(tex);
-
-  if(liveId == ResourceId())
-  {
-    RDCERR("Couldn't get Live ID for %s getting texture data", ToStr(tex).c_str());
+  if(tex == ResourceId())
     return ret;
-  }
 
-  m_pDevice->GetTextureData(liveId, sub, GetTextureDataParams(), ret);
+  m_pDevice->GetTextureData(tex, sub, GetTextureDataParams(), ret);
   FatalErrorCheck();
 
   return ret;
@@ -604,16 +590,14 @@ ResultDetails ReplayController::SaveTexture(const TextureSave &saveData, const r
   RENDERDOC_PROFILEFUNCTION();
 
   TextureSave sd = saveData;    // mutable copy
-  ResourceId liveid = m_pDevice->GetLiveID(sd.resourceId);
 
-  if(liveid == ResourceId())
+  if(sd.resourceId == ResourceId())
   {
-    RETURN_ERROR_RESULT(ResultCode::InvalidParameter,
-                        "Couldn't get Live ID for %s getting texture data",
+    RETURN_ERROR_RESULT(ResultCode::InvalidParameter, "Invalid ID for %s getting texture data",
                         ToStr(sd.resourceId).c_str());
   }
 
-  TextureDescription td = m_pDevice->GetTexture(liveid);
+  TextureDescription td = m_pDevice->GetTexture(sd.resourceId);
 
   // clamp sample/mip/slice indices
   if(td.msSamp == 1)
@@ -909,7 +893,7 @@ ResultDetails ReplayController::SaveTexture(const TextureSave &saveData, const r
       Subresource sub = {mip, slice / sampleCount, slice % sampleCount};
 
       bytebuf data;
-      m_pDevice->GetTextureData(liveid, sub, params, data);
+      m_pDevice->GetTextureData(sd.resourceId, sub, params, data);
       FatalErrorCheck();
 
       if(data.empty())
@@ -1500,7 +1484,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
     }
   }
 
-  ResourceId id = m_pDevice->GetLiveID(target);
+  ResourceId id = target;
 
   if(id == ResourceId())
     return ret;
@@ -1584,7 +1568,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
     return ret;
   }
 
-  id = m_pDevice->GetLiveID(target);
+  id = target;
 
   if(id == ResourceId())
     return ret;
@@ -1610,7 +1594,7 @@ PixelValue ReplayController::PickPixel(ResourceId tex, uint32_t x, uint32_t y,
   if(tex == ResourceId())
     return ret;
 
-  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sub, typeCast, ret.floatValue.data());
+  m_pDevice->PickPixel(tex, x, y, sub, typeCast, ret.floatValue.data());
   FatalErrorCheck();
 
   return ret;
@@ -1624,8 +1608,7 @@ rdcpair<PixelValue, PixelValue> ReplayController::GetMinMax(ResourceId textureId
   PixelValue minval = {{0.0f, 0.0f, 0.0f, 0.0f}};
   PixelValue maxval = {{1.0f, 1.0f, 1.0f, 1.0f}};
 
-  m_pDevice->GetMinMax(m_pDevice->GetLiveID(textureId), sub, typeCast, &minval.floatValue[0],
-                       &maxval.floatValue[0]);
+  m_pDevice->GetMinMax(textureId, sub, typeCast, &minval.floatValue[0], &maxval.floatValue[0]);
   FatalErrorCheck();
 
   return make_rdcpair(minval, maxval);
@@ -1639,8 +1622,7 @@ rdcarray<uint32_t> ReplayController::GetHistogram(ResourceId textureId, const Su
 
   rdcarray<uint32_t> hist;
 
-  m_pDevice->GetHistogram(m_pDevice->GetLiveID(textureId), sub, typeCast, minval, maxval, channels,
-                          hist);
+  m_pDevice->GetHistogram(textureId, sub, typeCast, minval, maxval, channels, hist);
   FatalErrorCheck();
 
   return hist;
@@ -1752,7 +1734,6 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
   bytebuf data;
   if(buffer != ResourceId())
   {
-    buffer = m_pDevice->GetLiveID(buffer);
     if(buffer != ResourceId())
     {
       if(length > 0)
@@ -1762,9 +1743,6 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
   }
 
   rdcarray<ShaderVariable> v;
-
-  pipeline = m_pDevice->GetLiveID(pipeline);
-  shader = m_pDevice->GetLiveID(shader);
 
   if(shader != ResourceId())
   {
@@ -2320,7 +2298,6 @@ void ReplayController::FetchPipelineState(uint32_t eventId)
     {
       if(store != ResourceId())
       {
-        store = m_pDevice->GetLiveID(store);
         descs.append(m_pDevice->GetDescriptors(store, ranges));
         samps.append(m_pDevice->GetSamplerDescriptors(store, ranges));
       }
@@ -2344,7 +2321,6 @@ void ReplayController::FetchPipelineState(uint32_t eventId)
 
   if(store != ResourceId())
   {
-    store = m_pDevice->GetLiveID(store);
     descs.append(m_pDevice->GetDescriptors(store, ranges));
     samps.append(m_pDevice->GetSamplerDescriptors(store, ranges));
   }

@@ -3888,17 +3888,13 @@ void D3D12ResourceManager::SerialiseResourceStates(
     SERIALISE_ELEMENT_LOCAL(Resource, srcit->first).TypedAs("ID3D12Resource *"_lit);
     SERIALISE_ELEMENT_LOCAL(States, srcit->second);
 
-    ResourceId liveid;
     if(IsReplayingAndReading() && HasLiveResource(Resource))
-      liveid = GetLiveID(Resource);
-
-    if(IsReplayingAndReading() && liveid != ResourceId())
     {
-      processed.insert(liveid);
+      processed.insert(Resource);
 
       for(size_t m = 0; m < States.size(); m++)
       {
-        D3D12ResourceLayout srcState = states[liveid][m];
+        D3D12ResourceLayout srcState = states[Resource][m];
         D3D12ResourceLayout dstState = States[m];
 
         // because of some extreme ugliness on the D3D12 side, resources can be created in new
@@ -3918,7 +3914,7 @@ void D3D12ResourceManager::SerialiseResourceStates(
 
         if(srcState != dstState)
         {
-          AddStateResetBarrier(srcState, dstState, (ID3D12Resource *)GetCurrentResource(liveid),
+          AddStateResetBarrier(srcState, dstState, (ID3D12Resource *)GetCurrentResource(Resource),
                                (UINT)m, barriers);
         }
       }

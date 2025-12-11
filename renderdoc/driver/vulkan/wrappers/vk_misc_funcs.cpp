@@ -2776,13 +2776,7 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
     if(ObjectName == NULL)
       ObjectName = "";
 
-    // if we don't have a live resource, this is probably a command buffer being named on the
-    // virtual non-existant parent, not any of the baked IDs. Just save the name on the base ID
-    // and we'll propagate it in Serialise_vkBeginCommandBuffer
-    if(!GetResourceManager()->HasLiveResource(Object) || GetResourceManager()->HasReplacement(Object))
-      m_CreationInfo.m_Names[Object] = ObjectName;
-    else
-      m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(Object)] = ObjectName;
+    m_CreationInfo.m_Names[Object] = ObjectName;
 
     ResourceDescription &descr = GetResourceDesc(Object);
 
@@ -2920,13 +2914,7 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
     if(ObjectName == NULL)
       ObjectName = "";
 
-    // if we don't have a live resource, this is probably a command buffer being named on the
-    // virtual non-existant parent, not any of the baked IDs. Just save the name on the base ID
-    // and we'll propagate it in Serialise_vkBeginCommandBuffer
-    if(!GetResourceManager()->HasLiveResource(Object) || GetResourceManager()->HasReplacement(Object))
-      m_CreationInfo.m_Names[Object] = ObjectName;
-    else
-      m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(Object)] = ObjectName;
+    m_CreationInfo.m_Names[Object] = ObjectName;
 
     ResourceDescription &descr = GetResourceDesc(Object);
 

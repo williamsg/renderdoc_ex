@@ -2910,8 +2910,6 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       ResourceId buf = chunk->FindChild("buffer")->AsResourceId();
       uint64_t offs = chunk->FindChild("offset")->AsUInt64();
 
-      buf = GetResourceManager()->GetLiveID(buf);
-
       bytebuf dispatchArgs;
       GetBufferData(buf, offs, sizeof(VkDrawMeshTasksIndirectCommandEXT), dispatchArgs);
 

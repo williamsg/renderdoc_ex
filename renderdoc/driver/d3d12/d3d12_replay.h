@@ -194,7 +194,6 @@ public:
 
   // indicates that EID alias is the same as eventId
   void AliasPostVSBuffers(uint32_t eventId, uint32_t alias) { m_PostVSAlias[alias] = eventId; }
-  ResourceId GetLiveID(ResourceId id);
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
                  CompType typeCast, float pixel[4]);

@@ -452,11 +452,6 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     el.data.nonsamp.type = type;
   }
 
-  // we serialise via a pointer. This means if the resource isn't present it becomes NULL and we set
-  // the ResourceId to 0 on replay, and otherwise we get the live ID as we want. As a benefit, it's
-  // also invisibly backwards compatible
-  D3D12ResourceManager *rm = (D3D12ResourceManager *)ser.GetUserData();
-
   switch(type)
   {
     case D3D12DescriptorType::Sampler:
@@ -478,14 +473,7 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     }
     case D3D12DescriptorType::SRV:
     {
-      ResourceId Resource = el.data.nonsamp.resource;
-
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
-
-      // convert to Live ID on replay
-      if(ser.IsReading() && !ser.IsStructurising())
-        el.data.nonsamp.resource =
-            rm->HasLiveResource(Resource) ? rm->GetLiveID(Resource) : ResourceId();
+      ser.Serialise("Resource"_lit, el.data.nonsamp.resource).TypedAs("ID3D12Resource *"_lit).Important();
 
       // special case because of squeezed descriptor
       D3D12_SHADER_RESOURCE_VIEW_DESC desc;
@@ -498,48 +486,21 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     }
     case D3D12DescriptorType::RTV:
     {
-      ResourceId Resource = el.data.nonsamp.resource;
-
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
-
-      // convert to Live ID on replay
-      if(ser.IsReading() && !ser.IsStructurising())
-        el.data.nonsamp.resource =
-            rm->HasLiveResource(Resource) ? rm->GetLiveID(Resource) : ResourceId();
-
+      ser.Serialise("Resource"_lit, el.data.nonsamp.resource).TypedAs("ID3D12Resource *"_lit).Important();
       ser.Serialise("Descriptor"_lit, el.data.nonsamp.rtv);
       break;
     }
     case D3D12DescriptorType::DSV:
     {
-      ResourceId Resource = el.data.nonsamp.resource;
-
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
-
-      // convert to Live ID on replay
-      if(ser.IsReading() && !ser.IsStructurising())
-        el.data.nonsamp.resource =
-            rm->HasLiveResource(Resource) ? rm->GetLiveID(Resource) : ResourceId();
-
+      ser.Serialise("Resource"_lit, el.data.nonsamp.resource).TypedAs("ID3D12Resource *"_lit).Important();
       ser.Serialise("Descriptor"_lit, el.data.nonsamp.dsv);
       break;
     }
     case D3D12DescriptorType::UAV:
     {
-      ResourceId Resource = el.data.nonsamp.resource;
-      ResourceId CounterResource = el.data.nonsamp.counterResource;
-
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
-      ser.Serialise("CounterResource"_lit, CounterResource).TypedAs("ID3D12Resource *"_lit);
-
-      // convert to Live ID on replay
-      if(ser.IsReading() && !ser.IsStructurising())
-      {
-        el.data.nonsamp.resource =
-            rm->HasLiveResource(Resource) ? rm->GetLiveID(Resource) : ResourceId();
-        el.data.nonsamp.counterResource =
-            rm->HasLiveResource(CounterResource) ? rm->GetLiveID(CounterResource) : ResourceId();
-      }
+      ser.Serialise("Resource"_lit, el.data.nonsamp.resource).TypedAs("ID3D12Resource *"_lit).Important();
+      ser.Serialise("CounterResource"_lit, el.data.nonsamp.counterResource)
+          .TypedAs("ID3D12Resource *"_lit);
 
       // special case because of squeezed descriptor
       D3D12_UNORDERED_ACCESS_VIEW_DESC desc;

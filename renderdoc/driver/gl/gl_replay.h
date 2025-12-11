@@ -256,8 +256,6 @@ public:
   void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(const rdcarray<uint32_t> &passEvents);
 
-  ResourceId GetLiveID(ResourceId id);
-
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
                  CompType typeCast, float pixel[4]);
   bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,

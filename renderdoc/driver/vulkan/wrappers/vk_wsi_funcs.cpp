@@ -235,8 +235,8 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
   {
     SwapchainInfo &swapInfo = m_CreationInfo.m_SwapChain[Swapchain];
 
-    ResourceId liveId = GetResourceManager()->WrapResource(
-        SwapchainImage, Unwrap(device), swapInfo.images[SwapchainImageIndex].userSwapImage);
+    GetResourceManager()->WrapResource(SwapchainImage, Unwrap(device),
+                                       swapInfo.images[SwapchainImageIndex].userSwapImage);
 
     m_CreationInfo.m_Names[GetResID(swapInfo.images[SwapchainImageIndex].userSwapImage)] =
         StringFormat::Fmt("Presentable Image %u", SwapchainImageIndex);

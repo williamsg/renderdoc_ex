@@ -379,15 +379,13 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
       }
       if(hasLiveRes)
       {
-        ResourceId liveid = GetLiveID(Image);
-
         if(IsLoading(m_State))
         {
-          auto stit = states.find(liveid);
+          auto stit = states.find(Image);
           if(stit == states.end())
           {
             imageState.subresourceStates.Unsplit();
-            states.insert({liveid, LockingImageState(imageState)});
+            states.insert({Image, LockingImageState(imageState)});
           }
           else
           {
@@ -398,8 +396,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
         }
         else if(IsActiveReplaying(m_State))
         {
-          auto current = states.find(liveid)->second.LockRead();
-          auto stit = states.find(liveid);
+          auto current = states.find(Image)->second.LockRead();
+          auto stit = states.find(Image);
           for(auto subit = imageState.subresourceStates.begin();
               subit != imageState.subresourceStates.end(); ++subit)
           {
@@ -542,9 +540,8 @@ bool VulkanResourceManager::Serialise_ImageRefs(ReadSerialiser &ser,
     {
       if(!HasLiveResource(it->image))
         continue;
-      ResourceId liveid = GetLiveID(it->image);
 
-      auto stit = states.find(liveid);
+      auto stit = states.find(it->image);
       if(stit == states.end())
       {
         RDCWARN("Found ImgRefs for unknown image");

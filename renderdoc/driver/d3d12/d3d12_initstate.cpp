@@ -980,7 +980,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       D3D12_RESOURCE_DESC resDesc = liveRes->GetDesc();
 
       D3D12_HEAP_PROPERTIES heapProps = {};
-      if(!m_Device->IsSparseResource(GetLiveID(id)))
+      if(!m_Device->IsSparseResource(id))
         liveRes->GetHeapProperties(&heapProps, NULL);
 
       const bool isCPUCopyHeap =
@@ -1115,7 +1115,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
         else
         {
           D3D12_HEAP_PROPERTIES heapProps = {};
-          if(!m_Device->IsSparseResource(GetLiveID(id)))
+          if(!m_Device->IsSparseResource(id))
             liveRes->GetHeapProperties(&heapProps, NULL);
 
           // if the resource is sparse, create on default heap

@@ -338,8 +338,7 @@ rdcarray<rdcstr> D3D11Replay::GetDisassemblyTargets(bool withPipeline)
 rdcstr D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                       const rdcstr &target)
 {
-  auto it =
-      WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->resourceId));
+  auto it = WrappedShader::m_ShaderList.find(refl->resourceId);
 
   if(it == WrappedShader::m_ShaderList.end())
     return "; Invalid Shader Specified";
@@ -1744,16 +1743,6 @@ rdcarray<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
   }
 
   return passEvents;
-}
-
-ResourceId D3D11Replay::GetLiveID(ResourceId id)
-{
-  ID3D11UnorderedAccessView *counterUAV = GetDebugManager()->GetCounterBufferUAV(id);
-  if(counterUAV)
-    return id;
-  if(!m_pDevice->GetResourceManager()->HasLiveResource(id))
-    return ResourceId();
-  return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
 void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,

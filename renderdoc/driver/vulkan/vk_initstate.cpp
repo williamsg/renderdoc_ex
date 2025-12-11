@@ -1186,12 +1186,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
     if(IsReplayingAndReading())
     {
       WrappedVkRes *res = GetResourceManager()->GetLiveResource(id);
-      ResourceId liveid = GetResourceManager()->GetLiveID(id);
 
       VkDescriptorSet set = (VkDescriptorSet)(uint64_t)res;
 
-      const DescSetLayout &layout =
-          m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[liveid].layout];
+      const DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[id].layout];
 
       if(layout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT)
       {
@@ -1211,7 +1209,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           uint32_t descriptorCount = layoutBind.descriptorCount;
 
           if(layoutBind.variableSize)
-            descriptorCount = m_DescriptorSetState[liveid].data.variableDescriptorCount;
+            descriptorCount = m_DescriptorSetState[id].data.variableDescriptorCount;
 
           if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
           {
@@ -1270,7 +1268,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         uint32_t descriptorCount = layoutBind.descriptorCount;
 
         if(layoutBind.variableSize)
-          descriptorCount = m_DescriptorSetState[liveid].data.variableDescriptorCount;
+          descriptorCount = m_DescriptorSetState[id].data.variableDescriptorCount;
 
         if(descriptorCount == 0)
           continue;
@@ -1640,8 +1638,6 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
     // the end of the program, and store the buffer to copy off in Apply
     if(IsReplayingAndReading() && ContentsSize > 0)
     {
-      ResourceId liveid = GetResourceManager()->GetLiveID(id);
-
       if(type == eResDeviceMemory)
       {
         VkInitialContents initialContents(type, uploadMemory);
@@ -1668,7 +1664,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           }
         }
 
-        VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[liveid];
+        VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[id];
 
         // for non-MSAA images, we're done - we'll do buffer-to-image copies with appropriate
         // offsets to copy out the subresources into the image itself.
@@ -1792,10 +1788,8 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool)
   }
   else if(type == eResImage)
   {
-    ResourceId liveid = GetResourceManager()->GetLiveID(id);
-
     VkInitialContents::Tag tag = VkInitialContents::ClearColorImage;
-    LockedImageStateRef state = FindImageState(liveid);
+    LockedImageStateRef state = FindImageState(id);
     if(!state)
     {
       RDCERR("Couldn't find image info for %s", ToStr(id).c_str());

@@ -200,13 +200,6 @@ rdcarray<WindowingSystem> GLReplay::GetSupportedWindowSystems()
   return ret;
 }
 
-ResourceId GLReplay::GetLiveID(ResourceId id)
-{
-  if(!m_pDriver->GetResourceManager()->HasLiveResource(id))
-    return ResourceId();
-  return m_pDriver->GetResourceManager()->GetLiveID(id);
-}
-
 rdcarray<GPUDevice> GLReplay::GetAvailableGPUs()
 {
   // GL doesn't support multiple GPUs, return an empty list
@@ -811,8 +804,7 @@ rdcarray<rdcstr> GLReplay::GetDisassemblyTargets(bool withPipeline)
 rdcstr GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                    const rdcstr &target)
 {
-  ResourceId liveId = m_pDriver->GetResourceManager()->GetLiveID(refl->resourceId);
-  const WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->GetShader(liveId);
+  const WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->GetShader(refl->resourceId);
 
   if(shaderDetails.sources.empty() && shaderDetails.spirvWords.empty() &&
      shaderDetails.convertedSpirvWords.empty())
@@ -820,7 +812,7 @@ rdcstr GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *
 
   if(target == SPIRVDisassemblyTarget || target.empty())
   {
-    m_pDriver->GetWriteableShader(liveId).Disassemble(refl->entryPoint);
+    m_pDriver->GetWriteableShader(refl->resourceId).Disassemble(refl->entryPoint);
 
     return shaderDetails.disassembly;
   }

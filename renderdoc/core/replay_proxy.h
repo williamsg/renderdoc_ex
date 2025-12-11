@@ -66,7 +66,6 @@ enum ReplayProxyPacket
 
   eReplayProxy_SavePipelineState,
   eReplayProxy_GetUsage,
-  eReplayProxy_GetLiveID,
   eReplayProxy_GetFrameRecord,
   eReplayProxy_IsRenderOutput,
   eReplayProxy_NeedRemapForFetch,
@@ -499,8 +498,6 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(bool, IsRenderOutput, ResourceId id);
 
-  IMPLEMENT_FUNCTION_PROXIED(ResourceId, GetLiveID, ResourceId id);
-
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<GPUCounter>, EnumerateCounters);
   IMPLEMENT_FUNCTION_PROXIED(CounterDescription, DescribeCounter, GPUCounter counterID);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<CounterResult>, FetchCounters,
@@ -656,8 +653,6 @@ private:
   // this lists any textures which are only created locally (e.g. custom visualisation shaders) and
   // should not be treated as proxied.
   std::set<ResourceId> m_LocalTextures;
-
-  std::map<ResourceId, ResourceId> m_LiveIDs;
 
   struct ShaderReflKey
   {

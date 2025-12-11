@@ -123,7 +123,7 @@ public:
           m_SamplerDescriptors.append(replay->GetSamplerDescriptors(store, ranges));
         }
 
-        store = replay->GetLiveID(acc.descriptorStore);
+        store = acc.descriptorStore;
         ranges.clear();
       }
 
@@ -690,8 +690,7 @@ public:
       return true;
     }
 
-    WrappedOpenGL::TextureData &texDetails =
-        m_pDriver->m_Textures[m_pDriver->GetResourceManager()->GetLiveID(imageDescriptor.resource)];
+    WrappedOpenGL::TextureData &texDetails = m_pDriver->m_Textures[imageDescriptor.resource];
 
     SamplingProgramConfig config;
 
@@ -1684,9 +1683,8 @@ private:
 
       if(bufData.resource != ResourceId())
       {
-        m_pDriver->GetReplay()->GetBufferData(
-            m_pDriver->GetResourceManager()->GetLiveID(bufData.resource), bufData.byteOffset,
-            bufData.byteSize, data);
+        m_pDriver->GetReplay()->GetBufferData(bufData.resource, bufData.byteOffset,
+                                              bufData.byteSize, data);
       }
     }
 
@@ -1719,7 +1717,7 @@ private:
       if(imgData.type == DescriptorType::TypedBuffer ||
          imgData.type == DescriptorType::ReadWriteTypedBuffer)
       {
-        ResourceId buffer = m_pDriver->GetResourceManager()->GetLiveID(imgData.resource);
+        ResourceId buffer = imgData.resource;
         uint64_t offset = imgData.byteOffset;
         GLenum format = MakeGLFormat(imgData.format);
         uint64_t byteWidth = imgData.byteSize;
@@ -1734,13 +1732,11 @@ private:
 
         data.samplePitch = data.slicePitch = data.rowPitch = data.width * data.texelSize;
 
-        m_pDriver->GetReplay()->GetBufferData(
-            m_pDriver->GetResourceManager()->GetLiveID(imgData.resource), offset, data.rowPitch,
-            data.bytes);
+        m_pDriver->GetReplay()->GetBufferData(imgData.resource, offset, data.rowPitch, data.bytes);
       }
       else if(imgData.resource != ResourceId())
       {
-        ResourceId id = m_pDriver->GetResourceManager()->GetLiveID(imgData.resource);
+        ResourceId id = imgData.resource;
         const WrappedOpenGL::TextureData &texProps = m_pDriver->m_Textures[id];
 
         uint32_t mip = imgData.firstMip;

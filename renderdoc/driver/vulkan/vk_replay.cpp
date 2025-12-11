@@ -273,15 +273,6 @@ rdcarray<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
   return passEvents;
 }
 
-ResourceId VulkanReplay::GetLiveID(ResourceId id)
-{
-  if(m_pDriver->m_InlineBuffers.find(id) != m_pDriver->m_InlineBuffers.end())
-    return id;
-  if(!m_pDriver->GetResourceManager()->HasLiveResource(id))
-    return ResourceId();
-  return m_pDriver->GetResourceManager()->GetLiveID(id);
-}
-
 rdcarray<DebugMessage> VulkanReplay::GetDebugMessages()
 {
   return m_pDriver->GetDebugMessages();
@@ -562,8 +553,7 @@ void VulkanReplay::CachePipelineExecutables(ResourceId pipeline)
 rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                        const rdcstr &target)
 {
-  auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(
-      GetResourceManager()->GetLiveID(refl->resourceId));
+  auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(refl->resourceId);
 
   if(it == m_pDriver->m_CreationInfo.m_ShaderModule.end())
     return "; Invalid Shader Specified";
@@ -5431,7 +5421,7 @@ void VulkanReplay::RefreshDerivedReplacements()
 void VulkanReplay::ModifyReplacementIfShaderEXT(ResourceId from, ResourceId &to)
 {
   // identify whether the original resource is a shader object
-  ResourceId shaderId = GetLiveID(from);
+  ResourceId shaderId = from;
   auto shadObj = m_pDriver->m_CreationInfo.m_ShaderObject.find(shaderId);
 
   if(shaderId != ResourceId() && shadObj != m_pDriver->m_CreationInfo.m_ShaderObject.end())

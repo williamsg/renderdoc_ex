@@ -389,8 +389,6 @@ public:
   bool IsOutputWindowVisible(uint64_t id);
   void FlipOutputWindow(uint64_t id);
 
-  ResourceId GetLiveID(ResourceId id);
-
   rdcarray<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);

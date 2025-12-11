@@ -170,7 +170,7 @@ public:
           m_SamplerDescriptors.append(replay->GetSamplerDescriptors(store, ranges));
         }
 
-        store = replay->GetLiveID(acc.descriptorStore);
+        store = acc.descriptorStore;
         ranges.clear();
       }
 
@@ -2116,9 +2116,8 @@ private:
 
       if(bufData.resource != ResourceId())
       {
-        m_pDriver->GetReplay()->GetBufferData(
-            m_pDriver->GetResourceManager()->GetLiveID(bufData.resource), bufData.byteOffset,
-            bufData.byteSize, data);
+        m_pDriver->GetReplay()->GetBufferData(bufData.resource, bufData.byteOffset,
+                                              bufData.byteSize, data);
       }
     }
 
@@ -2160,7 +2159,7 @@ private:
         if(imgData.view == ResourceId())
         {
           // descriptor buffer, no buffer view
-          buffer = m_pDriver->GetResourceManager()->GetLiveID(imgData.resource);
+          buffer = imgData.resource;
           offset = imgData.byteOffset;
           format = MakeVkFormat(imgData.format);
           byteWidth = imgData.byteSize;
@@ -2168,7 +2167,7 @@ private:
         else
         {
           const VulkanCreationInfo::BufferView &viewProps =
-              m_Creation.GetBufferViewInfo(m_pDriver->GetResourceManager()->GetLiveID(imgData.view));
+              m_Creation.GetBufferViewInfo(imgData.view);
           buffer = viewProps.buffer;
           offset = viewProps.offset;
           format = viewProps.format;
@@ -2193,14 +2192,11 @@ private:
 
         data.samplePitch = data.slicePitch = data.rowPitch = data.width * data.texelSize;
 
-        m_pDriver->GetReplay()->GetBufferData(
-            m_pDriver->GetResourceManager()->GetLiveID(imgData.resource), offset, data.rowPitch,
-            data.bytes);
+        m_pDriver->GetReplay()->GetBufferData(imgData.resource, offset, data.rowPitch, data.bytes);
       }
       else if(imgData.view != ResourceId())
       {
-        const VulkanCreationInfo::ImageView &viewProps =
-            m_Creation.GetImageViewInfo(m_pDriver->GetResourceManager()->GetLiveID(imgData.view));
+        const VulkanCreationInfo::ImageView &viewProps = m_Creation.GetImageViewInfo(imgData.view);
         if(viewProps.image != ResourceId())
         {
           const VulkanCreationInfo::Image &imageProps = m_Creation.GetImageInfo(viewProps.image);

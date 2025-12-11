@@ -1775,8 +1775,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
       // propagate any name there might be
       if(m_CreationInfo.m_Names.find(CommandBuffer) != m_CreationInfo.m_Names.end())
-        m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(BakedCommandBuffer)] =
-            m_CreationInfo.m_Names[CommandBuffer];
+        m_CreationInfo.m_Names[BakedCommandBuffer] = m_CreationInfo.m_Names[CommandBuffer];
 
       {
         VulkanActionTreeNode *action = new VulkanActionTreeNode;
@@ -3416,13 +3415,13 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        ResourceId liveid = GetResID(pipeline);
+        ResourceId id = GetResID(pipeline);
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
           if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
           {
-            renderstate.compute.pipeline = liveid;
+            renderstate.compute.pipeline = id;
             renderstate.compute.shaderObject = false;
 
             // disturb compute shader bound via vkCmdBindShadersEXT, if any
@@ -3430,11 +3429,11 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
           }
           else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
           {
-            renderstate.rt.pipeline = liveid;
+            renderstate.rt.pipeline = id;
           }
           else
           {
-            renderstate.graphics.pipeline = liveid;
+            renderstate.graphics.pipeline = id;
             renderstate.graphics.shaderObject = false;
 
             // disturb graphics shaders bound via vkCmdBindShadersEXT, if any
@@ -3445,7 +3444,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
               renderstate.shaderObjects[i] = ResourceId();
             }
 
-            const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[liveid];
+            const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[id];
 
             // any static state from the pipeline invalidates any dynamic state previously bound
             for(uint32_t i = 0; i < VkDynamicCount; i++)
@@ -3754,25 +3753,25 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
     }
     else
     {
-      ResourceId liveid = GetResID(pipeline);
+      ResourceId id = GetResID(pipeline);
 
       // track while reading, as we need to bind current topology & index byte width in AddAction
       if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
       {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = liveid;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = id;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.shaderObject = false;
       }
       else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
       {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.rt.pipeline = liveid;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.rt.pipeline = id;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.rt.shaderObject = false;
       }
       else
       {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = liveid;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = id;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.shaderObject = false;
 
-        const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[liveid];
+        const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[id];
 
         if(!pipeInfo.dynamicStates[VkDynamicPrimitiveTopology])
         {

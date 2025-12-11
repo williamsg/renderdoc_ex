@@ -720,11 +720,7 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
     uint32_t arrayIdx = slot - writes.back().dstArrayElement;
 
     ResourceId resId = slots[slot].resource;
-    if(rm->HasLiveResource(resId))
-      resId = rm->GetLiveID(resId);
     ResourceId sampId = slots[slot].sampler;
-    if(rm->HasLiveResource(sampId))
-      sampId = rm->GetLiveID(sampId);
 
     switch(descType)
     {

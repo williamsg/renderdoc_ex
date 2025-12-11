@@ -4686,8 +4686,7 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
     {
       AddEvent();
 
-      ResourceId liveId = GetResourceManager()->GetResID(texture);
-      ResourceId id = liveId;
+      ResourceId id = GetResourceManager()->GetResID(texture);
 
       ActionDescription action;
       action.flags |= ActionFlags::Clear;
@@ -4701,7 +4700,7 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
 
       AddAction(action);
 
-      m_ResourceUses[liveId].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
   }
 
@@ -4835,8 +4834,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
     {
       AddEvent();
 
-      ResourceId liveId = GetResourceManager()->GetResID(texture);
-      ResourceId id = liveId;
+      ResourceId id = GetResourceManager()->GetResID(texture);
 
       ActionDescription action;
       action.flags |= ActionFlags::Clear;
@@ -4850,7 +4848,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
 
       AddAction(action);
 
-      m_ResourceUses[liveId].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
   }
 

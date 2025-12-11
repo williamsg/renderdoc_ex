@@ -216,11 +216,6 @@ void DummyDriver::InitPostVSBuffers(const rdcarray<uint32_t> &passEvents)
 {
 }
 
-ResourceId DummyDriver::GetLiveID(ResourceId id)
-{
-  return id;
-}
-
 MeshFormat DummyDriver::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
                                          MeshDataStage stage)
 {
