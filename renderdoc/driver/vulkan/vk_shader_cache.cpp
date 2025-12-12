@@ -459,10 +459,6 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
       {
         m_pDriver->GetResourceManager()->AddResourceRecord(m_PipelineCache);
       }
-      else
-      {
-        m_pDriver->GetResourceManager()->AddLiveResource(id, m_PipelineCache);
-      }
     }
   }
 

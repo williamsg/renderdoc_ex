@@ -702,9 +702,6 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     m_DescriptorsID = GetResourceManager()->RegisterResource(
         ResourceId(), GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
 
-    GetResourceManager()->TakeResourceOwnership(
-        GLResource(NULL, eResSpecial, eSpecialResDescriptorStorage));
-
     AddResource(m_DescriptorsID, ResourceType::DescriptorStore, "");
     GetReplay()->GetResourceDesc(m_DescriptorsID).SetCustomName("Context Bindings");
     GetReplay()->GetResourceDesc(m_DescriptorsID).initialisationChunks.clear();
@@ -887,7 +884,6 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   if(params.depthBits > 0 || params.stencilBits > 0)
     drv.glClearBufferfi(eGL_DEPTH_STENCIL, 0, 1.0f, 0);
 
-  GetResourceManager()->TakeResourceOwnership(FramebufferRes(GetCtx(), fbo));
   AddResource(fboId, ResourceType::SwapchainImage, "");
   GetReplay()->GetResourceDesc(fboId).SetCustomName(bbname + " FBO");
 
@@ -1715,8 +1711,6 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
       shadDetails.sources = shaderSources;
 
       shadDetails.ProcessCompilation(*this, targetId, 0);
-
-      GetResourceManager()->TakeResourceOwnership(toresource);
 
       // finally since programs have state (sigh) we have to copy that across as well.
       GLuint progsrc = fromresource.name;
@@ -3650,10 +3644,8 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
           GL.glGenVertexArrays(1, &m_Global_VAO0);
 
           GetResourceManager()->RegisterResource(vao, VertexArrayRes(GetCtx(), m_Global_VAO0));
-          GetResourceManager()->TakeResourceOwnership(VertexArrayRes(GetCtx(), m_Global_VAO0));
 
           glBindVertexArray(m_Global_VAO0);
-          GetResourceManager()->TakeResourceOwnership(VertexArrayRes(GetCtx(), m_Global_VAO0));
           AddResource(vao, ResourceType::StateObject, "Vertex Array");
           GetReplay()->GetResourceDesc(vao).SetCustomName("Default VAO");
 

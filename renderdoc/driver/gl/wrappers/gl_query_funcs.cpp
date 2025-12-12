@@ -78,8 +78,6 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
 
     GLResource res = SyncRes(GetCtx(), name);
 
-    GetResourceManager()->TakeResourceOwnership(res);
-
     AddResource(sync, ResourceType::Sync, "Sync");
   }
 
@@ -108,10 +106,6 @@ GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
     }
 
     GetContextRecord()->AddChunk(chunk);
-  }
-  else
-  {
-    GetResourceManager()->TakeResourceOwnership(res);
   }
 
   return sync;
@@ -213,7 +207,6 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
     GLResource res = QueryRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(query, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(query, ResourceType::Query, "Query");
   }
@@ -247,10 +240,6 @@ void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
 
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
-    }
   }
 }
 
@@ -273,7 +262,6 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
     GLResource res = QueryRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(query, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(query, ResourceType::Query, "Query");
   }
@@ -306,10 +294,6 @@ void WrappedOpenGL::glCreateQueries(GLenum target, GLsizei count, GLuint *ids)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }

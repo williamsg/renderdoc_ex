@@ -560,7 +560,6 @@ bool WrappedOpenGL::Serialise_glCreateMemoryObjectsEXT(SerialiserType &ser, GLsi
     GLResource res = ExtMemRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(memory, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(memory, ResourceType::Memory, "Memory Object");
   }
@@ -593,10 +592,6 @@ void WrappedOpenGL::glCreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -835,7 +830,6 @@ bool WrappedOpenGL::Serialise_glGenSemaphoresEXT(SerialiserType &ser, GLsizei n,
     GLResource res = ExtSemRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(semaphore, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(semaphore, ResourceType::Sync, "Semaphore");
   }
@@ -868,10 +862,6 @@ void WrappedOpenGL::glGenSemaphoresEXT(GLsizei n, GLuint *semaphores)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }

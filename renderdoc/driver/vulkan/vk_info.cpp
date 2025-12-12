@@ -2985,9 +2985,6 @@ void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
 
   ResourceId poolid = resourceMan->WrapResource(ResourceId(), Unwrap(device), pool);
 
-  // register as a live-only resource, so it is cleaned up properly
-  resourceMan->AddLiveResource(poolid, pool);
-
   overflow.push_back(pool);
 }
 

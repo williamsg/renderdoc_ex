@@ -165,10 +165,6 @@ VkResult WrappedVulkan::vkRegisterDeviceEventEXT(VkDevice device,
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFence);
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pFence);
-    }
   }
 
   return ret;
@@ -210,10 +206,6 @@ VkResult WrappedVulkan::vkRegisterDisplayEventEXT(VkDevice device, VkDisplayKHR 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFence);
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pFence);
-    }
   }
 
   return ret;
@@ -251,8 +243,6 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
 
     RDCASSERT(SwapchainImageIndex < swapInfo.images.size(), SwapchainImageIndex,
               swapInfo.images.size());
-    GetResourceManager()->AddLiveResource(SwapchainImage,
-                                          swapInfo.images[SwapchainImageIndex].userSwapImage);
 
     AddResource(SwapchainImage, ResourceType::SwapchainImage, "Swapchain Image");
     DerivedResource(device, SwapchainImage);
@@ -567,8 +557,6 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
         }
 
         memid = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), mem);
-        // register as a live-only resource, so it is cleaned up properly
-        GetResourceManager()->AddLiveResource(memid, mem);
       }
 
       vkr = ObjDisp(device)->BindImageMemory(Unwrap(device), ims[i], Unwrap(mem), imageMemOffsets[i]);
@@ -887,10 +875,6 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
         }
       }
     }
-  }
-  else
-  {
-    GetResourceManager()->AddLiveResource(id, *pSwapChain);
   }
 }
 

@@ -51,7 +51,6 @@ bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLui
     GLResource res = SamplerRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(sampler, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(sampler, ResourceType::Sampler, "Sampler");
   }
@@ -85,10 +84,6 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
-    }
   }
 }
 
@@ -109,7 +104,6 @@ bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, G
     GLResource res = SamplerRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(sampler, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(sampler, ResourceType::Sampler, "Sampler");
   }
@@ -142,10 +136,6 @@ void WrappedOpenGL::glCreateSamplers(GLsizei count, GLuint *samplers)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }

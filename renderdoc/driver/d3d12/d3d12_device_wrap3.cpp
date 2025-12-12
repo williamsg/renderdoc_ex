@@ -81,10 +81,6 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
 
       record->AddChunk(scope.Get());
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
-    }
 
     *ppvHeap = (ID3D12Heap *)wrapped;
   }
@@ -149,10 +145,6 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;

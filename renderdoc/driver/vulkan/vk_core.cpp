@@ -3591,7 +3591,6 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
 
           ResourceId id = ResourceIDGen::GetNewUniqueID();
           GetResourceManager()->WrapResource(id, Unwrap(m_Device), m_Queue);
-          GetResourceManager()->AddLiveResource(id, m_Queue);
 
           m_ExternalQueues[m_QueueFamilyIdx].queue = m_Queue;
         }
@@ -4045,7 +4044,6 @@ void WrappedVulkan::ApplyInitialContents()
 
     ResourceId id = ResourceIDGen::GetNewUniqueID();
     GetResourceManager()->WrapResource(id, Unwrap(m_Device), queue);
-    GetResourceManager()->AddLiveResource(id, queue);
 
     m_ExternalQueues[i].queue = queue;
   }

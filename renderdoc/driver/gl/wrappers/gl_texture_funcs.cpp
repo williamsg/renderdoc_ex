@@ -103,7 +103,6 @@ bool WrappedOpenGL::Serialise_glGenTextures(SerialiserType &ser, GLsizei n, GLui
     GLResource res = TextureRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(texture, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(texture, ResourceType::Texture, "Texture");
 
@@ -142,7 +141,6 @@ void WrappedOpenGL::glGenTextures(GLsizei n, GLuint *textures)
     }
     else
     {
-      GetResourceManager()->TakeResourceOwnership(res);
       m_Textures[id].resource = res;
       m_Textures[id].curType = eGL_NONE;
     }
@@ -168,7 +166,6 @@ bool WrappedOpenGL::Serialise_glCreateTextures(SerialiserType &ser, GLenum targe
     GLResource res = TextureRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(texture, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(texture, ResourceType::Texture, "Texture");
 
@@ -212,7 +209,6 @@ void WrappedOpenGL::glCreateTextures(GLenum target, GLsizei n, GLuint *textures)
     }
     else
     {
-      GetResourceManager()->TakeResourceOwnership(res);
       m_Textures[id].resource = res;
       m_Textures[id].curType = TextureTarget(target);
       m_Textures[id].creationFlags |= TextureCategory::ShaderRead;

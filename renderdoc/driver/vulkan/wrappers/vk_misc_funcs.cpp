@@ -734,7 +734,6 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
       else
       {
         live = GetResourceManager()->WrapResource(Sampler, Unwrap(device), samp);
-        GetResourceManager()->AddLiveResource(Sampler, samp);
 
         m_CreationInfo.m_Sampler[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
@@ -853,8 +852,6 @@ VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateIn
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pSampler);
-
       m_CreationInfo.m_Sampler[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
   }
@@ -953,7 +950,6 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
       else
       {
         live = GetResourceManager()->WrapResource(Framebuffer, Unwrap(device), fb);
-        GetResourceManager()->AddLiveResource(Framebuffer, fb);
 
         NameVulkanObject(fb, StringFormat::Fmt("Framebuffer %s", ToStr(Framebuffer).c_str()));
 
@@ -988,9 +984,6 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
           {
             ResourceId loadFBid =
                 GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), fbinfo.loadFBs[s]);
-
-            // register as a live-only resource, so it is cleaned up properly
-            GetResourceManager()->AddLiveResource(loadFBid, fbinfo.loadFBs[s]);
 
             NameVulkanObject(fbinfo.loadFBs[s], StringFormat::Fmt("Framebuffer %s loadFB %d",
                                                                   ToStr(Framebuffer).c_str(), s));
@@ -1127,8 +1120,6 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pFramebuffer);
-
       VulkanCreationInfo::Framebuffer fbinfo;
       fbinfo.Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
 
@@ -1148,9 +1139,6 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
 
         ResourceId loadFBid =
             GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), fbinfo.loadFBs[s]);
-
-        // register as a live-only resource, so it is cleaned up properly
-        GetResourceManager()->AddLiveResource(loadFBid, fbinfo.loadFBs[s]);
       }
 
       m_CreationInfo.m_Framebuffer[id] = fbinfo;
@@ -1251,7 +1239,6 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
       else
       {
         live = GetResourceManager()->WrapResource(RenderPass, Unwrap(device), rp);
-        GetResourceManager()->AddLiveResource(RenderPass, rp);
 
         bool badIndirectArgDep = false;
 
@@ -1330,9 +1317,6 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
           {
             ResourceId loadRPid =
                 GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), rpinfo.loadRPs[s]);
-
-            // register as a live-only resource, so it is cleaned up properly
-            GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRPs[s]);
           }
         }
 
@@ -1396,8 +1380,6 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pRenderPass);
-
       VulkanCreationInfo::RenderPass rpinfo;
       rpinfo.Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
 
@@ -1443,9 +1425,6 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
 
         ResourceId loadRPid =
             GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), rpinfo.loadRPs[s]);
-
-        // register as a live-only resource, so it is cleaned up properly
-        GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRPs[s]);
       }
 
       m_CreationInfo.m_RenderPass[id] = rpinfo;
@@ -1559,7 +1538,6 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
       else
       {
         live = GetResourceManager()->WrapResource(RenderPass, Unwrap(device), rp);
-        GetResourceManager()->AddLiveResource(RenderPass, rp);
 
         // make a version of the render pass that loads from its attachments,
         // so it can be used for replaying a single draw after a render pass
@@ -1608,9 +1586,6 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
           {
             ResourceId loadRPid =
                 GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), rpinfo.loadRPs[s]);
-
-            // register as a live-only resource, so it is cleaned up properly
-            GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRPs[s]);
           }
         }
 
@@ -1675,8 +1650,6 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pRenderPass);
-
       VulkanCreationInfo::RenderPass rpinfo;
       rpinfo.Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
 
@@ -1722,9 +1695,6 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
 
         ResourceId loadRPid =
             GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), rpinfo.loadRPs[s]);
-
-        // register as a live-only resource, so it is cleaned up properly
-        GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRPs[s]);
       }
 
       m_CreationInfo.m_RenderPass[id] = rpinfo;
@@ -1770,7 +1740,6 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(QueryPool, Unwrap(device), pool);
-      GetResourceManager()->AddLiveResource(QueryPool, pool);
 
       m_CreationInfo.m_QueryPool[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
 
@@ -1876,10 +1845,6 @@ VkResult WrappedVulkan::vkCreateQueryPool(VkDevice device, const VkQueryPoolCrea
       }
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pQueryPool);
     }
   }
 
@@ -2303,7 +2268,6 @@ bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversion(
       else
       {
         live = GetResourceManager()->WrapResource(ycbcrConversion, Unwrap(device), conv);
-        GetResourceManager()->AddLiveResource(ycbcrConversion, conv);
 
         m_CreationInfo.m_YCbCrSampler[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
@@ -2344,10 +2308,6 @@ VkResult WrappedVulkan::vkCreateSamplerYcbcrConversion(
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pYcbcrConversion);
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pYcbcrConversion);
     }
   }
 

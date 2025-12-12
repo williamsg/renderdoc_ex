@@ -558,8 +558,6 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ResourceId id, ID3D12Comman
 
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
-  SAFE_DELETE(m_ReplayList);
-
   SAFE_DELETE(m_FrameReader);
 
   SAFE_RELEASE(m_RayFence);

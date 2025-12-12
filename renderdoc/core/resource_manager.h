@@ -632,9 +632,6 @@ public:
   ///////////////////////////////////////////
   // Replay-side methods
 
-  // resources which are owned by the resource manager and so automatically released on shutdown
-  void TakeResourceOwnership(WrappedResourceType res);
-
   // when asked for a given id, return the resource for a replacement id
   void ReplaceResource(ResourceId from, ResourceId to);
   bool HasReplacement(ResourceId from);
@@ -744,9 +741,6 @@ protected:
   // capture and replay.
   std::unordered_map<ResourceId, WrappedResourceType> m_ResourceMap;
 
-  // used during replay - holds resources allocated for replay which should be automatically destroyed on shutdown
-  rdcarray<WrappedResourceType> m_OwnedResources;
-
   // used during capture - holds resource records by id.
   std::unordered_map<ResourceId, RecordType *> m_ResourceRecords;
   Threading::RWLock m_ResourceRecordLock;
@@ -809,13 +803,18 @@ void ResourceManager<Configuration>::Shutdown()
 {
   FreeInitialContents();
 
-  while(!m_OwnedResources.empty())
+  if(!m_Capturing)
   {
-    WrappedResourceType it = m_OwnedResources.back();
-    ResourceTypeRelease(it);
+    while(!m_ResourceMap.empty())
+    {
+      auto it = m_ResourceMap.begin();
+      ResourceId id = it->first;
+      ResourceTypeRelease(it->second);
 
-    if(it == m_OwnedResources.back())
-      m_OwnedResources.pop_back();
+      auto removeit = m_ResourceMap.find(id);
+      if(removeit != m_ResourceMap.end())
+        m_ResourceMap.erase(removeit);
+    }
   }
 
   RDCASSERT(m_ResourceRecords.empty());
@@ -824,7 +823,7 @@ void ResourceManager<Configuration>::Shutdown()
 template <typename Configuration>
 ResourceManager<Configuration>::~ResourceManager()
 {
-  RDCASSERT(m_OwnedResources.empty());
+  RDCASSERT(m_ResourceMap.empty());
   RDCASSERT(m_InitialContents.empty());
   RDCASSERT(m_ResourceRecords.empty());
 
@@ -1830,14 +1829,6 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetW
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::TakeResourceOwnership(WrappedResourceType res)
-{
-  RDCASSERT(!m_Capturing);
-
-  m_OwnedResources.push_back(res);
-}
-
-template <typename Configuration>
 typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetResource(ResourceId id,
                                                                                         bool optional)
 {
@@ -1900,12 +1891,7 @@ void ResourceManager<Configuration>::ReleaseResource(ResourceId id)
   if(IsActiveCapturing(m_State))
     Prepare_InitialStateIfPostponed(id, true);
 
-  {
-    auto it = m_ResourceMap.find(id);
-    m_OwnedResources.removeOne(it->second);
-    m_ResourceMap.erase(it);
-  }
-
+  m_ResourceMap.erase(id);
   m_DirtyResources.erase(id);
 
   auto it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);

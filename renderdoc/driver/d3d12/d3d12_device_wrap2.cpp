@@ -273,7 +273,6 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
           .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
       m_GlobalEXTUAV = ~0U;
     }
-    GetResourceManager()->TakeResourceOwnership(wrapped);
   }
 
   return true;
@@ -366,8 +365,6 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
     }
     else
     {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
-
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *storedDesc =
           new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(expandedDesc);
 

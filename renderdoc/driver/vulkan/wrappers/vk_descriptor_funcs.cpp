@@ -1668,7 +1668,6 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(DescriptorPool, Unwrap(device), pool);
-      GetResourceManager()->AddLiveResource(DescriptorPool, pool);
 
       m_CreationInfo.m_DescSetPool[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
     }
@@ -1711,10 +1710,6 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(VkDevice device,
       record->AddChunk(chunk);
 
       record->descPoolInfo = new DescPoolInfo;
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pDescriptorPool);
     }
   }
 
@@ -1791,7 +1786,6 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
       else
       {
         live = GetResourceManager()->WrapResource(SetLayout, Unwrap(device), layout);
-        GetResourceManager()->AddLiveResource(SetLayout, layout);
 
         m_CreationInfo.m_DescSetLayout[live].Init(GetResourceManager(), m_CreationInfo, live,
                                                   &CreateInfo);
@@ -1900,8 +1894,6 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(VkDevice device,
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pSetLayout);
-
       m_CreationInfo.m_DescSetLayout[id].Init(GetResourceManager(), m_CreationInfo, id, pCreateInfo);
     }
   }
@@ -1977,7 +1969,6 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
 
     {
       ResourceId live = GetResourceManager()->WrapResource(DescriptorSet, Unwrap(device), descset);
-      GetResourceManager()->AddLiveResource(DescriptorSet, descset);
 
       // this is stored in the resource record on capture, we need to be able to look to up
       m_DescriptorSetState[live].layout = layoutId;
@@ -2173,8 +2164,6 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, pDescriptorSets[i]);
-
       m_DescriptorSetState[id].layout = GetResID(pAllocateInfo->pSetLayouts[i]);
     }
   }
@@ -3039,7 +3028,6 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplate(
     {
       ResourceId live =
           GetResourceManager()->WrapResource(DescriptorUpdateTemplate, Unwrap(device), templ);
-      GetResourceManager()->AddLiveResource(DescriptorUpdateTemplate, templ);
 
       m_CreationInfo.m_DescUpdateTemplate[live].Init(GetResourceManager(), m_CreationInfo,
                                                      &CreateInfo);
@@ -3097,8 +3085,6 @@ VkResult WrappedVulkan::vkCreateDescriptorUpdateTemplate(
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pDescriptorUpdateTemplate);
-
       m_CreationInfo.m_DescUpdateTemplate[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
   }

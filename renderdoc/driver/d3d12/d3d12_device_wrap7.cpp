@@ -200,7 +200,6 @@ bool WrappedID3D12Device::Serialise_AddToStateObject(SerialiserType &ser,
           .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
       m_GlobalEXTUAV = ~0U;
     }
-    GetResourceManager()->TakeResourceOwnership(wrapped);
   }
 
   return true;
@@ -286,10 +285,6 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
       if(vendorChunk)
         record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppNewStateObject = (ID3D12StateObject *)wrapped;

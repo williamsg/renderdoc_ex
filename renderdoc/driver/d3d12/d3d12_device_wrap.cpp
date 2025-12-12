@@ -118,8 +118,6 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
 
       ret = new WrappedID3D12CommandQueue(pCommandQueue, ret, this, m_State);
 
-      GetResourceManager()->TakeResourceOwnership(ret);
-
       AddResource(pCommandQueue, ResourceType::Queue, "Command Queue");
 
       WrappedID3D12CommandQueue *wrapped = (WrappedID3D12CommandQueue *)ret;
@@ -174,10 +172,6 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
       Serialise_CreateCommandQueue(ser, pDesc, riid, (void **)&wrapped);
 
       wrapped->GetCreationRecord()->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)
@@ -251,8 +245,6 @@ bool WrappedID3D12Device::Serialise_CreateCommandAllocator(SerialiserType &ser,
 
       m_CommandAllocators.push_back(ret);
 
-      GetResourceManager()->TakeResourceOwnership(ret);
-
       AddResource(pCommandAllocator, ResourceType::Pool, "Command Allocator");
     }
   }
@@ -296,10 +288,6 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
       record->cmdInfo->alloc = new ChunkAllocator(*record->cmdInfo->allocPool);
 
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppCommandAllocator = (ID3D12CommandAllocator *)wrapped;
@@ -353,8 +341,6 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
     {
       // close it immediately, we don't want to tie up the allocator
       list->Close();
-
-      GetResourceManager()->TakeResourceOwnership(list);
     }
 
     AddResource(pCommandList, ResourceType::CommandBuffer, "Command List");
@@ -454,7 +440,7 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
         wrapped->GetCreationRecord()->AddParent(GetRecord(pInitialState));
     }
 
-    // during replay, the caller is responsible for calling AddLiveResource as this function
+    // during replay, the caller is responsible for calling AddResource as this function
     // can be called from ID3D12GraphicsCommandList::Reset serialising
 
     if(riid == __uuidof(ID3D12GraphicsCommandList))
@@ -680,7 +666,6 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
           .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
       m_GlobalEXTUAV = ~0U;
     }
-    GetResourceManager()->TakeResourceOwnership(wrapped);
   }
 
   return true;
@@ -742,8 +727,6 @@ void WrappedID3D12Device::ProcessCreatedGraphicsPSO(ID3D12PipelineState *real,
   }
   else
   {
-    GetResourceManager()->TakeResourceOwnership(wrapped);
-
     wrapped->graphics = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc);
 
     D3D12_SHADER_BYTECODE *shaders[] = {
@@ -942,7 +925,6 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
           .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
       m_GlobalEXTUAV = ~0U;
     }
-    GetResourceManager()->TakeResourceOwnership(wrapped);
   }
 
   return true;
@@ -996,8 +978,6 @@ void WrappedID3D12Device::ProcessCreatedComputePSO(ID3D12PipelineState *real, ui
   }
   else
   {
-    GetResourceManager()->TakeResourceOwnership(wrapped);
-
     wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc);
 
     WrappedID3D12Shader *sh =
@@ -1117,8 +1097,6 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
 
       ret = wrapped;
 
-      GetResourceManager()->TakeResourceOwnership(ret);
-
       AddResource(pHeap, ResourceType::DescriptorStore, "Descriptor Heap");
 
       DescriptorStoreDescription desc;
@@ -1168,10 +1146,6 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
 
       GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
-    }
 
     *ppvHeap = (ID3D12DescriptorHeap *)wrapped;
   }
@@ -1220,14 +1194,10 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
         ret->Release();
         ret = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
-
-        GetResourceManager()->TakeResourceOwnership(ret);
       }
       else
       {
         ret = new WrappedID3D12RootSignature(pRootSignature, ret, this);
-
-        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
@@ -1680,8 +1650,6 @@ bool WrappedID3D12Device::Serialise_CreateHeap(SerialiserType &ser, const D3D12_
     else
     {
       ret = new WrappedID3D12Heap(pHeap, ret, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pHeap, ResourceType::Memory, "Heap");
@@ -1730,10 +1698,6 @@ HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID rii
 
       record->AddChunk(scope.Get());
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
-    }
 
     *ppvHeap = (ID3D12Heap *)wrapped;
   }
@@ -1777,8 +1741,6 @@ bool WrappedID3D12Device::Serialise_CreateFence(SerialiserType &ser, UINT64 Init
     else
     {
       ret = new WrappedID3D12Fence(pFence, ret, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pFence, ResourceType::Sync, "Fence");
@@ -1825,10 +1787,6 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
 
       record->AddChunk(scope.Get());
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
-    }
 
     if(riid == __uuidof(ID3D12Fence))
       *ppFence = (ID3D12Fence *)wrapped;
@@ -1869,8 +1827,6 @@ bool WrappedID3D12Device::Serialise_CreateQueryHeap(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D12QueryHeap(pQueryHeap, ret, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pQueryHeap, ResourceType::Query, "Query Heap");
@@ -1909,10 +1865,6 @@ HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc,
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppvHeap = (ID3D12QueryHeap *)wrapped;
@@ -1958,8 +1910,6 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
           new WrappedID3D12CommandSignature(pCommandSignature, ret, this, Descriptor);
 
       ret = wrapped;
-
-      GetResourceManager()->TakeResourceOwnership(ret);
 
       AddResource(pCommandSignature, ResourceType::ShaderBinding, "Command Signature");
       if(pRootSignature)
@@ -2020,10 +1970,6 @@ HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATUR
       if(pRootSignature)
         record->AddParent(GetRecord(pRootSignature));
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     if(pDesc->pArgumentDescs[pDesc->NumArgumentDescs - 1].Type ==

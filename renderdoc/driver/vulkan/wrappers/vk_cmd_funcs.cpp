@@ -1236,7 +1236,6 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(CmdPool, Unwrap(device), pool);
-      GetResourceManager()->AddLiveResource(CmdPool, pool);
     }
 
     AddResource(CmdPool, ResourceType::Pool, "Command Pool");
@@ -1279,10 +1278,6 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
       record->cmdPoolInfo = new CmdPoolInfo;
       record->cmdPoolInfo->queueFamilyIndex = pCreateInfo->queueFamilyIndex;
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pCmdPool);
     }
   }
 
@@ -1355,7 +1350,6 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(CommandBuffer, Unwrap(device), cmd);
-      GetResourceManager()->AddLiveResource(CommandBuffer, cmd);
       ResourceId poolId = GetResID(AllocateInfo.commandPool);
       auto cmdQueueFamilyIt = m_commandQueueFamilies.find(poolId);
       if(cmdQueueFamilyIt == m_commandQueueFamilies.end())
@@ -1466,10 +1460,6 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         record->cmdInfo->beginCapture = false;
         record->cmdInfo->endCapture = false;
       }
-      else
-      {
-        GetResourceManager()->AddLiveResource(id, pCommandBuffers[i]);
-      }
     }
   }
 
@@ -1534,7 +1524,6 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           VkDescriptorSet descset = MakeFakePushDescSet();
           ResourceId id = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), descset);
           m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[p][i] = id;
-          GetResourceManager()->AddLiveResource(id, descset);
         }
       }
     }
@@ -1663,7 +1652,6 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         else
         {
           GetResourceManager()->WrapResource(BakedCommandBuffer, Unwrap(device), cmd);
-          GetResourceManager()->AddLiveResource(BakedCommandBuffer, cmd);
         }
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
@@ -1745,7 +1733,6 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         {
           ResourceId live =
               GetResourceManager()->WrapResource(BakedCommandBuffer, Unwrap(device), cmd);
-          GetResourceManager()->AddLiveResource(BakedCommandBuffer, cmd);
         }
 
         AddResource(BakedCommandBuffer, ResourceType::CommandBuffer, "Baked Command Buffer");

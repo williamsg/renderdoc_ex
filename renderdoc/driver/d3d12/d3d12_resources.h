@@ -889,8 +889,6 @@ public:
       m_DXBCFile = NULL;
       m_Details = new ShaderReflection;
 
-      device->GetResourceManager()->TakeResourceOwnership(this);
-
       if(!m_InternalResources)
       {
         device->AddResource(GetResourceID(), ResourceType::Shader, "Shader");

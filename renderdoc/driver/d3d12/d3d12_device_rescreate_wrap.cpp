@@ -261,8 +261,6 @@ bool WrappedID3D12Device::Serialise_CreateResource(
     default: break;
   }
 
-  GetResourceManager()->TakeResourceOwnership(ret);
-
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     m_ModResources.insert(GetResID(ret));
 
@@ -618,10 +616,6 @@ HRESULT WrappedID3D12Device::CreateResource(
       GetResourceManager()->AddPlacedResource(wrapped->GetResourceID(), GetResID(pHeap));
     }
   }
-  else
-  {
-    GetResourceManager()->TakeResourceOwnership(wrapped);
-  }
 
   {
     SCOPED_LOCK(m_ResourceStatesLock);
@@ -826,8 +820,6 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       else
       {
         ret = new WrappedID3D12Fence(resourceId, ret, this);
-
-        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       AddResource(resourceId, ResourceType::Sync, "Fence");
@@ -898,8 +890,6 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       else
       {
         ret = new WrappedID3D12Heap(resourceId, ret, this);
-
-        GetResourceManager()->TakeResourceOwnership(ret);
       }
 
       AddResource(resourceId, ResourceType::Memory, "Heap");

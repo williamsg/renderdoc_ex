@@ -493,14 +493,8 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
   // we'll add the chunk later when we re-process it.
   if(params.InstanceID != ResourceId())
   {
-    GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
-
     AddResource(params.InstanceID, ResourceType::Device, "Instance");
     GetReplay()->GetResourceDesc(params.InstanceID).initialisationChunks.clear();
-  }
-  else
-  {
-    GetResourceManager()->AddLiveResource(GetResID(m_Instance), m_Instance);
   }
 
   InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
@@ -1451,6 +1445,10 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
 
     pd = m_ReplayPhysicalDevices[bestIdx];
 
+    // we want to preserve the separate physical devices until we actually need the real handle,
+    // so don't remap multiple capture-time physical devices to one replay-time physical device
+    // yet. See below in Serialise_vkCreateDevice where this is decoded.
+    // Note this allocation is pooled so we don't have to explicitly delete it.
     {
       VkPhysicalDevice fakeDevice = MakePhysicalDeviceHandleFromIndex(PhysicalDeviceIndex);
 
@@ -1462,12 +1460,6 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
         GetResourceManager()->AddWrapper(wrapped, ToTypedHandle(fakeDevice));
 
       fakeDevice = (VkPhysicalDevice)wrapped;
-
-      // we want to preserve the separate physical devices until we actually need the real handle,
-      // so don't remap multiple capture-time physical devices to one replay-time physical device
-      // yet. See below in Serialise_vkCreateDevice where this is decoded.
-      // Note this allocation is pooled so we don't have to explicitly delete it.
-      GetResourceManager()->AddLiveResource(PhysicalDevice, fakeDevice);
     }
 
     AddResource(PhysicalDevice, ResourceType::Device, "Physical Device");
@@ -4230,7 +4222,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     }
 
     GetResourceManager()->WrapResource(Device, device, device);
-    GetResourceManager()->AddLiveResource(Device, device);
 
     AddResource(Device, ResourceType::Device, "Device");
     DerivedResource(origPhysDevice, Device);
@@ -5007,10 +4998,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       m_EnabledExtensions = *record->instDevInfo;
 
       InitDeviceExtensionTables(*pDevice, record->instDevInfo);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pDevice);
     }
 
     VkDevice device = *pDevice;

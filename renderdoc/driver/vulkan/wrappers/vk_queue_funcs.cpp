@@ -65,7 +65,6 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
     else
     {
       GetResourceManager()->WrapResource(Queue, Unwrap(device), queue);
-      GetResourceManager()->AddLiveResource(Queue, queue);
     }
 
     if(remapFamily == m_QueueFamilyIdx && m_Queue == VK_NULL_HANDLE)
@@ -2247,7 +2246,6 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice de
     ObjDisp(device)->GetDeviceQueue2(Unwrap(device), &QueueInfo, &queue);
 
     GetResourceManager()->WrapResource(Queue, Unwrap(device), queue);
-    GetResourceManager()->AddLiveResource(Queue, queue);
 
     if(remapFamily == m_QueueFamilyIdx && m_Queue == VK_NULL_HANDLE)
     {

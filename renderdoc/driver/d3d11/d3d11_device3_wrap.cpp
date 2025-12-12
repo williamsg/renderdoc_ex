@@ -97,8 +97,6 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Texture2D1(pTexture, (ID3D11Texture2D1 *)ret, this, dispType);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     const char *prefix = Descriptor.ArraySize > 1 ? "2D TextureArray" : "2D Texture";
@@ -162,10 +160,6 @@ HRESULT WrappedID3D11Device::CreateTexture2D1(const D3D11_TEXTURE2D_DESC1 *pDesc
 
       record->AddChunk(chunk);
       record->SetDataPtr(chunk->GetData());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppTexture2D = wrapped;
@@ -240,8 +234,6 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Texture3D1(pTexture, (ID3D11Texture3D1 *)ret, this, dispType);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     const char *prefix = "3D Texture";
@@ -301,10 +293,6 @@ HRESULT WrappedID3D11Device::CreateTexture3D1(const D3D11_TEXTURE3D_DESC1 *pDesc
 
       record->AddChunk(chunk);
       record->SetDataPtr(chunk->GetData());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppTexture3D = wrapped;
@@ -386,8 +374,6 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
     else
     {
       ret = new WrappedID3D11ShaderResourceView1(pView, ret, pResource, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pView, ResourceType::View, "Shader Resource View");
@@ -525,8 +511,6 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11RenderTargetView1(pView, ret, pResource, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pView, ResourceType::View, "Render Target View");
@@ -634,8 +618,6 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
     else
     {
       ret = new WrappedID3D11UnorderedAccessView1(pView, ret, pResource, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pView, ResourceType::View, "Unordered Access View");
@@ -757,14 +739,10 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
         ret->Release();
         ret = (ID3D11RasterizerState2 *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
-
-        GetResourceManager()->TakeResourceOwnership(ret);
       }
       else
       {
         ret = new WrappedID3D11RasterizerState2(pState, ret, this);
-
-        GetResourceManager()->TakeResourceOwnership(ret);
       }
     }
 
@@ -873,8 +851,6 @@ bool WrappedID3D11Device::Serialise_CreateQuery1(SerialiserType &ser,
     else
     {
       ret = new WrappedID3D11Query1(pQuery, ret, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pQuery, ResourceType::Query, "Query");

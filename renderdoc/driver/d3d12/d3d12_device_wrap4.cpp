@@ -72,11 +72,6 @@ bool WrappedID3D12Device::Serialise_CreateCommandList1(SerialiserType &ser, UINT
                        "Failed creating command list, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
-    else if(list)
-    {
-      // don't have to close it, as there's no implicit reset
-      GetResourceManager()->TakeResourceOwnership(list);
-    }
 
     AddResource(pCommandList, ResourceType::CommandBuffer, "Command List");
   }
@@ -162,7 +157,7 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
       }
     }
 
-    // during replay, the caller is responsible for calling AddLiveResource as this function
+    // during replay, the caller is responsible for calling AddResource as this function
     // can be called from ID3D12GraphicsCommandList::Reset serialising
 
     if(riid == __uuidof(ID3D12GraphicsCommandList))
@@ -278,8 +273,6 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
     else
     {
       ret = new WrappedID3D12Heap(pHeap, ret, this);
-
-      GetResourceManager()->TakeResourceOwnership(ret);
     }
 
     AddResource(pHeap, ResourceType::Memory, "Heap");
@@ -330,10 +323,6 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;

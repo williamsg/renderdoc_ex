@@ -614,7 +614,6 @@ bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLenum type, G
     GLResource res = ShaderRes(GetCtx(), real);
 
     ResourceId id = GetResourceManager()->RegisterResource(Shader, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     m_Shaders[id].type = type;
 
@@ -648,10 +647,6 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
     RDCASSERT(record);
 
     record->AddChunk(chunk);
-  }
-  else
-  {
-    GetResourceManager()->TakeResourceOwnership(res);
   }
 
   m_Shaders[id].type = type;
@@ -974,7 +969,6 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
     GLResource res = ProgramRes(GetCtx(), real);
 
     ResourceId id = m_ResourceManager->RegisterResource(Program, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     WrappedOpenGL::ProgramData &progDetails = m_Programs[id];
 
@@ -1060,7 +1054,6 @@ bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint progra
     GLResource res = ProgramRes(GetCtx(), real);
 
     ResourceId id = m_ResourceManager->RegisterResource(Program, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     m_Programs[id].linked = false;
 
@@ -1098,10 +1091,6 @@ GLuint WrappedOpenGL::glCreateProgram()
     GetResourceManager()->MarkDirtyResource(id);
 
     record->AddChunk(chunk);
-  }
-  else
-  {
-    GetResourceManager()->TakeResourceOwnership(res);
   }
 
   m_Programs[id].linked = false;
@@ -1928,7 +1917,6 @@ bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei
     GLResource res = ProgramPipeRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(pipeline, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(pipeline, ResourceType::StateObject, "Pipeline");
   }
@@ -1962,10 +1950,6 @@ void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
 
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
-    }
   }
 }
 
@@ -1988,7 +1972,6 @@ bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsi
     GLResource res = ProgramPipeRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(pipeline, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(pipeline, ResourceType::StateObject, "Pipeline");
   }
@@ -2021,10 +2004,6 @@ void WrappedOpenGL::glCreateProgramPipelines(GLsizei n, GLuint *pipelines)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }

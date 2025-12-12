@@ -84,10 +84,6 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress1(const void *pAddress, 
 
       record->AddChunk(scope.Get());
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
-    }
 
     *ppvHeap = (ID3D12Heap *)wrapped;
   }

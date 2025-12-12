@@ -177,23 +177,15 @@ public:
     // if any objects leaked past, it's no longer safe to delete them as we would
     // be calling Shutdown() after the device that owns them is destroyed. Instead
     // we just have to leak ourselves.
-    RDCASSERT(m_OwnedResources.empty());
     RDCASSERT(m_InitialContents.empty());
     RDCASSERT(m_ResourceRecords.empty());
     RDCASSERT(m_ResourceMap.empty());
     RDCASSERT(m_WrapperMap.empty());
 
-    m_OwnedResources.clear();
     m_InitialContents.clear();
     m_ResourceRecords.clear();
     m_ResourceMap.clear();
     m_WrapperMap.clear();
-  }
-
-  template <typename realtype>
-  void AddLiveResource(ResourceId id, realtype obj)
-  {
-    ResourceManager::TakeResourceOwnership(GetWrapped(obj));
   }
 
   using ResourceManager::AddResourceRecord;

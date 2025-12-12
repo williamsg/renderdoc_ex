@@ -1036,7 +1036,6 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       {
         m_pImmediateContext->AddRef();
         m_pImmediateContext->SetReplayResourceID(ImmediateContext);
-        m_ResourceManager->TakeResourceOwnership(m_pImmediateContext);
 
         ResourceId descId = m_pImmediateContext->GetDescriptorsID();
         AddResource(descId, ResourceType::DescriptorStore, "");
@@ -1734,8 +1733,6 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
       wrapped->m_RealDescriptor = new D3D11_TEXTURE2D_DESC(realDescriptor);
 
       SetDebugName(fakeBB, "Serialised Swap Chain Buffer");
-
-      GetResourceManager()->TakeResourceOwnership(fakeBB);
     }
   }
 
@@ -1799,10 +1796,6 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
       Serialise_WrapSwapchainBuffer(ser, swapper, bufferFormat, buffer, pTex);
 
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(pTex);
     }
   }
 

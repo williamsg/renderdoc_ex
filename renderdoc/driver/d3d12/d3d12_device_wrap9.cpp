@@ -101,8 +101,6 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue1(SerialiserType &ser,
 
       ret = new WrappedID3D12CommandQueue(pCommandQueue, ret, this, m_State);
 
-      GetResourceManager()->TakeResourceOwnership(ret);
-
       AddResource(pCommandQueue, ResourceType::Queue, "Command Queue");
 
       WrappedID3D12CommandQueue *wrapped = (WrappedID3D12CommandQueue *)ret;
@@ -157,10 +155,6 @@ HRESULT WrappedID3D12Device::CreateCommandQueue1(const D3D12_COMMAND_QUEUE_DESC 
       Serialise_CreateCommandQueue1(ser, pDesc, CreatorID, riid, (void **)&wrapped);
 
       wrapped->GetCreationRecord()->AddChunk(scope.Get());
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
 
     if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)

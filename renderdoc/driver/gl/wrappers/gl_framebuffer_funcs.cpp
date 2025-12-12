@@ -72,7 +72,6 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, 
     GLResource res = FramebufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(framebuffer, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
   }
@@ -106,10 +105,6 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
-    }
   }
 }
 
@@ -132,7 +127,6 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei 
     GLResource res = FramebufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(framebuffer, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
   }
@@ -165,10 +159,6 @@ void WrappedOpenGL::glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -2409,7 +2399,6 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n,
     GLResource res = RenderbufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(renderbuffer, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
 
@@ -2446,10 +2435,6 @@ void WrappedOpenGL::glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
 
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
-    }
   }
 }
 
@@ -2473,7 +2458,6 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei
     GLResource res = RenderbufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(renderbuffer, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
 
@@ -2509,10 +2493,6 @@ void WrappedOpenGL::glCreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }

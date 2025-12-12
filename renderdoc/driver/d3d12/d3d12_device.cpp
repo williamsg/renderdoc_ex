@@ -1898,8 +1898,6 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
       fakeBB->SetName(L"Swap Chain Buffer");
 
-      GetResourceManager()->TakeResourceOwnership(fakeBB);
-
       m_BackbufferFormat[wrapped->GetResourceID()] = SwapbufferFormat;
 
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
@@ -1968,12 +1966,6 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
 
         states = {D3D12ResourceLayout::FromStates(D3D12_RESOURCE_STATE_PRESENT)};
       }
-    }
-    else
-    {
-      WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
-
-      GetResourceManager()->TakeResourceOwnership(wrapped);
     }
   }
 
@@ -4089,8 +4081,6 @@ bool WrappedID3D12Device::Serialise_CreateAS(SerialiserType &ser, ID3D12Resource
     D3D12AccelerationStructure *accStructAtOffset = NULL;
     if(asbWrappedResource->CreateAccStruct(asId, resourceOffset, type, byteSize, &accStructAtOffset))
     {
-      GetResourceManager()->TakeResourceOwnership(accStructAtOffset);
-
       if(D3D12_Debug_RT_Auditing())
       {
         RDCLOG("Creating %s AS %s at %s + %llu (%llu bytes): %llx remapped to %llx",
@@ -4777,7 +4767,6 @@ ID3D12GraphicsCommandListX *WrappedID3D12Device::GetNewList()
 
     if(IsReplayMode(m_State))
     {
-      GetResourceManager()->TakeResourceOwnership(ret);
       // add a reference here so that when we release our internal resources on destruction we don't
       // free this too soon before the resource manager can. We still want to have it tracked as a
       // resource in the manager though.

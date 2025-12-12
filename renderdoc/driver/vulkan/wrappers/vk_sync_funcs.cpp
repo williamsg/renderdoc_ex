@@ -129,8 +129,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Fence, Unwrap(device), fence);
-      GetResourceManager()->AddLiveResource(Fence, fence);
+      GetResourceManager()->WrapResource(Fence, Unwrap(device), fence);
     }
 
     AddResource(Fence, ResourceType::Sync, "Fence");
@@ -171,10 +170,6 @@ VkResult WrappedVulkan::vkCreateFence(VkDevice device, const VkFenceCreateInfo *
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFence);
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pFence);
     }
   }
 
@@ -357,8 +352,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Event, Unwrap(device), ev);
-      GetResourceManager()->AddLiveResource(Event, ev);
+      GetResourceManager()->WrapResource(Event, Unwrap(device), ev);
     }
 
     AddResource(Event, ResourceType::Sync, "Event");
@@ -393,10 +387,6 @@ VkResult WrappedVulkan::vkCreateEvent(VkDevice device, const VkEventCreateInfo *
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pEvent);
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pEvent);
     }
   }
 
@@ -583,7 +573,6 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
       else
       {
         live = GetResourceManager()->WrapResource(Semaphore, Unwrap(device), sem);
-        GetResourceManager()->AddLiveResource(Semaphore, sem);
       }
     }
 
@@ -625,10 +614,6 @@ VkResult WrappedVulkan::vkCreateSemaphore(VkDevice device, const VkSemaphoreCrea
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSemaphore);
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pSemaphore);
     }
   }
 

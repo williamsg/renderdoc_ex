@@ -365,7 +365,6 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(Memory, Unwrap(device), mem);
-      GetResourceManager()->AddLiveResource(Memory, mem);
 
       m_CreationInfo.m_Memory[live].Init(GetResourceManager(), m_CreationInfo, &AllocateInfo);
 
@@ -470,9 +469,6 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
           ResourceId bufid = GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), buf);
 
           ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
-
-          // register as a live-only resource, so it is cleaned up properly
-          GetResourceManager()->AddLiveResource(bufid, buf);
 
           m_CreationInfo.m_Memory[live].wholeMemBuf = buf;
         }
@@ -911,15 +907,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pMemory);
-
       m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, &info);
-
-      if(dedicated == NULL && dedicatedNV == NULL && wholeMemBuf != VK_NULL_HANDLE)
-      {
-        // register as a live-only resource, so it is cleaned up properly
-        GetResourceManager()->AddLiveResource(bufid, wholeMemBuf);
-      }
 
       m_CreationInfo.m_Memory[id].wholeMemBuf = wholeMemBuf;
     }
@@ -2066,7 +2054,6 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(Buffer, Unwrap(device), buf);
-      GetResourceManager()->AddLiveResource(Buffer, buf);
 
       m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo,
                                          memoryRequirements);
@@ -2361,8 +2348,6 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pBuffer);
-
       m_CreationInfo.m_Buffer[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo, {});
     }
   }
@@ -2419,7 +2404,6 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
       else
       {
         live = GetResourceManager()->WrapResource(View, Unwrap(device), view);
-        GetResourceManager()->AddLiveResource(View, view);
 
         m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
@@ -2478,8 +2462,6 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pView);
-
       m_CreationInfo.m_BufferView[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
   }
@@ -2734,7 +2716,6 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(Image, Unwrap(device), img);
-      GetResourceManager()->AddLiveResource(Image, img);
 
       NameVulkanObject(img, StringFormat::Fmt("Image %s", ToStr(Image).c_str()));
 
@@ -3209,8 +3190,6 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pImage);
-
       m_CreationInfo.m_Image[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo, {});
     }
 
@@ -3315,7 +3294,6 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
       else
       {
         live = GetResourceManager()->WrapResource(View, Unwrap(device), view);
-        GetResourceManager()->AddLiveResource(View, view);
 
         m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
@@ -3445,8 +3423,6 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pView);
-
       m_CreationInfo.m_ImageView[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
   }
@@ -3968,7 +3944,6 @@ bool WrappedVulkan::Serialise_vkCreateAccelerationStructureKHR(
       else
       {
         live = GetResourceManager()->WrapResource(AccelerationStructure, Unwrap(device), acc);
-        GetResourceManager()->AddLiveResource(AccelerationStructure, acc);
 
         m_CreationInfo.m_AccelerationStructure[live].Init(GetResourceManager(), m_CreationInfo,
                                                           &CreateInfo);
@@ -4105,8 +4080,6 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
     }
     else
     {
-      GetResourceManager()->AddLiveResource(id, *pAccelerationStructure);
-
       m_CreationInfo.m_AccelerationStructure[id].Init(GetResourceManager(), m_CreationInfo,
                                                       pCreateInfo);
     }

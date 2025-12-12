@@ -86,7 +86,6 @@ bool WrappedOpenGL::Serialise_glGenBuffers(SerialiserType &ser, GLsizei n, GLuin
     GLResource res = BufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(buffer, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(buffer, ResourceType::Buffer, "Buffer");
 
@@ -126,7 +125,6 @@ void WrappedOpenGL::glGenBuffers(GLsizei n, GLuint *buffers)
     }
     else
     {
-      GetResourceManager()->TakeResourceOwnership(res);
       m_Buffers[id].resource = res;
       m_Buffers[id].curType = eGL_NONE;
       m_Buffers[id].creationFlags = BufferCategory::NoFlags;
@@ -151,7 +149,6 @@ bool WrappedOpenGL::Serialise_glCreateBuffers(SerialiserType &ser, GLsizei n, GL
     GLResource res = BufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(buffer, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(buffer, ResourceType::Buffer, "Buffer");
 
@@ -191,7 +188,6 @@ void WrappedOpenGL::glCreateBuffers(GLsizei n, GLuint *buffers)
     }
     else
     {
-      GetResourceManager()->TakeResourceOwnership(res);
       m_Buffers[id].resource = res;
       m_Buffers[id].curType = eGL_NONE;
       m_Buffers[id].creationFlags = BufferCategory::NoFlags;
@@ -3119,7 +3115,6 @@ bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(SerialiserType &ser, GLsiz
     GLResource res = FeedbackRes(GetCtx(), real);
 
     m_ResourceManager->RegisterResource(feedback, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(feedback, ResourceType::StateObject, "Transform Feedback");
   }
@@ -3153,10 +3148,6 @@ void WrappedOpenGL::glGenTransformFeedbacks(GLsizei n, GLuint *ids)
 
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
-    }
   }
 }
 
@@ -3177,7 +3168,6 @@ bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(SerialiserType &ser, GL
     GLResource res = FeedbackRes(GetCtx(), real);
 
     m_ResourceManager->RegisterResource(feedback, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(feedback, ResourceType::StateObject, "Transform Feedback");
   }
@@ -3210,10 +3200,6 @@ void WrappedOpenGL::glCreateTransformFeedbacks(GLsizei n, GLuint *ids)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }
@@ -4554,7 +4540,6 @@ bool WrappedOpenGL::Serialise_glGenVertexArrays(SerialiserType &ser, GLsizei n, 
     GLResource res = VertexArrayRes(GetCtx(), real);
 
     m_ResourceManager->RegisterResource(array, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(array, ResourceType::StateObject, "Vertex Array");
   }
@@ -4588,10 +4573,6 @@ void WrappedOpenGL::glGenVertexArrays(GLsizei n, GLuint *arrays)
 
       record->AddChunk(chunk);
     }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
-    }
   }
 }
 
@@ -4612,7 +4593,6 @@ bool WrappedOpenGL::Serialise_glCreateVertexArrays(SerialiserType &ser, GLsizei 
     GLResource res = VertexArrayRes(GetCtx(), real);
 
     m_ResourceManager->RegisterResource(array, res);
-    GetResourceManager()->TakeResourceOwnership(res);
 
     AddResource(array, ResourceType::StateObject, "Vertex Array");
   }
@@ -4645,10 +4625,6 @@ void WrappedOpenGL::glCreateVertexArrays(GLsizei n, GLuint *arrays)
       RDCASSERT(record);
 
       record->AddChunk(chunk);
-    }
-    else
-    {
-      GetResourceManager()->TakeResourceOwnership(res);
     }
   }
 }

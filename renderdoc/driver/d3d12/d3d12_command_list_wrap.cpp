@@ -252,8 +252,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         // always create a version of this list even if we're not re-recording, so the serialisation
         // has an object to find
         m_Cmd->m_RerecordCmdList.push_back(list);
-
-        GetResourceManager()->TakeResourceOwnership(list);
       }
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
@@ -313,8 +311,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         {
           m_pDevice->GetResourceDesc(BakedCommandList).SetCustomName(descr.name + " (Baked)");
         }
-
-        GetResourceManager()->TakeResourceOwnership(list);
 
         // whenever a command-building chunk asks for the command list, it
         // will get our baked version.
