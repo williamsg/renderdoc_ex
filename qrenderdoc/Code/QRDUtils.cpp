@@ -1904,7 +1904,14 @@ static const ActionDescription *GetParentMarker(ICaptureContext &ctx, uint32_t e
         }
       }
       actions.pop_back();
-      if(action->eventId < eventId)
+      bool addChildren = (action->eventId < eventId);
+      if(!addChildren)
+      {
+        if(!action->children.empty())
+          addChildren = action->children[0].eventId < eventId;
+      }
+
+      if(addChildren)
       {
         for(const ActionDescription &child : action->children)
           actions.push_back(&child);
