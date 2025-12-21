@@ -2464,6 +2464,7 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   m_Config.exploderScale = 1.0f;
 
   ui->outputTabs->setCurrentIndex(0);
+  m_CurStage = MeshDataStage::VSIn;
 
   ui->inTable->setFont(Formatter::FixedFont());
   ui->out1Table->setFont(Formatter::FixedFont());
@@ -2479,14 +2480,15 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   if(meshview)
   {
-    m_CurStage = MeshDataStage::TaskOut;
     SetupMeshView();
+    if(isMeshDraw())
+    {
+      m_CurStage = MeshDataStage::TaskOut;
+      m_Config.type = MeshDataStage::TaskOut;
+    }
   }
   else
-  {
-    m_CurStage = MeshDataStage::VSIn;
     SetupRawView();
-  }
 
   m_ExportMenu = new QMenu(this);
   m_ExportCSV = new QAction(this);
