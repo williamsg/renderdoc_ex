@@ -1758,7 +1758,7 @@ void SetOutput(float4 val)
 
 void Init(float4 val)
 {
-  flatId = tid.z * GROUP_SIZE_X * GROUP_SIZE_Y + tid.y * GROUP_SIZE_X + tid.x;
+  flatId = gid.z * GROUP_SIZE_X * GROUP_SIZE_Y + gid.y * GROUP_SIZE_X + gid.x;
   SetOutput(val);
 }
 
@@ -1771,6 +1771,10 @@ groupshared uint3 gsmUint3[1024];
 [numthreads(GROUP_SIZE_X, GROUP_SIZE_Y, 1)]
 void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, uint3 inGroup : SV_GroupID)
 {
+  // Only want the workgroup (1,0,0) to output results
+  if ((inGroup.x != 1) || (inGroup.y != 0) || (inGroup.z != 0))
+    return;
+
   float4 testResult = float4(0,0,0,0);
   tid = inDTID;
   gid = inGID;
