@@ -676,7 +676,7 @@ void ResourceInspector::on_resourceUsage_doubleClicked(const QModelIndex &index)
     m_Ctx.SetEventID({}, eid, eid);
 }
 
-void ResourceInspector::on_resourceUsage_SplitByMarker_toggled()
+void ResourceInspector::resourceUsage_SplitByMarker_toggled()
 {
   m_SplitByMarker = !m_SplitByMarker;
   m_Ctx.Config().ResourceUsage_SplitByMarker = m_SplitByMarker;
@@ -706,7 +706,7 @@ void ResourceInspector::resourceUsage_contextMenu(const QPoint &pos)
   QObject::connect(&copyText, &QAction::triggered,
                    [resourceUsage, pos, index] { resourceUsage->copyIndex(pos, index); });
   QObject::connect(&splitByMarker, &QAction::triggered,
-                   [this] { this->on_resourceUsage_SplitByMarker_toggled(); });
+                   [this] { this->resourceUsage_SplitByMarker_toggled(); });
 
   contextMenu.addAction(&copyText);
   contextMenu.addAction(&splitByMarker);

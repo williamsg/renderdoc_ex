@@ -108,7 +108,7 @@ public slots:
 private slots:
   void on_viewContents_clicked();
   void on_resourceUsage_doubleClicked(const QModelIndex &index);
-  void on_resourceUsage_SplitByMarker_toggled();
+  void resourceUsage_SplitByMarker_toggled();
 
 protected:
   void enterEvent(QEvent *event) override;
