@@ -1581,10 +1581,6 @@ VkDescriptorGetInfoEXT WrappedVulkan::UnwrapInfo(const VkDescriptorGetInfoEXT *p
       break;
     }
     case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      // ignore the sampler part
-    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
     {
       VkDescriptorImageInfo *img = (VkDescriptorImageInfo *)ret.data.pCombinedImageSampler;
       if(pDescriptorInfo->data.pCombinedImageSampler)
@@ -1592,6 +1588,18 @@ VkDescriptorGetInfoEXT WrappedVulkan::UnwrapInfo(const VkDescriptorGetInfoEXT *p
         img->imageView = Unwrap(pDescriptorInfo->data.pCombinedImageSampler->imageView);
         img->sampler = Unwrap(pDescriptorInfo->data.pCombinedImageSampler->sampler);
         img->imageLayout = pDescriptorInfo->data.pCombinedImageSampler->imageLayout;
+      }
+      break;
+    }
+    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+    {
+      VkDescriptorImageInfo *img = (VkDescriptorImageInfo *)ret.data.pSampledImage;
+      if(pDescriptorInfo->data.pSampledImage)
+      {
+        img->imageView = Unwrap(pDescriptorInfo->data.pSampledImage->imageView);
+        img->imageLayout = pDescriptorInfo->data.pSampledImage->imageLayout;
       }
       break;
     }
