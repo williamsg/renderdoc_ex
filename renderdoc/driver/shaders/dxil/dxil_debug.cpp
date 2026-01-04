@@ -2619,14 +2619,16 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                   const size_t structSize = AlignUp16(resRef->resourceBase.cbufferData.sizeInBytes);
                   ShaderVariable cbufferVar;
                   cbufferVar.members.resize(structSize / 16);
-                  cbufferVar.type = VarType::Struct;
+                  cbufferVar.rows = 0;
+                  cbufferVar.columns = 0;
+                  cbufferVar.type = VarType::Unknown;
                   cbufferVar.name = resultSSAName;
                   for(size_t i = 0; i < cbufferVar.members.size(); ++i)
                   {
                     ShaderVariable &var = cbufferVar.members[i];
                     var.type = VarType::UInt;
                     var.columns = 4;
-                    var.name = StringFormat::Fmt("%s[%u]", resultSSAName.c_str(), i);
+                    var.name = StringFormat::Fmt("[%u]", i);
                     var.rows = 1;
                     // Initialise to 0xCC to aid determinism and show unset values
                     memset(&var.value, 0XCC, sizeof(var.value));
