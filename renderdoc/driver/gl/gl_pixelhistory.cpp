@@ -133,17 +133,48 @@ enum class PerFragmentQueryType
   PrimitiveId
 };
 
+GLuint RefreshUniforms(WrappedOpenGL *driver, GLRenderState &rs, GLuint dstProgram)
+{
+  ContextPair &ctx = driver->GetCtx();
+
+  GLuint srcProgram = 0;
+
+  if(rs.Program.name)
+  {
+    srcProgram = rs.Program.name;
+  }
+  else if(rs.Pipeline.name)
+  {
+    ResourceId id = driver->GetResourceManager()->GetResID(ProgramPipeRes(ctx, rs.Pipeline.name));
+    const WrappedOpenGL::PipelineData &pipeDetails = driver->GetPipeline(id);
+
+    srcProgram = driver->GetResourceManager()
+                     ->GetCurrentResource(pipeDetails.stagePrograms[(size_t)ShaderStage::Pixel])
+                     .name;
+  }
+
+  PerStageReflections stages;
+  driver->FillReflectionArray(ProgramRes(ctx, srcProgram), stages);
+
+  PerStageReflections dstStages;
+  driver->FillReflectionArray(ProgramRes(ctx, dstProgram), dstStages);
+
+  CopyProgramUniforms(stages, srcProgram, dstStages, dstProgram);
+
+  return dstProgram;
+}
+
 GLuint GetFixedColProgram(WrappedOpenGL *driver, GLReplay *replay,
                           GLPixelHistoryResources &resources, GLuint currentProgram)
 {
+  GLRenderState rs;
+  rs.FetchState(driver);
+
   auto programIterator = resources.fixedColPrograms.find(currentProgram);
   if(programIterator != resources.fixedColPrograms.end())
   {
-    return programIterator->second;
+    return RefreshUniforms(driver, rs, programIterator->second);
   }
-
-  GLRenderState rs;
-  rs.FetchState(driver);
 
   GLuint ret = driver->glCreateProgram();
   replay->CreateShaderReplacementProgram(rs.Program.name, rs.Pipeline.name, ret, ShaderStage::Pixel,
@@ -158,14 +189,14 @@ GLuint GetFixedColProgram(WrappedOpenGL *driver, GLReplay *replay,
 GLuint GetPrimitiveIdProgram(WrappedOpenGL *driver, GLReplay *replay,
                              GLPixelHistoryResources &resources, GLuint currentProgram)
 {
+  GLRenderState rs;
+  rs.FetchState(driver);
+
   auto programIterator = resources.primIdPrograms.find(currentProgram);
   if(programIterator != resources.primIdPrograms.end())
   {
-    return programIterator->second;
+    return RefreshUniforms(driver, rs, programIterator->second);
   }
-
-  GLRenderState rs;
-  rs.FetchState(driver);
 
   GLuint ret = driver->glCreateProgram();
   replay->CreateShaderReplacementProgram(rs.Program.name, rs.Pipeline.name, ret, ShaderStage::Pixel,
