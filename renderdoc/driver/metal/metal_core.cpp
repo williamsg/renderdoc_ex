@@ -487,7 +487,7 @@ void WrappedMTLDevice::AddResource(ResourceId id, ResourceType type, const char 
 
 void WrappedMTLDevice::DerivedResource(ResourceId parentLive, ResourceId child)
 {
-  ResourceId parentId = GetResourceManager()->GetOriginalID(parentLive);
+  ResourceId parentId = parentLive;
 
   GetReplay()->GetResourceDesc(parentId).derivedResources.push_back(child);
   GetReplay()->GetResourceDesc(child).parentResources.push_back(parentId);

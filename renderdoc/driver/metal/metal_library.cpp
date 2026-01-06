@@ -50,8 +50,7 @@ bool WrappedMTLLibrary::Serialise_newFunctionWithName(SerialiserType &ser,
   {
     MTL::Function *realMTLFunction = Unwrap(Library)->newFunction(FunctionName);
     WrappedMTLFunction *wrappedMTLFunction;
-    GetResourceManager()->WrapResource(realMTLFunction, wrappedMTLFunction);
-    GetResourceManager()->AddLiveResource(Function, wrappedMTLFunction);
+    GetResourceManager()->WrapResource(ResourceId(), realMTLFunction, wrappedMTLFunction);
     m_Device->AddResource(Function, ResourceType::Shader, "Function");
     m_Device->DerivedResource(Library, Function);
   }
@@ -64,7 +63,8 @@ WrappedMTLFunction *WrappedMTLLibrary::newFunctionWithName(NS::String *functionN
   SERIALISE_TIME_CALL(realMTLFunction = Unwrap(this)->newFunction(functionName));
 
   WrappedMTLFunction *wrappedMTLFunction;
-  ResourceId id = GetResourceManager()->WrapResource(realMTLFunction, wrappedMTLFunction);
+  ResourceId id =
+      GetResourceManager()->WrapResource(ResourceId(), realMTLFunction, wrappedMTLFunction);
 
   if(IsCaptureMode(m_State))
   {
