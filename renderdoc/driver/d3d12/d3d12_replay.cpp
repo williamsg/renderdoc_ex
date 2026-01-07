@@ -3640,7 +3640,7 @@ void D3D12Replay::RefreshDerivedReplacements()
     ResourceId origsrcid = pipesrcid;
 
     // only look at pipelines from the capture, no replay-time programs.
-    if(origsrcid == pipesrcid)
+    if(ResourceIDGen::IsReplayOnlyID(pipesrcid))
       continue;
 
     // if this pipeline has a replacement, remove it and delete the program generated for it

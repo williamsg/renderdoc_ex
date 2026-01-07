@@ -1810,7 +1810,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
     ResourceId origsrcid = progsrcid;
 
     // only look at programs from the capture, no replay-time programs.
-    if(origsrcid == progsrcid)
+    if(ResourceIDGen::IsReplayOnlyID(progsrcid))
       continue;
 
     // skip glCreateShaderProgramv programs. We handled this above and we don't want to try and
