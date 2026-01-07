@@ -4432,6 +4432,8 @@ RDResult D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
 
     replay->SetProxy(isProxy, warpFallback);
     replay->InitReplayOnDevice(factory);
+    if(isProxy)
+      replay->CreateResources();
     if(warpFallback)
     {
       wrappedDev->AddDebugMessage(
