@@ -1619,7 +1619,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           GetCmdRenderState().xfbcounters.clear();
           GetCmdRenderState().conditionalRendering.buffer = ResourceId();
 
-          m_PushCommandBuffer = m_LastCmdBufferID;
+          m_PushCommandBuffer = CommandBuffer;
 
           rerecord = true;
         }
@@ -4425,7 +4425,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
           renderstate.pushConstSize = RDCMAX(renderstate.pushConstSize, start + length);
           renderstate.pushLayout = GetResID(layout);
 
-          m_PushCommandBuffer = m_LastCmdBufferID;
+          m_PushCommandBuffer = GetResourceManager()->GetUnreplacedID(m_LastCmdBufferID);
         }
       }
     }
@@ -4501,7 +4501,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants2(SerialiserType &ser, VkCommand
               RDCMAX(renderstate.pushConstSize, PushConstantsInfo.offset + PushConstantsInfo.size);
           renderstate.pushLayout = GetResID(PushConstantsInfo.layout);
 
-          m_PushCommandBuffer = m_LastCmdBufferID;
+          m_PushCommandBuffer = GetResourceManager()->GetUnreplacedID(m_LastCmdBufferID);
         }
       }
     }
