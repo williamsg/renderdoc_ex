@@ -41,7 +41,7 @@ ResourceId GetNewUniqueID()
 
 bool IsReplayOnlyID(ResourceId id)
 {
-  return baseReplayID < id;
+  return baseReplayID < id || (id == ResourceId());
 }
 
 void SetReplayResourceIDs()
