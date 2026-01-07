@@ -5312,7 +5312,7 @@ void VulkanReplay::RefreshDerivedReplacements()
           VkPipelineShaderStageCreateInfo &sh =
               (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
 
-          ResourceId shadId = GetResID(sh.module);
+          ResourceId shadId = rm->GetUnreplacedID(GetResID(sh.module));
 
           sh.module = rm->GetHandle<VkShaderModule>(shadId);
 
