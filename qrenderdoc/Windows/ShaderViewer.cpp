@@ -6973,7 +6973,7 @@ void ShaderViewer::performReplaceAll()
   if(context == FindReplace::File)
     scintillas = {cur};
 
-  int numReplacements = 1;
+  int numReplacements = 0;
 
   for(ScintillaEdit *s : scintillas)
   {
