@@ -1036,6 +1036,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       {
         m_pImmediateContext->AddRef();
         m_pImmediateContext->SetReplayResourceID(ImmediateContext);
+        m_ResourceManager->AddResource(ImmediateContext, m_pImmediateContext);
 
         ResourceId descId = m_pImmediateContext->GetDescriptorsID();
         AddResource(descId, ResourceType::DescriptorStore, "");
