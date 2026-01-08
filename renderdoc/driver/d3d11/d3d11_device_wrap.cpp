@@ -3324,6 +3324,7 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
     {
       WrappedID3D11DeviceContext *ctx = new WrappedID3D11DeviceContext(this, ret);
       ctx->SetReplayResourceID(pDeferredContext);
+      m_ResourceManager->AddResource(pDeferredContext, ctx);
 
       ret = ctx;
 
