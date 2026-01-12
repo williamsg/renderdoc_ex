@@ -96,14 +96,32 @@ void AnnotationDisplay::OnSelectedEventChanged(uint32_t eventId)
   setAnnotationObject(ev.annotations);
 }
 
+bool AnnotationDisplay::shouldBeDisplayed(const SDObject &obj)
+{
+  if(obj.type.flags & SDTypeFlags::Hidden)
+    return false;
+
+  if(obj.name.beginsWith("__"))
+    return false;
+
+  if(obj.type.basetype == SDBasic::Struct)
+  {
+    for(const SDObject *child_obj : obj)
+    {
+      if(shouldBeDisplayed(*child_obj))
+        return true;
+    }
+    return false;
+  }
+
+  return true;
+}
+
 void AnnotationDisplay::addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj)
 {
   for(const SDObject *obj : parentObj)
   {
-    if(obj->type.flags & SDTypeFlags::Hidden)
-      continue;
-
-    if(obj->name.beginsWith("__"))
+    if(!shouldBeDisplayed(*obj))
       continue;
 
     QVariant name;

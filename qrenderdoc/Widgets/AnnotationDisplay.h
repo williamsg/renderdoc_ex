@@ -66,4 +66,7 @@ private:
   QMap<const SDObject *, RDTreeWidgetItem *> m_Items;
 
   void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj);
+
+  // either is a non-empty node, or has at least one non-empty child
+  bool shouldBeDisplayed(const SDObject &obj);
 };
