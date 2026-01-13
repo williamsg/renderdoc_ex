@@ -62,6 +62,7 @@ LOCATION(location = 3) out v2fBlock
 {
   float a;
   flat int b;
+  flat vec2 flatv2;
 } v2f;
 #endif
 
@@ -74,17 +75,22 @@ LOCATION(location = 6) out float v2fArr[2];
 #endif
 #ifdef MULTI
 LOCATION(location = 8) flat out int v2fInstData;
+flat out vec3 v2fFlatFloat;
+noperspective out vec3 v2fNoPerspFloat;
 #endif
 
 void main()
 {
 	gl_Position = vec4(inPosition.xyz, 1);
+  gl_Position.w = inPosition.z;
 	v2fColor = inColor;
 	v2fUV = inUV;
 
 #ifdef BLOCK
   v2f.a = a2v_a;
   v2f.b = a2v_b;
+  v2f.flatv2.x = a2v_a;
+  v2f.flatv2.y = float(a2v_b);
 #endif
 
 #ifdef MIXED
@@ -99,6 +105,8 @@ void main()
 
 #ifdef MULTI
   v2fInstData = a2v_b + gl_VertexID/3;
+  v2fFlatFloat = inPosition;
+  v2fNoPerspFloat = inPosition;
   if(gl_InstanceID != 1 && a2v_a > 5.0)
     gl_Position.y += 10.0f;
 #endif
@@ -127,6 +135,7 @@ LOCATION(location = 3) in v2fBlock
 {
   float a;
   flat int b;
+  flat vec2 flatv2;
 } v2f;
 #endif
 
@@ -136,6 +145,8 @@ LOCATION(location = 6) in float v2fArr[2];
 #endif
 #ifdef MULTI
 LOCATION(location = 8) flat in int v2fInstData;
+flat in vec3 v2fFlatFloat;
+noperspective in vec3 v2fNoPerspFloat;
 #endif
 
 void main()
@@ -145,6 +156,7 @@ void main()
 #ifdef BLOCK
   outColor.r += v2f.a;
   outColor.g += float(v2f.b);
+  outColor.ba += v2f.flatv2.xy;
 #endif
 
 #ifdef MIXED
@@ -158,6 +170,8 @@ void main()
 
 #ifdef MULTI
   if(v2fInstData != 51) discard;
+  outColor.xyz += v2fFlatFloat;
+  outColor.xyz += v2fNoPerspFloat;
 #endif
 }
 
@@ -271,17 +285,17 @@ void main()
     glBindVertexArray(vao);
 
     const DefaultA2V tri[9] = {
-        {Vec3f(-1.0f, 1.0f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(1.0f, 1.0f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-1.0f, -1.0f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-1.0f, 1.0f, 0.1f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(1.0f, 1.0f, 0.2f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-1.0f, -1.0f, 0.3f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
-        {Vec3f(-1.0f, 1.0f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(1.0f, 1.0f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-1.0f, -1.0f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-1.0f, 1.0f, 0.2f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(1.0f, 1.0f, 0.3f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-1.0f, -1.0f, 0.1f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
-        {Vec3f(-1.0f, 1.0f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(1.0f, 1.0f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-1.0f, -1.0f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-1.0f, 1.0f, 0.3f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(1.0f, 1.0f, 0.1f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-1.0f, -1.0f, 0.2f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     GLuint vb = MakeBuffer();
