@@ -3749,6 +3749,10 @@ void EventBrowser::SetAnnotationColumnVisible(bool show)
 void EventBrowser::SetHighlightedAnnotation(const rdcstr &annotationPath)
 {
   m_Model->SetAnnotationPath(annotationPath);
+
+  // automatically show the annotation column if it's hidden
+  if(!annotationPath.isEmpty() && ui->events->header()->isSectionHidden(COL_ANNOTATION))
+    SetAnnotationColumnVisible(true);
 }
 
 void EventBrowser::OnCaptureLoaded()
