@@ -236,6 +236,17 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 
   SAFE_DELETE(m_DescriptorStore);
 
+  // Clean up annotation data
+  for(auto it = m_Annotations.begin(); it != m_Annotations.end(); ++it)
+    delete it->second;
+  m_Annotations.clear();
+
+  SAFE_DELETE(m_RootAnnotation);
+
+  for(SDObject *obj : m_EventAnnotations)
+    delete obj;
+  m_EventAnnotations.clear();
+
   SAFE_DELETE(m_FrameReader);
 
   SAFE_RELEASE(m_WrappedVideo.m_pReal);
@@ -449,6 +460,35 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
         so.stride = c.stride;
       }
     }
+  }
+
+  // Serialize object annotations
+  if(ser.VersionAtLeast(0x14))
+  {
+    SCOPED_LOCK(m_AnnotationsLock);
+
+    SERIALISE_ELEMENT_LOCAL(numAnnotations, uint32_t(m_Annotations.size()));
+
+    auto it = m_Annotations.begin();
+    for(uint32_t i = 0; i < numAnnotations; i++)
+    {
+      SERIALISE_ELEMENT_LOCAL(id, it->first);
+      SDObject *annotation = it->second;
+      if(ser.IsReading())
+        annotation = new SDObject(""_lit, ""_lit);    // will be overwritten below
+      ser.Serialise("annotation"_lit, *annotation);
+
+      if(ser.IsReading() && IsLoading(m_State))
+      {
+        m_Annotations[id] = annotation;
+        m_pDevice->GetReplay()->GetResourceDesc(id).annotations = annotation;
+      }
+
+      ++it;
+    }
+
+    if(numAnnotations > 0)
+      m_pDevice->GetReplay()->WriteFrameRecord().frameInfo.containsAnnotations = true;
   }
 
   return true;
@@ -895,6 +935,11 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     case D3D11Chunk::SetMarker: ret = Serialise_SetMarker(ser, 0, L""); break;
     case D3D11Chunk::PopMarker: ret = Serialise_PopMarker(ser); break;
 
+    case D3D11Chunk::SetCommandAnnotation:
+      ret = Serialise_SetCommandAnnotation(ser, rdcstr(), eRENDERDOC_AnnotationMax, 0,
+                                           RENDERDOC_AnnotationValue());
+      break;
+
     case D3D11Chunk::DiscardResource: ret = Serialise_DiscardResource(ser, NULL); break;
     case D3D11Chunk::DiscardView: ret = Serialise_DiscardView(ser, NULL); break;
     case D3D11Chunk::DiscardView1: ret = Serialise_DiscardView1(ser, NULL, NULL, 0); break;
@@ -1014,7 +1059,8 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
         m_ActionStack.pop_back();
     }
 
-    if(!m_AddedAction)
+    // annotations don't add events
+    if(!m_AddedAction && chunk != D3D11Chunk::SetCommandAnnotation)
       AddEvent();
   }
 
@@ -1212,6 +1258,13 @@ void WrappedID3D11DeviceContext::AddEvent()
     }
   }
 
+  // Apply current annotation state to this event
+  if(m_RootAnnotation)
+  {
+    apievent.annotations = m_RootAnnotation->Duplicate();
+    m_EventAnnotations.push_back(apievent.annotations);
+  }
+
   m_CurEvents.push_back(apievent);
 
   if(IsLoading(m_State))
@@ -1382,7 +1435,10 @@ RDResult WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t s
       break;
 
     m_LastChunk = chunktype;
-    m_CurEventID++;
+
+    // annotations do not produce events
+    if(chunktype != D3D11Chunk::SetCommandAnnotation)
+      m_CurEventID++;
   }
 
   if(IsLoading(m_State))

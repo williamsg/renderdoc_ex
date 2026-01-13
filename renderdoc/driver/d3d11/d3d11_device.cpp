@@ -1230,6 +1230,7 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
     case D3D11Chunk::PostExecuteCommandList:
     case D3D11Chunk::PostFinishCommandListSet:
     case D3D11Chunk::SwapDeviceContextState:
+    case D3D11Chunk::SetCommandAnnotation:
     case D3D11Chunk::SwapchainPresent: return m_pImmediateContext->ProcessChunk(ser, context);
 
     // no explicit default so that we have compiler warnings if a chunk isn't explicitly handled.
@@ -1947,6 +1948,9 @@ void WrappedID3D11Device::DestroyDeadObject(ID3D11DeviceChild *child)
   {
     ResourceId id = wrapped->GetResourceID();
 
+    if(m_pImmediateContext)
+      m_pImmediateContext->RemoveAnnotations(id);
+
     // clean up book-keeping
     rm->RemoveWrapper(wrapped->GetReal());
     rm->ReleaseResource(id);
@@ -1996,6 +2000,32 @@ int WrappedID3D11Device::EndEvent()
     return 0;
 
   return m_pCurrentWrappedDevice->m_pImmediateContext->ThreadSafe_EndEvent();
+}
+
+uint32_t WrappedID3D11Device::SetObjectAnnotation(void *object, const char *key,
+                                                  RENDERDOC_AnnotationType valueType,
+                                                  uint32_t valueVectorWidth,
+                                                  const RENDERDOC_AnnotationValue *value)
+{
+  return m_pImmediateContext->SetObjectAnnotation(object, key, valueType, valueVectorWidth, value);
+}
+
+uint32_t WrappedID3D11Device::SetCommandAnnotation(void *queueOrCommandBuffer, const char *key,
+                                                   RENDERDOC_AnnotationType valueType,
+                                                   uint32_t valueVectorWidth,
+                                                   const RENDERDOC_AnnotationValue *value)
+{
+  if(queueOrCommandBuffer != NULL && queueOrCommandBuffer != m_pImmediateContext)
+    return 2;
+
+  // D3D11 doesn't have queues or command buffers, so we accept NULL
+  // and treat all command annotations as immediate/global
+  if(IsActiveCapturing(m_State))
+  {
+    return m_pImmediateContext->SetCommandAnnotation(key, valueType, valueVectorWidth, value);
+  }
+
+  return 0;
 }
 
 void WrappedID3D11Device::StartFrameCapture(DeviceOwnedWindow devWnd)
