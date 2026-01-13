@@ -238,6 +238,10 @@ public:
     {
       GL.glGetUniformiv(prog, location, var.value.s32v.data());
     }
+    else if(var.type == VarType::Bool)
+    {
+      GL.glGetUniformuiv(prog, location, var.value.u32v.data());
+    }
     else
     {
       RDCERR("Unexpected type of variable");
