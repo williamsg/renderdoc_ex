@@ -649,7 +649,18 @@ void ResourceInspector::on_viewContents_clicked()
   }
   else if(buf)
   {
-    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, buf->length, buf->resourceId);
+    rdcstr format;
+
+    // Check for __rd_format annotation on this buffer
+    const ResourceDescription *resourceDesc = m_Ctx.GetResource(buf->resourceId);
+    if(resourceDesc && resourceDesc->annotations)
+    {
+      const SDObject *formatChild = resourceDesc->annotations->FindChildByKeyPath("__rd_format");
+      if(formatChild && formatChild->type.basetype == SDBasic::String)
+        format = formatChild->data.str;
+    }
+
+    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, buf->length, buf->resourceId, format);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }
