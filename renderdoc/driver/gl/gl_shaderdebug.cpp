@@ -2219,6 +2219,12 @@ void SetInputs(out Inputs inputs) {}
             source += StringFormat::Fmt("layout(location = %u) ", sig.regIndex);
           if(sig.varType != VarType::Float && shadDetails.type == eGL_FRAGMENT_SHADER)
             source += "flat ";
+          else if(shadDetails.type == eGL_FRAGMENT_SHADER)
+          {
+            SPIRVInterpolationMode interpMode = patchData.inputs[i].interpMode;
+            if(interpMode != SPIRVInterpolationMode::Smooth)
+              source += ToStr(interpMode) + " ";
+          }
           source += StringFormat::Fmt("in %s\n", sigDecl.c_str());
         }
       }

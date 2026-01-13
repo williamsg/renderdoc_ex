@@ -24,3 +24,16 @@
 
 #include "api/replay/stringise.h"
 #include "spirv_common.h"
+#include "spirv_reflect.h"
+
+template <>
+rdcstr DoStringise(const SPIRVInterpolationMode &el)
+{
+  BEGIN_ENUM_STRINGISE(SPIRVInterpolationMode)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(Smooth, "smooth")
+    STRINGISE_ENUM_CLASS_NAMED(Flat, "flat")
+    STRINGISE_ENUM_CLASS_NAMED(NoPerspective, "noperspective")
+  }
+  END_ENUM_STRINGISE();
+};

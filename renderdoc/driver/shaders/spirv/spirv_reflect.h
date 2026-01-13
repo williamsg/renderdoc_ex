@@ -33,6 +33,13 @@ enum class ShaderStage : uint8_t;
 enum class ShaderBuiltin : uint32_t;
 struct ShaderReflection;
 
+enum class SPIRVInterpolationMode
+{
+  Smooth,
+  Flat,
+  NoPerspective,
+};
+
 struct SPIRVInterfaceAccess
 {
   // ID of the base variable
@@ -51,6 +58,8 @@ struct SPIRVInterfaceAccess
   // i.e. this is false for non-arrays, and false for element [0] in an array, then true for
   // elements [1], [2], [3], etc..
   bool isArraySubsequentElement = false;
+
+  SPIRVInterpolationMode interpMode = SPIRVInterpolationMode::Smooth;
 };
 
 // extra information that goes along with a ShaderReflection that has extra information for SPIR-V
@@ -182,3 +191,5 @@ void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchDat
 void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
                        uint32_t rastStream, const char *entryName, rdcarray<uint32_t> &modSpirv,
                        uint32_t &xfbStride);
+
+DECLARE_REFLECTION_ENUM(SPIRVInterpolationMode);

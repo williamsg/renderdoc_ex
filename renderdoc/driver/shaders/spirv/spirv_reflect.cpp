@@ -2247,6 +2247,11 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
   if(varDecorations.others.contains(rdcspv::Decoration::PerPrimitiveEXT))
     sig.perPrimitiveRate = true;
 
+  if(varDecorations.others.contains(rdcspv::Decoration::Flat))
+    patch.interpMode = SPIRVInterpolationMode::Flat;
+  if(varDecorations.others.contains(rdcspv::Decoration::NoPerspective))
+    patch.interpMode = SPIRVInterpolationMode::NoPerspective;
+
   // fragment shader outputs are implicitly colour outputs. All other builtin outputs do not have a
   // register index
   if(stage == ShaderStage::Fragment && !isInput && sig.systemValue == ShaderBuiltin::Undefined)
