@@ -24,7 +24,23 @@
 
 #pragma once
 
+#include "Extended/RDHeaderView.h"
 #include "Extended/RDTreeWidget.h"
+
+struct AnnotationResourceTag
+{
+  AnnotationResourceTag() = default;
+
+  ResourceId resourceId;
+  ResourceType resourceType = ResourceType::Unknown;
+
+  // Buffer-specific fields
+  uint64_t bufferOffset = 0;
+  uint64_t bufferSize = UINT64_MAX;
+  rdcstr bufferFormat;
+};
+
+Q_DECLARE_METATYPE(AnnotationResourceTag);
 
 // can be used either as an embedded control in the resource inspector, or as a separate panel for
 // monitoring API events
@@ -50,6 +66,8 @@ public:
 
 private slots:
   void customContextMenu(QModelIndex index, QMenu *menu);
+  void itemClicked(RDTreeWidgetItem *item, int column);
+  void hoverItemChanged(RDTreeWidgetItem *item);
 
 protected:
 
@@ -58,14 +76,23 @@ private:
   const SDObject *m_Annotation = NULL;
 
   RDTreeWidget *m_Tree;
+  RDHeaderView *m_Header;
   RDTreeViewExpansionState m_Expansion;
 
   // if this is a standalone viewer or not
   bool m_Standalone = false;
 
+  // whether the Go column is present
+  bool m_HasGoColumn = false;
+
+  // track hovered item for icon changes
+  RDTreeWidgetItem *m_HoveredItem = NULL;
+
   QMap<const SDObject *, RDTreeWidgetItem *> m_Items;
 
   void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj);
+
+  bool hasResourceAnnotations(const SDObject &obj);
 
   // either is a non-empty node, or has at least one non-empty child
   bool shouldBeDisplayed(const SDObject &obj);

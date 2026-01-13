@@ -27,14 +27,21 @@
 #include <QHeaderView>
 #include <QMenu>
 #include <QVBoxLayout>
+#include "Code/Interface/QRDInterface.h"
+#include "Code/QRDUtils.h"
+#include "Code/Resources.h"
+#include "Extended/RDHeaderView.h"
 
 AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWidget *parent)
     : QFrame(parent), m_Ctx(ctx), m_Standalone(standalone)
 {
   m_Tree = new RDTreeWidget(this);
 
+  m_Header = new RDHeaderView(Qt::Horizontal, this);
+  m_Tree->setHeader(m_Header);
+
   m_Tree->setColumns({lit("Key"), tr("Value")});
-  m_Tree->header()->resizeSection(0, 150);
+  m_Header->setColumnStretchHints({1, 4});
   m_Tree->setFont(Formatter::PreferredFont());
 
   QVBoxLayout *layout = new QVBoxLayout(this);
@@ -53,6 +60,12 @@ AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWid
 
   QObject::connect(m_Tree, &RDTreeWidget::customContextMenu, this,
                    &AnnotationDisplay::customContextMenu);
+  QObject::connect(m_Tree, &RDTreeWidget::itemClicked, this, &AnnotationDisplay::itemClicked);
+  QObject::connect(m_Tree, &RDTreeWidget::hoverItemChanged, this,
+                   &AnnotationDisplay::hoverItemChanged);
+
+  m_Tree->viewport()->setAttribute(Qt::WA_Hover);
+  m_Tree->setMouseTracking(true);
 
   if(m_Standalone)
     m_Ctx.AddCaptureViewer(this);
@@ -131,10 +144,52 @@ void AnnotationDisplay::addStructuredChildren(RDTreeWidgetItem *parent, const SD
     else
       name = obj->name;
 
-    RDTreeWidgetItem *item = new RDTreeWidgetItem({name, QString()});
+    RDTreeWidgetItem *item;
+    if(m_HasGoColumn)
+      item = new RDTreeWidgetItem({name, QString(), QString()});
+    else
+      item = new RDTreeWidgetItem({name, QString()});
 
     m_Items[obj] = item;
-    item->setTag(QVariant::fromValue((void *)obj));
+
+    // Check if this is a viewable resource (buffer, texture, or shader)
+    if(obj->type.basetype == SDBasic::Resource)
+    {
+      ResourceId id = obj->data.basic.id;
+      const ResourceDescription *resDesc = m_Ctx.GetResource(id);
+
+      if(resDesc && (resDesc->type == ResourceType::Buffer ||
+                     resDesc->type == ResourceType::Texture || resDesc->type == ResourceType::Shader))
+      {
+        AnnotationResourceTag tag;
+        tag.resourceId = id;
+        tag.resourceType = resDesc->type;
+
+        if(resDesc->type == ResourceType::Buffer)
+        {
+          // Look for special child annotations for buffer viewer parameters
+          const SDObject *offsetChild = obj->FindChildByKeyPath("__offset");
+          const SDObject *sizeChild = obj->FindChildByKeyPath("__size");
+          const SDObject *formatChild = obj->FindChildByKeyPath("__rd_format");
+
+          if(offsetChild && (offsetChild->type.basetype == SDBasic::UnsignedInteger ||
+                             offsetChild->type.basetype == SDBasic::SignedInteger))
+            tag.bufferOffset = offsetChild->data.basic.u;
+
+          if(sizeChild && (sizeChild->type.basetype == SDBasic::UnsignedInteger ||
+                           sizeChild->type.basetype == SDBasic::SignedInteger))
+            tag.bufferSize = sizeChild->data.basic.u;
+
+          if(formatChild && formatChild->type.basetype == SDBasic::String)
+            tag.bufferFormat = formatChild->data.str;
+        }
+
+        item->setTag(QVariant::fromValue(tag));
+
+        if(m_HasGoColumn)
+          item->setIcon(2, Icons::action());
+      }
+    }
 
     if(obj->type.basetype == SDBasic::Chunk || obj->type.basetype == SDBasic::Struct ||
        obj->type.basetype == SDBasic::Array)
@@ -146,6 +201,29 @@ void AnnotationDisplay::addStructuredChildren(RDTreeWidgetItem *parent, const SD
   }
 }
 
+bool AnnotationDisplay::hasResourceAnnotations(const SDObject &obj)
+{
+  if(obj.type.basetype == SDBasic::Resource)
+  {
+    const ResourceDescription *resDesc = m_Ctx.GetResource(obj.data.basic.id);
+    if(resDesc && (resDesc->type == ResourceType::Buffer ||
+                   resDesc->type == ResourceType::Texture || resDesc->type == ResourceType::Shader))
+      return true;
+  }
+
+  for(const SDObject *child : obj)
+  {
+    if(child->type.flags & SDTypeFlags::Hidden)
+      continue;
+    if(child->name.beginsWith("__"))
+      continue;
+    if(hasResourceAnnotations(*child))
+      return true;
+  }
+
+  return false;
+}
+
 void AnnotationDisplay::setAnnotationObject(const SDObject *annotation)
 {
   m_Tree->updateExpansion(m_Expansion, 0);
@@ -153,7 +231,22 @@ void AnnotationDisplay::setAnnotationObject(const SDObject *annotation)
   m_Annotation = annotation;
 
   m_Items.clear();
+  m_HoveredItem = NULL;
   m_Tree->invisibleRootItem()->clear();
+
+  // Check if we have any buffer annotations to determine columns
+  m_HasGoColumn = m_Annotation && hasResourceAnnotations(*m_Annotation);
+
+  if(m_HasGoColumn)
+  {
+    m_Tree->setColumns({lit("Key"), tr("Value"), tr("Go")});
+    m_Header->setColumnStretchHints({1, 4, -1});
+  }
+  else
+  {
+    m_Tree->setColumns({lit("Key"), tr("Value")});
+    m_Header->setColumnStretchHints({1, 4});
+  }
 
   if(m_Annotation)
   {
@@ -168,7 +261,10 @@ void AnnotationDisplay::setAnnotationObject(const SDObject *annotation)
 void AnnotationDisplay::customContextMenu(QModelIndex index, QMenu *menu)
 {
   RDTreeWidgetItem *item = m_Tree->itemForIndex(index);
-  const SDObject *obj = (const SDObject *)item->tag().value<void *>();
+
+  const SDObject *obj = m_Items.key(item, NULL);
+  if(!obj)
+    return;
 
   rdcstr path;
   // don't include the root node, it's not part of the path, so only iterate over nodes that have
@@ -193,4 +289,66 @@ void AnnotationDisplay::customContextMenu(QModelIndex index, QMenu *menu)
                    [this, path]() { m_Ctx.GetEventBrowser()->SetHighlightedAnnotation(path); });
 
   menu->insertAction(sep, showInEventBrowser);
+}
+
+void AnnotationDisplay::itemClicked(RDTreeWidgetItem *item, int column)
+{
+  if(!m_HasGoColumn || column != 2)
+    return;
+
+  QVariant tag = item->tag();
+
+  if(!tag.canConvert<AnnotationResourceTag>())
+    return;
+
+  AnnotationResourceTag resTag = tag.value<AnnotationResourceTag>();
+
+  if(resTag.resourceType == ResourceType::Buffer)
+  {
+    IBufferViewer *viewer = m_Ctx.ViewBuffer(resTag.bufferOffset, resTag.bufferSize,
+                                             resTag.resourceId, resTag.bufferFormat);
+    m_Ctx.AddDockWindow(viewer->Widget(), DockReference::MainToolArea, NULL);
+  }
+  else if(resTag.resourceType == ResourceType::Texture)
+  {
+    if(!m_Ctx.HasTextureViewer())
+      m_Ctx.ShowTextureViewer();
+    ITextureViewer *viewer = m_Ctx.GetTextureViewer();
+    viewer->ViewTexture(resTag.resourceId, CompType::Typeless, true);
+  }
+  else if(resTag.resourceType == ResourceType::Shader)
+  {
+    ResourceId id = resTag.resourceId;
+    ICaptureContext *ctx = &m_Ctx;
+    m_Ctx.Replay().AsyncInvoke([this, ctx, id](IReplayController *r) {
+      rdcarray<ShaderEntryPoint> entries = r->GetShaderEntryPoints(id);
+      if(entries.isEmpty())
+        return;
+
+      const ShaderReflection *refl = r->GetShader(ResourceId(), id, entries[0]);
+      if(!refl)
+        return;
+
+      GUIInvoke::call(this, [ctx, refl] {
+        IShaderViewer *viewer = ctx->ViewShader(refl, ResourceId());
+        ctx->AddDockWindow(viewer->Widget(), DockReference::MainToolArea, NULL);
+      });
+    });
+  }
+}
+
+void AnnotationDisplay::hoverItemChanged(RDTreeWidgetItem *item)
+{
+  // Restore normal icon for previously hovered resource item with a Go button
+  if(m_HoveredItem)
+  {
+    m_HoveredItem->setIcon(2, Icons::action());
+  }
+
+  // Set hover icon for newly hovered resource item, if it has a valid tag
+  if(item && item->tag().canConvert<AnnotationResourceTag>() && m_HasGoColumn)
+  {
+    m_HoveredItem = item;
+    m_HoveredItem->setIcon(2, Icons::action_hover());
+  }
 }
