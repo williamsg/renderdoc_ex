@@ -206,6 +206,8 @@ struct TestStruct
 
 uniform TestStruct struct_test;
 
+uniform bool bool_test;
+
 layout(binding = 0, std140) uniform ubo_test
 {
   vec4 data;
@@ -233,6 +235,7 @@ void main()
   col.g += array_test[1];
   col.b += array_test[2];
   col.a += array_test[3];
+  col.r += bool_test ? 1.0f : 0.0f;
   col += float(struct_test.b) * struct_test.a;
   col += ubo.data;
   col += ssbo.data;
@@ -519,6 +522,7 @@ void main()
     glUniform1fv(glGetUniformLocation(bindingZooProgram, "array_test"), 4, arr);
     glUniform1f(glGetUniformLocation(bindingZooProgram, "struct_test.a"), 9.9f);
     glUniform1i(glGetUniformLocation(bindingZooProgram, "struct_test.b"), 99);
+    glUniform1ui(glGetUniformLocation(bindingZooProgram, "bool_test"), 1);
 
     const size_t bindOffset = 16;
 
