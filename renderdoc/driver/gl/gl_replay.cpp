@@ -768,7 +768,7 @@ rdcarray<DebugMessage> GLReplay::GetDebugMessages()
 
 rdcarray<ShaderEntryPoint> GLReplay::GetShaderEntryPoints(ResourceId shader)
 {
-  if(m_pDriver->HasShader(shader))
+  if(!m_pDriver->HasShader(shader))
     return {};
 
   const WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->GetShader(shader);
