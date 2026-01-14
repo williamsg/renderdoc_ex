@@ -481,6 +481,14 @@ void WrappedVulkan::FlushQ()
   // CPU-GPU sync or whether it is just looking to recycle command buffers
   // (Particularly the one in vkQueuePresentKHR drawing the overlay)
 
+  // if there are multiple queue submissions in flight, wait for the previous queue to finish
+  if(m_PrevQueue != m_Queue)
+  {
+    if(m_PrevQueue != VK_NULL_HANDLE)
+      ObjDisp(m_PrevQueue)->QueueWaitIdle(Unwrap(m_PrevQueue));
+    m_PrevQueue = VK_NULL_HANDLE;
+  }
+
   // see comment in SubmitQ()
   if(m_Queue != VK_NULL_HANDLE)
   {
