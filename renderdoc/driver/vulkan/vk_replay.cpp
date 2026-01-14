@@ -1059,7 +1059,7 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
   }
 
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetResource(buff)))
+  if(m_pDriver->m_BakedCmdBufferInfo.find(buff) != m_pDriver->m_BakedCmdBufferInfo.end())
   {
     inlineData.assign(m_pDriver->m_RenderState.pushconsts, m_pDriver->m_RenderState.pushConstSize);
     useInlineData = true;
@@ -2582,7 +2582,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
   }
 
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(rm->GetResource(descriptorStore)))
+  if(m_pDriver->m_BakedCmdBufferInfo.find(descriptorStore) != m_pDriver->m_BakedCmdBufferInfo.end())
   {
     const VulkanRenderState &state = m_pDriver->m_RenderState;
 
@@ -2738,7 +2738,7 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
   }
 
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(GetResourceManager()->GetResource(descriptorStore)))
+  if(m_pDriver->m_BakedCmdBufferInfo.find(descriptorStore) != m_pDriver->m_BakedCmdBufferInfo.end())
   {
     // not sampler data
     return ret;
@@ -3012,10 +3012,8 @@ rdcarray<DescriptorLogicalLocation> VulkanReplay::GetDescriptorLocations(
     return ret;
   }
 
-  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
-
   // push constants 'descriptor' stored in a command buffer
-  if(WrappedVkCommandBuffer::IsAlloc(rm->GetResource(descriptorStore)))
+  if(m_pDriver->m_BakedCmdBufferInfo.find(descriptorStore) != m_pDriver->m_BakedCmdBufferInfo.end())
   {
     // should only be one descriptor referred here, but just munge them all to be the same
     for(DescriptorLogicalLocation &d : ret)
