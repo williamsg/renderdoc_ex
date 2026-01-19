@@ -2626,11 +2626,24 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) co
 
         if(n->children.empty())
         {
-          RDCASSERTNOTEQUAL(n->rows * n->columns, 0);
-          for(uint32_t c = 0; c < n->rows * n->columns; ++c)
+          ConstIter it = GetID(n->debugVar);
+
+          if(it.opcode() == Op::Undef)
           {
+            sourceVar.rows = sourceVar.columns = 1;
+            sourceVar.undefinedValue = true;
+
             sourceVar.variables.push_back(DebugVariableReference(
-                DebugVariableType::Variable, GetRawName(n->debugVar) + n->debugVarSuffix, c));
+                DebugVariableType::Variable, GetRawName(n->debugVar) + n->debugVarSuffix, 0));
+          }
+          else
+          {
+            RDCASSERTNOTEQUAL(n->rows * n->columns, 0);
+            for(uint32_t c = 0; c < n->rows * n->columns; ++c)
+            {
+              sourceVar.variables.push_back(DebugVariableReference(
+                  DebugVariableType::Variable, GetRawName(n->debugVar) + n->debugVarSuffix, c));
+            }
           }
         }
         else

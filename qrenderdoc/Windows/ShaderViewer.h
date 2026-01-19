@@ -402,8 +402,8 @@ private:
   void updateDebugState();
   void markWatchStale(RDTreeWidgetItem *item);
   bool updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTreeWidgetItem *varItem,
-                           const rdcstr &path, uint32_t swizzle, const ShaderVariable &var,
-                           QChar regcast);
+                           const rdcstr &path, uint32_t swizzle, const SourceVariableMapping &mapping,
+                           const ShaderVariable &var, QChar regcast);
   void updateWatchVariables();
 
   void updateAccessedResources();
@@ -452,9 +452,11 @@ private:
 
   QString getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle, uint32_t child = ~0U);
   const RDTreeWidgetItem *evaluateVar(const RDTreeWidgetItem *item, uint32_t swizzle,
-                                      ShaderVariable *var);
+                                      ShaderVariable *var, SourceVariableMapping *mapping);
   const RDTreeWidgetItem *getVarFromPath(const rdcstr &path, const RDTreeWidgetItem *root,
-                                         ShaderVariable *var, uint32_t *swizzle);
+                                         ShaderVariable *var, uint32_t *swizzle,
+                                         SourceVariableMapping *mapping);
   const RDTreeWidgetItem *getVarFromPath(const rdcstr &path, ShaderVariable *var = NULL,
-                                         uint32_t *swizzle = NULL);
+                                         uint32_t *swizzle = NULL,
+                                         SourceVariableMapping *mapping = NULL);
 };

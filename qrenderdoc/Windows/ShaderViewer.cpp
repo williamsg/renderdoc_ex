@@ -3415,7 +3415,8 @@ QString ShaderViewer::getRegNames(const RDTreeWidgetItem *item, uint32_t swizzle
 }
 
 const RDTreeWidgetItem *ShaderViewer::evaluateVar(const RDTreeWidgetItem *item, uint32_t swizzle,
-                                                  ShaderVariable *var)
+                                                  ShaderVariable *var,
+                                                  SourceVariableMapping *mappingPtr)
 {
   VariableTag tag = item->tag().value<VariableTag>();
 
@@ -3528,12 +3529,15 @@ const RDTreeWidgetItem *ShaderViewer::evaluateVar(const RDTreeWidgetItem *item, 
       for(int i = 0; i < item->childCount(); i++)
       {
         ret.members.push_back(ShaderVariable());
-        if(!evaluateVar(item->child(i), ~0U, &ret.members.back()))
+        if(!evaluateVar(item->child(i), ~0U, &ret.members.back(), NULL))
           return NULL;
       }
 
       return item;
     }
+
+    if(mappingPtr)
+      *mappingPtr = mapping;
 
     if(mapping.variables.empty())
       return NULL;
@@ -3574,6 +3578,9 @@ const RDTreeWidgetItem *ShaderViewer::evaluateVar(const RDTreeWidgetItem *item, 
         mapping.variables.push_back(ref);
       }
     }
+
+    if(mappingPtr)
+      *mappingPtr = mapping;
 
     ShaderVariable &ret = *var;
     ret.name = mapping.name;
@@ -3649,14 +3656,15 @@ const RDTreeWidgetItem *ShaderViewer::evaluateVar(const RDTreeWidgetItem *item, 
 }
 
 const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, const RDTreeWidgetItem *root,
-                                                     ShaderVariable *var, uint32_t *swizzlePtr)
+                                                     ShaderVariable *var, uint32_t *swizzlePtr,
+                                                     SourceVariableMapping *mappingPtr)
 {
   VariableTag tag = root->tag().value<VariableTag>();
 
   // if the path is an exact match, return the evaluation directly
   if(tag.absoluteRefPath == path)
   {
-    return evaluateVar(root, ~0U, var);
+    return evaluateVar(root, ~0U, var, mappingPtr);
   }
 
   for(int i = 0; i < root->childCount(); i++)
@@ -3672,7 +3680,7 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, const R
     // if the path is an exact match, return the evaluation directly
     if(tag.absoluteRefPath == path)
     {
-      return evaluateVar(child, ~0U, var);
+      return evaluateVar(child, ~0U, var, mappingPtr);
     }
 
     // after the common prefix, if the next value is . or [ then this is the next child, so recurse.
@@ -3684,7 +3692,7 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, const R
     if(common == tag.absoluteRefPath &&
        (path[tag.absoluteRefPath.size()] == '.' || path[tag.absoluteRefPath.size()] == '['))
     {
-      return getVarFromPath(path, child, var, swizzlePtr);
+      return getVarFromPath(path, child, var, swizzlePtr, mappingPtr);
     }
   }
 
@@ -3726,7 +3734,7 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, const R
       if(swizzlePtr)
         *swizzlePtr = swizzleMask;
 
-      return evaluateVar(root, swizzleMask, var);
+      return evaluateVar(root, swizzleMask, var, mappingPtr);
     }
   }
 
@@ -3734,7 +3742,8 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, const R
 }
 
 const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, ShaderVariable *var,
-                                                     uint32_t *swizzle)
+                                                     uint32_t *swizzle,
+                                                     SourceVariableMapping *mapping)
 {
   if(!m_Trace || m_States.empty())
     return NULL;
@@ -3765,7 +3774,7 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, ShaderV
 
         if(item->text(0) == root)
         {
-          const RDTreeWidgetItem *ret = getVarFromPath(path, item, var, swizzle);
+          const RDTreeWidgetItem *ret = getVarFromPath(path, item, var, swizzle, mapping);
           if(ret)
             return ret;
         }
@@ -3781,7 +3790,7 @@ const RDTreeWidgetItem *ShaderViewer::getVarFromPath(const rdcstr &path, ShaderV
               VariableTag tag = item->tag().value<VariableTag>();
 
               const RDTreeWidgetItem *ret =
-                  getVarFromPath(tag.absoluteRefPath + "." + path, child, var, swizzle);
+                  getVarFromPath(tag.absoluteRefPath + "." + path, child, var, swizzle, mapping);
               if(ret)
                 return ret;
             }
@@ -4515,6 +4524,7 @@ void ShaderViewer::markWatchStale(RDTreeWidgetItem *item)
 
 bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTreeWidgetItem *varItem,
                                        const rdcstr &path, uint32_t swizzle,
+                                       const SourceVariableMapping &mapping,
                                        const ShaderVariable &var, QChar regcast)
 {
   if(!var.members.empty())
@@ -4577,7 +4587,7 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
       rdcstr sep = var.members[i].name[0] == '[' ? "" : ".";
 
       updateWatchVariable(watchItem->child(idx), varItem->child(i),
-                          path + sep + var.members[i].name, ~0U, var.members[i], regcast);
+                          path + sep + var.members[i].name, ~0U, mapping, var.members[i], regcast);
     }
 
     // any children that weren't marked as valid are now stale
@@ -4644,7 +4654,8 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
           QVariant(),
       });
 
-      updateWatchVariable(item, varItem->child(r), path + ".row" + ToStr(r), ~0U, rowVar, regcast);
+      updateWatchVariable(item, varItem->child(r), path + ".row" + ToStr(r), ~0U, mapping, rowVar,
+                          regcast);
       item->setText(1, getRegNames(varItem, ~0U, r));
       item->setTag(QVariant());
       watchItem->addChild(item);
@@ -4787,8 +4798,16 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
       val += lit(", ");
   }
 
+  QString typeString = TypeString(var);
+
+  if(mapping.type != VarType::Unknown && mapping.undefinedValue)
+  {
+    typeString = lit("-");
+    val = tr("<undefined value>");
+  }
+
   watchItem->setText(1, getRegNames(varItem, swizzle));
-  watchItem->setText(2, TypeString(var));
+  watchItem->setText(2, typeString);
 
   if(!swatchColor.isValid())
   {
@@ -4844,12 +4863,13 @@ void ShaderViewer::updateWatchVariables()
       if(!match.captured(2).isEmpty())
         regcast = match.captured(2)[1];
 
+      SourceVariableMapping mapping;
       ShaderVariable var;
       uint32_t swizzle = ~0U;
-      const RDTreeWidgetItem *varItem = getVarFromPath(path, &var, &swizzle);
+      const RDTreeWidgetItem *varItem = getVarFromPath(path, &var, &swizzle, &mapping);
       if(varItem)
       {
-        if(updateWatchVariable(item, varItem, path, swizzle, var, regcast))
+        if(updateWatchVariable(item, varItem, path, swizzle, mapping, var, regcast))
           continue;
 
         error = tr("Couldn't evaluate watch for '%1'").arg(expr);
@@ -5179,6 +5199,12 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         }
       }
     }
+  }
+
+  if(l.undefinedValue)
+  {
+    typeName = lit("-");
+    value = tr("<undefined value>");
   }
 
   RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, QString(), typeName, value});
@@ -6099,8 +6125,9 @@ void ShaderViewer::updateVariableTooltip()
     return;
 
   ShaderVariable var;
+  SourceVariableMapping mapping;
 
-  if(!getVarFromPath(m_TooltipVarPath, &var))
+  if(!getVarFromPath(m_TooltipVarPath, &var, NULL, &mapping))
     return;
 
   if(var.type != VarType::Unknown)
@@ -6125,6 +6152,9 @@ void ShaderViewer::updateVariableTooltip()
       tooltip += lit("</pre>");
     }
 
+    if(mapping.type != VarType::Unknown && mapping.undefinedValue)
+      tooltip = tr("%1: <undefined value>").arg(var.name);
+
     QToolTip::showText(m_TooltipPos, tooltip);
     return;
   }
@@ -6141,8 +6171,13 @@ void ShaderViewer::updateVariableTooltip()
   }
   else if(!var.members.empty())
   {
+    QString tooltip = tr("%1: { ... }").arg(var.name);
+
+    if(mapping.type != VarType::Unknown && mapping.undefinedValue)
+      tooltip = tr("%1: <undefined value>").arg(var.name);
+
     // other structs
-    QToolTip::showText(m_TooltipPos, lit("{ ... }"));
+    QToolTip::showText(m_TooltipPos, tooltip);
     return;
   }
 
