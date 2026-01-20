@@ -194,6 +194,8 @@ void AnnotationDisplay::addStructuredChildren(RDTreeWidgetItem *parent, const SD
     if(obj->type.basetype == SDBasic::Chunk || obj->type.basetype == SDBasic::Struct ||
        obj->type.basetype == SDBasic::Array)
       addStructuredChildren(item, *obj);
+    else if(obj->type.basetype == SDBasic::String)
+      item->setText(1, QString(obj->data.str));
     else
       item->setText(1, SDObject2Variant(obj, false));
 
