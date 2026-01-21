@@ -2112,6 +2112,12 @@ TEST_CASE("Test string type", "[basictypes][string]")
     CHECK_FALSE(test == rdcinflexiblestr("Hello, World!"));
     CHECK_FALSE(test.empty());
 
+    CHECK(test.beginsWith("Hello"));
+    CHECK(test.beginsWith(""));
+    CHECK_FALSE(test.beginsWith(NULL));
+    CHECK_FALSE(test.beginsWith("Hello!"));
+    CHECK_FALSE(test.beginsWith("Hello, World!!"));
+
     rdcstr str = test;
 
     CHECK(str == "Hello, World");
