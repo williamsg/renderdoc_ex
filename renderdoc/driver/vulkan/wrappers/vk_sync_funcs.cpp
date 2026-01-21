@@ -1572,7 +1572,10 @@ VkResult WrappedVulkan::vkTransitionImageLayout(VkDevice device, uint32_t transi
     Serialise_vkTransitionImageLayout(ser, device, transitionCount, pTransitions);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
+  }
 
+  if(IsCaptureMode(m_State))
+  {
     for(uint32_t i = 0; i < transitionCount; ++i)
     {
       const VkHostImageLayoutTransitionInfo &transition = pTransitions[i];
