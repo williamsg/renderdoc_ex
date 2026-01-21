@@ -3046,6 +3046,7 @@ void WrappedOpenGL::ReleaseResource(GLResource res)
   switch(res.Namespace)
   {
     default: RDCERR("Unknown namespace to release: %s", ToStr(res.Namespace).c_str()); return;
+    case eResSpecial: break;
     case eResTexture: GL.glDeleteTextures(1, &res.name); break;
     case eResSampler: GL.glDeleteSamplers(1, &res.name); break;
     case eResFramebuffer: GL.glDeleteFramebuffers(1, &res.name); break;
