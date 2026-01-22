@@ -931,6 +931,9 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_DELETE(m_StoredStructuredData);
 
+  for(auto it = m_Annotations.begin(); it != m_Annotations.end(); ++it)
+    delete it->second;
+
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
 
   if(!m_InternalCmds.pendingcmds.empty())
@@ -2744,6 +2747,34 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
                                                   m_InitialResourceStates);
   }
 
+  if(ser.VersionAtLeast(0x17))
+  {
+    SCOPED_LOCK(m_AnnotationsLock);
+
+    SERIALISE_ELEMENT_LOCAL(numAnnotations, uint32_t(m_Annotations.size()));
+
+    auto it = m_Annotations.begin();
+    for(uint32_t i = 0; i < numAnnotations; i++)
+    {
+      SERIALISE_ELEMENT_LOCAL(id, it->first);
+      SDObject *annotation = it->second;
+      if(ser.IsReading())
+        annotation = new SDObject(""_lit, ""_lit);    // will be overwritten below
+      ser.Serialise("annotation"_lit, *annotation);
+
+      if(ser.IsReading() && IsLoading(m_State))
+      {
+        m_Annotations[id] = annotation;
+        m_Replay->GetResourceDesc(id).annotations = annotation;
+      }
+
+      ++it;
+    }
+
+    if(numAnnotations > 0)
+      m_Replay->WriteFrameRecord().frameInfo.containsAnnotations = true;
+  }
+
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && !barriers.empty())
@@ -3358,6 +3389,121 @@ bool WrappedID3D12Device::DiscardFrameCapture(DeviceOwnedWindow devWnd)
   return true;
 }
 
+uint32_t WrappedID3D12Device::SetObjectAnnotation(void *object, const char *key,
+                                                  RENDERDOC_AnnotationType valueType,
+                                                  uint32_t valueVectorWidth,
+                                                  const RENDERDOC_AnnotationValue *value)
+{
+  ID3D12Object *d3d12Obj = (ID3D12Object *)object;
+
+  D3D12ResourceType type = TryIdentifyTypeByPtr(d3d12Obj);
+
+  if(type == Resource_Unknown)
+    return 2;
+
+  ResourceId id = GetResID(d3d12Obj);
+
+  if(id != ResourceId())
+  {
+    RENDERDOC_AnnotationValue val = value ? *value : RENDERDOC_AnnotationValue();
+
+    if(valueType == eRENDERDOC_APIObject)
+    {
+      ResourceId valId = GetResID((ID3D12Object *)val.apiObject);
+      RDCCOMPILE_ASSERT(sizeof(val.uint64) == sizeof(valId), "ResourceId isn't 64-bit!");
+      memcpy(&val.uint64, &valId, sizeof(valId));
+    }
+
+    SDObject *root = NULL;
+    {
+      SCOPED_LOCK(m_AnnotationsLock);
+      root = m_Annotations[id];
+      if(!root)
+        root = m_Annotations[id] = new SDObject("Object Annotations"_lit, "Object Annotations"_lit);
+    }
+
+    if(valueType == eRENDERDOC_Empty)
+    {
+      root->EraseChildByKeyPath(key);
+    }
+    else
+    {
+      WriteAnnotation(root->CreateChildByKeyPath(key), valueType, valueVectorWidth, val);
+    }
+
+    return 0;
+  }
+
+  return 2;
+}
+
+uint32_t WrappedID3D12Device::SetCommandAnnotation(void *queueOrCommandBuffer, const char *key,
+                                                   RENDERDOC_AnnotationType valueType,
+                                                   uint32_t valueVectorWidth,
+                                                   const RENDERDOC_AnnotationValue *value)
+{
+  ID3D12Object *d3d12Obj = (ID3D12Object *)queueOrCommandBuffer;
+
+  D3D12ResourceType type = TryIdentifyTypeByPtr(d3d12Obj);
+
+  if(type == Resource_CommandQueue)
+  {
+    WrappedID3D12CommandQueue *queue = (WrappedID3D12CommandQueue *)d3d12Obj;
+
+    if(IsActiveCapturing(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+      ser.SetActionChunk();
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetQueueAnnotation);
+
+      RENDERDOC_AnnotationValue val = value ? *value : RENDERDOC_AnnotationValue();
+
+      if(valueType == eRENDERDOC_APIObject)
+      {
+        ResourceId id = GetResID((ID3D12Object *)val.apiObject);
+        RDCCOMPILE_ASSERT(sizeof(val.uint64) == sizeof(id), "ResourceId isn't 64-bit!");
+        memcpy(&val.uint64, &id, sizeof(id));
+      }
+
+      queue->Serialise_SetQueueAnnotation(ser, key, valueType, valueVectorWidth, val);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+
+    return 0;
+  }
+  else if(type == Resource_GraphicsCommandList)
+  {
+    WrappedID3D12GraphicsCommandList *list = (WrappedID3D12GraphicsCommandList *)d3d12Obj;
+
+    if(IsCaptureMode(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+      ser.SetActionChunk();
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetCommandAnnotation);
+
+      RENDERDOC_AnnotationValue val = value ? *value : RENDERDOC_AnnotationValue();
+
+      if(valueType == eRENDERDOC_APIObject)
+      {
+        ResourceId id = GetResID((ID3D12Object *)val.apiObject);
+        RDCCOMPILE_ASSERT(sizeof(val.uint64) == sizeof(id), "ResourceId isn't 64-bit!");
+        memcpy(&val.uint64, &id, sizeof(id));
+      }
+
+      list->Serialise_SetCommandAnnotation(ser, key, valueType, valueVectorWidth, val);
+
+      GetRecord(list)->AddChunk(scope.Get());
+    }
+
+    return 0;
+  }
+  else
+  {
+    return 2;
+  }
+}
+
 void WrappedID3D12Device::UploadBLASBufferAddresses()
 {
   if(m_addressBufferUploaded)
@@ -3502,6 +3648,11 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
     SCOPED_LOCK(m_SparseLock);
     m_SparseResources.erase(id);
     m_SparseHeaps.erase(id);
+  }
+
+  {
+    SCOPED_LOCK(m_AnnotationsLock);
+    m_Annotations.erase(id);
   }
 
   D3D12ResourceRecord *record = GetRecord(res);
@@ -5092,6 +5243,8 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::List_SetPipelineState1:
     case D3D12Chunk::List_SetProgram:
     case D3D12Chunk::List_DispatchGraph:
+    case D3D12Chunk::SetCommandAnnotation:
+    case D3D12Chunk::SetQueueAnnotation:
       RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
       return false;
 

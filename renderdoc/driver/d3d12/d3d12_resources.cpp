@@ -42,7 +42,7 @@ const GUID RENDERDOC_ID3D12ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDe
 
 ALL_D3D12_TYPES;
 
-D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr)
+D3D12ResourceType TryIdentifyTypeByPtr(ID3D12Object *ptr)
 {
   if(ptr == NULL)
     return Resource_Unknown;
@@ -64,6 +64,16 @@ D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr)
   RDCERR("Unknown type for ptr 0x%p", ptr);
 
   return Resource_Unknown;
+}
+
+D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr)
+{
+  D3D12ResourceType ret = TryIdentifyTypeByPtr(ptr);
+
+  if(ret == Resource_Unknown)
+    RDCERR("Unknown type for ptr 0x%p", ptr);
+
+  return ret;
 }
 
 TrackedResource12 *GetTracked(ID3D12Object *ptr)

@@ -549,6 +549,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x15)
     return true;
 
+  // 0x16 -> 0x17 - added serialised annotations
+  if(ver == 0x16)
+    return true;
+
   return false;
 }
 

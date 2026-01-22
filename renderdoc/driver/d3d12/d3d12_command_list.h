@@ -283,6 +283,11 @@ public:
     m_PendingASCallbacks.clear();
   }
 
+  template <typename SerialiserType>
+  bool Serialise_SetCommandAnnotation(SerialiserType &ser, rdcstr key,
+                                      RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
+                                      RENDERDOC_AnnotationValue value);
+
   //////////////////////////////
   // implement IUnknown
   ULONG STDMETHODCALLTYPE AddRef() { return m_RefCounter.SoftRef(m_pDevice); }

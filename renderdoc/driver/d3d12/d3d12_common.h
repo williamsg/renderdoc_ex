@@ -1320,5 +1320,7 @@ enum class D3D12Chunk : uint32_t
   Device_CreateRootSignatureFromSubobjectInLibrary,
   List_SetProgram,
   List_DispatchGraph,
+  SetQueueAnnotation,
+  SetCommandAnnotation,
   Max,
 };

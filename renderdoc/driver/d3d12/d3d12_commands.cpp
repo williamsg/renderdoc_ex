@@ -562,6 +562,11 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 
   SAFE_RELEASE(m_RayFence);
 
+  for(SDObject *o : m_Cmd.m_EventAnnotations)
+    delete o;
+
+  delete m_Cmd.m_RootAnnotation;
+
   if(m_CreationRecord)
     m_CreationRecord->Delete(m_pDevice->GetResourceManager());
 
@@ -1006,6 +1011,15 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
       ret = m_ReplayList->Serialise_SetPipelineState1(ser, NULL);
       break;
 
+    case D3D12Chunk::SetCommandAnnotation:
+      ret = m_ReplayList->Serialise_SetCommandAnnotation(ser, rdcstr(), eRENDERDOC_AnnotationMax, 0,
+                                                         RENDERDOC_AnnotationValue());
+      break;
+    case D3D12Chunk::SetQueueAnnotation:
+      ret = Serialise_SetQueueAnnotation(ser, rdcstr(), eRENDERDOC_AnnotationMax, 0,
+                                         RENDERDOC_AnnotationValue());
+      break;
+
     // in order to get a warning if we miss a case, we explicitly handle the device creation chunks
     // here. If we actually encounter one it's an error (we shouldn't see these inside the captured
     // frame itself)
@@ -1102,6 +1116,9 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     else if(chunk == D3D12Chunk::Queue_EndEvent)
     {
       // also ignore, this just pops the action stack
+    }
+    else if(chunk == D3D12Chunk::SetCommandAnnotation || chunk == D3D12Chunk::SetQueueAnnotation)
+    {
     }
     else
     {
@@ -1326,7 +1343,8 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
     else
     {
       // these events are completely omitted, so don't increment the curEventID
-      if(context != D3D12Chunk::List_Reset && context != D3D12Chunk::List_Close)
+      if(context != D3D12Chunk::List_Reset && context != D3D12Chunk::List_Close &&
+         context != D3D12Chunk::SetCommandAnnotation)
         m_Cmd.m_BakedCmdListInfo[m_Cmd.m_LastCmdListID].curEventID++;
     }
   }
@@ -2018,6 +2036,12 @@ void D3D12CommandData::AddEvent()
   }
   else
   {
+    if(m_RootAnnotation)
+    {
+      apievent.annotations = m_RootAnnotation->Duplicate();
+      m_EventAnnotations.push_back(apievent.annotations);
+    }
+
     m_RootEvents.push_back(apievent);
     m_Events.resize_for_index(apievent.eventId);
     m_Events[apievent.eventId] = apievent;
@@ -2421,9 +2445,16 @@ void D3D12CommandData::AddAction(const ActionDescription &a)
     RDCERR("Somehow lost action stack!");
 }
 
-void D3D12CommandData::InsertActionsAndRefreshIDs(ResourceId cmd,
-                                                  rdcarray<D3D12ActionTreeNode> &cmdBufNodes)
+void D3D12CommandData::InsertActionsAndRefreshIDs(ResourceId cmd, const BakedCmdListInfo &cmdListInfo)
 {
+  const rdcarray<D3D12ActionTreeNode> &cmdBufNodes = cmdListInfo.action->children;
+
+  SDObject *localAnnotations = NULL;
+  if(m_RootAnnotation)
+    localAnnotations = m_RootAnnotation->Duplicate();
+
+  size_t curAnnot = 0;
+
   // assign new action IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
@@ -2433,6 +2464,29 @@ void D3D12CommandData::InsertActionsAndRefreshIDs(ResourceId cmd,
 
     for(APIEvent &ev : n.action.events)
     {
+      if(localAnnotations)
+      {
+        for(; curAnnot < cmdListInfo.annotations.size(); curAnnot++)
+        {
+          const PendingAnnotation &annot = cmdListInfo.annotations[curAnnot];
+          if(annot.eventId == ev.eventId)
+          {
+            if(annot.valueType == eRENDERDOC_Empty)
+              localAnnotations->EraseChildByKeyPath(annot.key);
+            else
+              WriteAnnotation(localAnnotations->CreateChildByKeyPath(annot.key), annot.valueType,
+                              annot.valueVectorWidth, annot.value);
+          }
+          else if(annot.eventId > ev.eventId)
+          {
+            break;
+          }
+        }
+
+        ev.annotations = localAnnotations->Duplicate();
+        m_EventAnnotations.push_back(ev.annotations);
+      }
+
       ev.eventId += m_RootEventID;
       m_Events.resize(ev.eventId + 1);
       m_Events[ev.eventId] = ev;

@@ -199,6 +199,7 @@ struct BakedCmdListInfo
   rdcarray<APIEvent> curEvents;
   rdcarray<DebugMessage> debugMessages;
   rdcarray<D3D12ActionTreeNode *> actionStack;
+  rdcarray<PendingAnnotation> annotations;
 
   rdcarray<rdcpair<ResourceId, EventUsage>> resourceUsage;
 
@@ -256,6 +257,9 @@ struct D3D12CommandData
   std::map<ResourceId, BakedCmdListInfo> m_BakedCmdListInfo;
 
   D3D12RenderState m_RenderState;
+
+  rdcarray<SDObject *> m_EventAnnotations;
+  SDObject *m_RootAnnotation = NULL;
 
   D3D12RenderState &GetCurRenderState()
   {
@@ -319,7 +323,7 @@ struct D3D12CommandData
   // so we just set this command list
   ID3D12GraphicsCommandListX *m_OutsideCmdList = NULL;
 
-  void InsertActionsAndRefreshIDs(ResourceId cmd, rdcarray<D3D12ActionTreeNode> &cmdBufNodes);
+  void InsertActionsAndRefreshIDs(ResourceId cmd, const BakedCmdListInfo &cmdListInfo);
 
   // this is a list of uint64_t file offset -> uint32_t EIDs of where each
   // action is used. E.g. the action at offset 873954 is EID 50. If a

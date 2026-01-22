@@ -64,7 +64,7 @@ struct D3D12InitParams
   UINT SDKVersion = 0;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x16;
+  static const uint64_t CurrentVersion = 0x17;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -771,6 +771,9 @@ private:
   bool m_FirstFrameCapture = false;
   void *m_FirstFrameCaptureWindow = NULL;
 
+  Threading::CriticalSection m_AnnotationsLock;
+  std::unordered_map<ResourceId, SDObject *> m_Annotations;
+
   Threading::RWLock m_CapTransitionLock;
   CaptureState m_State;
 
@@ -1117,16 +1120,10 @@ public:
   bool EndFrameCapture(DeviceOwnedWindow devWnd);
   bool DiscardFrameCapture(DeviceOwnedWindow devWnd);
   uint32_t SetObjectAnnotation(void *object, const char *key, RENDERDOC_AnnotationType valueType,
-                               uint32_t valueVectorWidth, const RENDERDOC_AnnotationValue *value)
-  {
-    return 2;
-  }
+                               uint32_t valueVectorWidth, const RENDERDOC_AnnotationValue *value);
   uint32_t SetCommandAnnotation(void *queueOrCommandBuffer, const char *key,
                                 RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
-                                const RENDERDOC_AnnotationValue *value)
-  {
-    return 2;
-  }
+                                const RENDERDOC_AnnotationValue *value);
 
   template <typename SerialiserType>
   bool Serialise_Present(SerialiserType &ser, ID3D12Resource *PresentedImage, UINT SyncInterval,

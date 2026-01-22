@@ -1951,6 +1951,7 @@ D3D12_UNWRAP_EXTENDED(ID3D12Resource, ID3D12Resource1);
 D3D12_UNWRAP_EXTENDED(ID3D12Resource, ID3D12Resource2);
 D3D12_UNWRAP_EXTENDED(ID3D12ProtectedResourceSession, ID3D12ProtectedResourceSession1);
 
+D3D12ResourceType TryIdentifyTypeByPtr(ID3D12Object *ptr);
 D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr);
 
 #define WRAPPING_DEBUG 0

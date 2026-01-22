@@ -25,6 +25,7 @@
 #include "d3d12_command_queue.h"
 #include "core/settings.h"
 #include "d3d12_command_list.h"
+#include "d3d12_replay.h"
 #include "d3d12_resources.h"
 
 RDOC_EXTERN_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing);
@@ -628,7 +629,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         // insert the baked command list in-line into this list of notes, assigning new event and
         // drawIDs
-        m_Cmd.InsertActionsAndRefreshIDs(cmd, cmdListInfo.action->children);
+        m_Cmd.InsertActionsAndRefreshIDs(cmd, cmdListInfo);
 
         for(size_t e = 0; e < cmdListInfo.action->executedCmds.size(); e++)
         {
@@ -1552,6 +1553,47 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
   return m_pDownlevel->Present(Unwrap(pOpenCommandList), Unwrap(pSourceTex2D), hWindow, Flags);
 }
 
+template <typename SerialiserType>
+bool WrappedID3D12CommandQueue::Serialise_SetQueueAnnotation(SerialiserType &ser, rdcstr key,
+                                                             RENDERDOC_AnnotationType valueType,
+                                                             uint32_t valueVectorWidth,
+                                                             RENDERDOC_AnnotationValue value)
+{
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
+  SERIALISE_ELEMENT(key);
+  SERIALISE_ELEMENT(valueType);
+  ser.SetStructArg(valueType);
+  SERIALISE_ELEMENT(valueVectorWidth);
+  SERIALISE_ELEMENT(value);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(IsLoading(m_State))
+    {
+      if(!m_Cmd.m_RootAnnotation)
+        m_Cmd.m_RootAnnotation = new SDObject("Event Annotations"_lit, "Event Annotations"_lit);
+
+      SDObject *root = m_Cmd.m_RootAnnotation;
+
+      if(valueType == eRENDERDOC_Empty)
+      {
+        root->EraseChildByKeyPath(key);
+      }
+      else
+      {
+        WriteAnnotation(root->CreateChildByKeyPath(key), valueType, valueVectorWidth, value);
+      }
+
+      m_pDevice->GetReplay()->WriteFrameRecord().frameInfo.containsAnnotations = true;
+    }
+  }
+
+  return true;
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(
     void, WrappedID3D12CommandQueue, UpdateTileMappings, ID3D12Resource *pResource,
     UINT NumResourceRegions, const D3D12_TILED_RESOURCE_COORDINATE *pResourceRegionStartCoordinates,
@@ -1578,3 +1620,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, Signal, ID3D12F
                                 UINT64 Value);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, Wait, ID3D12Fence *pFence,
                                 UINT64 Value);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12CommandQueue, SetQueueAnnotation, rdcstr key,
+                                RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
+                                RENDERDOC_AnnotationValue value);

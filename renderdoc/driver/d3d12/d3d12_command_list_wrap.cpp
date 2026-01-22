@@ -29,6 +29,7 @@
 #include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
+#include "d3d12_replay.h"
 
 RDOC_EXTERN_CONFIG(bool, D3D12_Debug_RT_Auditing);
 
@@ -3217,6 +3218,44 @@ void WrappedID3D12GraphicsCommandList::EndEvent()
   }
 }
 
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_SetCommandAnnotation(
+    SerialiserType &ser, rdcstr key, RENDERDOC_AnnotationType valueType, uint32_t valueVectorWidth,
+    RENDERDOC_AnnotationValue value)
+{
+  ID3D12GraphicsCommandList *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList).Unimportant();
+  SERIALISE_ELEMENT(key);
+  SERIALISE_ELEMENT(valueType);
+  ser.SetStructArg(valueType);
+  SERIALISE_ELEMENT(valueVectorWidth);
+  SERIALISE_ELEMENT(value);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_Cmd->m_LastCmdListID = GetResID(pCommandList);
+
+    if(IsLoading(m_State))
+    {
+      if(!m_Cmd->m_RootAnnotation)
+        m_Cmd->m_RootAnnotation = new SDObject("Event Annotations"_lit, "Event Annotations"_lit);
+
+      ResourceId cmdId = GetResID(pCommandList);
+
+      PendingAnnotation annot = {m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEventID, key,
+                                 valueType, valueVectorWidth, value};
+
+      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].annotations.push_back(annot);
+
+      m_pDevice->GetReplay()->WriteFrameRecord().frameInfo.containsAnnotations = true;
+    }
+  }
+
+  return true;
+}
+
 #pragma endregion Queries / Events
 
 #pragma region Draws
@@ -5708,6 +5747,9 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetMarke
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, BeginEvent, UINT Metadata,
                                 const void *pData, UINT Size);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, EndEvent);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, SetCommandAnnotation,
+                                rdcstr key, RENDERDOC_AnnotationType valueType,
+                                uint32_t valueVectorWidth, RENDERDOC_AnnotationValue value);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, DrawInstanced,
                                 UINT VertexCountPerInstance, UINT InstanceCount,
                                 UINT StartVertexLocation, UINT StartInstanceLocation);
