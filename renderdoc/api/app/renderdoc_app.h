@@ -622,8 +622,30 @@ typedef union RENDERDOC_AnnotationValue
   void *apiObject;
 } RENDERDOC_AnnotationValue;
 
-// simple C++ helper to avoid the need for a temporary object to pass a simple value via the function
+// a struct for specifying a GL object, as we don't have pointers we can use so instead we specify a
+// pointer to this struct giving both the type and the name
+typedef struct RENDERDOC_GLResourceReference
+{
+  // this is the same GLenum identifier as passed to glObjectLabel
+  uint32_t identifier;
+  uint32_t name;
+} GLResourceReference;
+
+// simple C++ helpers to avoid the need for a temporary objects for value passing and GL object specification
 #ifdef __cplusplus
+struct RDGLObjectHelper
+{
+  RENDERDOC_GLResourceReference gl;
+
+  RDGLObjectHelper(uint32_t identifier, uint32_t name)
+  {
+    gl.identifier = identifier;
+    gl.name = name;
+  }
+
+  operator RENDERDOC_GLResourceReference *() { return &gl; }
+};
+
 struct RDAnnotationHelper
 {
   RENDERDOC_AnnotationValue val;
