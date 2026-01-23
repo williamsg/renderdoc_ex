@@ -95,7 +95,9 @@ void AnnotationDisplay::RevealAnnotation(const rdcstr &keyPath)
 
 void AnnotationDisplay::OnCaptureLoaded()
 {
-  setAnnotationObject(NULL);
+  APIEvent ev = m_Ctx.GetEventBrowser()->GetAPIEventForEID(m_Ctx.CurSelectedEvent());
+
+  setAnnotationObject(ev.annotations);
 }
 
 void AnnotationDisplay::OnCaptureClosed()
