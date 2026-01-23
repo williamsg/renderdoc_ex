@@ -67,7 +67,6 @@ public:
 private slots:
   void customContextMenu(QModelIndex index, QMenu *menu);
   void itemClicked(RDTreeWidgetItem *item, int column);
-  void hoverItemChanged(RDTreeWidgetItem *item);
 
 protected:
 
@@ -84,9 +83,6 @@ private:
 
   // whether the Go column is present
   bool m_HasGoColumn = false;
-
-  // track hovered item for icon changes
-  RDTreeWidgetItem *m_HoveredItem = NULL;
 
   QMap<const SDObject *, RDTreeWidgetItem *> m_Items;
 

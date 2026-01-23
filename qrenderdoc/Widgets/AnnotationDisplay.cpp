@@ -33,6 +33,8 @@
 #include "Code/Resources.h"
 #include "Extended/RDHeaderView.h"
 
+const int HoverRole = Qt::UserRole;
+
 AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWidget *parent)
     : QFrame(parent), m_Ctx(ctx), m_Standalone(standalone)
 {
@@ -63,11 +65,9 @@ AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWid
   QObject::connect(m_Tree, &RDTreeWidget::customContextMenu, this,
                    &AnnotationDisplay::customContextMenu);
   QObject::connect(m_Tree, &RDTreeWidget::itemClicked, this, &AnnotationDisplay::itemClicked);
-  QObject::connect(m_Tree, &RDTreeWidget::hoverItemChanged, this,
-                   &AnnotationDisplay::hoverItemChanged);
 
-  m_Tree->viewport()->setAttribute(Qt::WA_Hover);
-  m_Tree->setMouseTracking(true);
+  m_Tree->setHoverIconColumn(2, Icons::action(), Icons::action_hover());
+  m_Tree->setHoverRole(HoverRole);
 
   if(m_Standalone)
     m_Ctx.AddCaptureViewer(this);
@@ -204,6 +204,8 @@ void AnnotationDisplay::addStructuredChildren(RDTreeWidgetItem *parent, const SD
 
         item->setTag(QVariant::fromValue(tag));
 
+        item->setData(2, HoverRole, true);
+
         if(m_HasGoColumn)
           item->setIcon(2, Icons::action());
       }
@@ -251,7 +253,6 @@ void AnnotationDisplay::setAnnotationObject(const SDObject *annotation)
   m_Annotation = annotation;
 
   m_Items.clear();
-  m_HoveredItem = NULL;
   m_Tree->invisibleRootItem()->clear();
 
   // Check if we have any buffer annotations to determine columns
@@ -358,21 +359,5 @@ void AnnotationDisplay::itemClicked(RDTreeWidgetItem *item, int column)
         ctx->AddDockWindow(viewer->Widget(), DockReference::MainToolArea, NULL);
       });
     });
-  }
-}
-
-void AnnotationDisplay::hoverItemChanged(RDTreeWidgetItem *item)
-{
-  // Restore normal icon for previously hovered resource item with a Go button
-  if(m_HoveredItem)
-  {
-    m_HoveredItem->setIcon(2, Icons::action());
-  }
-
-  // Set hover icon for newly hovered resource item, if it has a valid tag
-  if(item && item->tag().canConvert<AnnotationResourceTag>() && m_HasGoColumn)
-  {
-    m_HoveredItem = item;
-    m_HoveredItem->setIcon(2, Icons::action_hover());
   }
 }

@@ -193,7 +193,8 @@ public:
     }
     else if(role == Qt::DecorationRole)
     {
-      if(widget->m_hoverColumn == index.column())
+      if(widget->m_hoverColumn == index.column() &&
+         (widget->m_hoverRole < 0 || item->data(widget->m_hoverColumn, widget->m_hoverRole).toBool()))
       {
         if(itemForIndex(widget->m_currentHoverIndex) == item)
           return widget->m_activeHoverIcon;
@@ -803,12 +804,19 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
 
   RDTreeWidgetItem *newHover = m_model->itemForIndex(m_currentHoverIndex);
 
-  if(m_currentHoverIndex.column() == m_hoverColumn && m_hoverHandCursor)
+  if(m_hoverRole < 0 || newHover->data(m_hoverColumn, m_hoverRole).toBool())
   {
-    setCursor(QCursor(Qt::PointingHandCursor));
+    if(m_currentHoverIndex.column() == m_hoverColumn && m_hoverHandCursor)
+    {
+      setCursor(QCursor(Qt::PointingHandCursor));
+    }
+    else if(oldHoverIndex.column() == m_hoverColumn &&
+            m_currentHoverIndex.column() != m_hoverColumn && m_hoverHandCursor)
+    {
+      unsetCursor();
+    }
   }
-  else if(oldHoverIndex.column() == m_hoverColumn &&
-          m_currentHoverIndex.column() != m_hoverColumn && m_hoverHandCursor)
+  else
   {
     unsetCursor();
   }

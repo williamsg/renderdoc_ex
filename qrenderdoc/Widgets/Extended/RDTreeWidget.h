@@ -233,7 +233,9 @@ public:
     m_activeHoverIcon = hover;
     m_hoverHandCursor = true;
     m_activateOnClick = true;
+    m_hoverRole = -1;
   }
+  void setHoverRole(int role) { m_hoverRole = role; }
   void setHoverHandCursor(bool hand) { m_hoverHandCursor = hand; }
   void setHoverClickActivate(bool click) { m_activateOnClick = click; }
   void setClearSelectionOnFocusLoss(bool clear) { m_clearSelectionOnFocusLoss = clear; }
@@ -327,6 +329,7 @@ private:
   QVector<Qt::Alignment> m_alignments;
 
   int m_hoverColumn = -1;
+  int m_hoverRole = -1;
   QIcon m_normalHoverIcon;
   QIcon m_activeHoverIcon;
   bool m_hoverHandCursor = false;
