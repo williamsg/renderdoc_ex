@@ -42,7 +42,8 @@ AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWid
   m_Tree->setHeader(m_Header);
 
   m_Tree->setColumns({lit("Key"), tr("Value")});
-  m_Header->setColumnStretchHints({1, 4});
+  m_Header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+  m_Header->setSectionResizeMode(1, QHeaderView::Stretch);
   m_Tree->setFont(Formatter::PreferredFont());
 
   QVBoxLayout *layout = new QVBoxLayout(this);
@@ -259,12 +260,16 @@ void AnnotationDisplay::setAnnotationObject(const SDObject *annotation)
   if(m_HasGoColumn)
   {
     m_Tree->setColumns({lit("Key"), tr("Value"), tr("Go")});
-    m_Header->setColumnStretchHints({1, 4, -1});
+    m_Header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    m_Header->setSectionResizeMode(1, QHeaderView::Stretch);
+    m_Header->setSectionResizeMode(2, QHeaderView::Fixed);
+    m_Header->resizeSection(2, 16);
   }
   else
   {
     m_Tree->setColumns({lit("Key"), tr("Value")});
-    m_Header->setColumnStretchHints({1, 4});
+    m_Header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    m_Header->setSectionResizeMode(1, QHeaderView::Stretch);
   }
 
   if(m_Annotation)
