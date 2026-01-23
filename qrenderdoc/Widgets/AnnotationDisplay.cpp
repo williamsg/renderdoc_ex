@@ -24,6 +24,7 @@
 
 #include "AnnotationDisplay.h"
 #include <QAction>
+#include <QCollator>
 #include <QHeaderView>
 #include <QMenu>
 #include <QVBoxLayout>
@@ -132,7 +133,21 @@ bool AnnotationDisplay::shouldBeDisplayed(const SDObject &obj)
 
 void AnnotationDisplay::addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj)
 {
+  QCollator collator;
+  collator.setNumericMode(true);
+  collator.setCaseSensitivity(Qt::CaseInsensitive);
+
+  rdcarray<const SDObject *> children;
+  children.reserve(parentObj.NumChildren());
   for(const SDObject *obj : parentObj)
+    children.push_back(obj);
+
+  if(parentObj.type.basetype != SDBasic::Array)
+    std::sort(children.begin(), children.end(), [&collator](const SDObject *a, const SDObject *b) {
+      return collator.compare(QString(a->name), QString(b->name)) < 0;
+    });
+
+  for(const SDObject *obj : children)
   {
     if(!shouldBeDisplayed(*obj))
       continue;
