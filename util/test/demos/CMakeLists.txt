@@ -101,6 +101,7 @@ set(VULKAN_SRC
         vk/vk_test.cpp
         vk/vk_test.h
         vk/vk_adv_cbuffer_zoo.cpp
+        vk/vk_annotations.cpp
         vk/vk_blend.cpp
         vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
@@ -174,6 +175,7 @@ set(OPENGL_SRC
         3rdparty/glad/glad.c
         gl/gl_test.cpp
         gl/gl_test.h
+        gl/gl_annotations.cpp
         gl/gl_buffer_resizing.cpp
         gl/gl_buffer_spam.cpp
         gl/gl_buffer_truncation.cpp
