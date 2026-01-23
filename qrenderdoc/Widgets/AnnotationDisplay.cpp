@@ -65,6 +65,12 @@ AnnotationDisplay::AnnotationDisplay(ICaptureContext &ctx, bool standalone, QWid
   QObject::connect(m_Tree, &RDTreeWidget::customContextMenu, this,
                    &AnnotationDisplay::customContextMenu);
   QObject::connect(m_Tree, &RDTreeWidget::itemClicked, this, &AnnotationDisplay::itemClicked);
+  // treat a double click the same as a single click on the go column, if we have one
+  QObject::connect(m_Tree, &RDTreeWidget::itemDoubleClicked,
+                   [this](RDTreeWidgetItem *item, int column) {
+                     if(m_HasGoColumn)
+                       itemClicked(item, 2);
+                   });
 
   m_Tree->setHoverIconColumn(2, Icons::action(), Icons::action_hover());
   m_Tree->setHoverRole(HoverRole);
