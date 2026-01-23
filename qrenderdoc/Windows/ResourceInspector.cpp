@@ -517,6 +517,9 @@ void ResourceInspector::OnCaptureClosed()
 {
   m_Resource = ResourceId();
 
+  if(m_AnnotationView)
+    m_AnnotationView->setAnnotationObject(NULL);
+
   ui->renameResource->setEnabled(false);
   ui->resetName->hide();
 
