@@ -246,16 +246,19 @@ public:
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }
   virtual bool IsDeviceUUID(REFIID iid)
   {
-    return iid == __uuidof(ID3D12CommandQueue) ? true : false;
+    if(iid == __uuidof(ID3D12CommandQueue) || iid == __uuidof(ID3D12CommandQueue1))
+      return true;
+
+    return m_pDevice->IsDeviceUUID(iid);
   }
   virtual IUnknown *GetDeviceInterface(REFIID iid)
   {
     if(iid == __uuidof(ID3D12CommandQueue))
       return (ID3D12CommandQueue *)this;
+    if(iid == __uuidof(ID3D12CommandQueue1))
+      return (ID3D12CommandQueue1 *)this;
 
-    RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
-
-    return NULL;
+    return m_pDevice->GetDeviceInterface(iid);
   }
   // the rest forward to the device
   virtual void *GetFrameCapturerDevice() { return m_pDevice->GetFrameCapturerDevice(); }
