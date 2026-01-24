@@ -1002,8 +1002,15 @@ void VulkanRenderState::BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkC
   // compatible with it. Anything not compatible by definition has been invalidated so we don't need
   // to rebind it to be valid.
 
+  uint32_t lastSet = pipe.LastBoundSet();
+  ResourceId pipeLayoutId =
+      lastSet < pipe.descSets.size() ? pipe.descSets[lastSet].pipeLayout : ResourceId();
+
+  if(pipeLayoutId == ResourceId())
+    return;
+
   const VulkanCreationInfo::PipelineLayout &refPipeLayout =
-      vk->GetDebugManager()->GetPipelineLayoutInfo(pipe.descSets[pipe.lastBoundSet].pipeLayout);
+      vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId);
 
   for(size_t i = 0; i < pipe.descSets.size(); i++)
   {
@@ -1013,7 +1020,7 @@ void VulkanRenderState::BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkC
     const VulkanCreationInfo::PipelineLayout &iPipeLayout =
         vk->GetDebugManager()->GetPipelineLayoutInfo(pipe.descSets[i].pipeLayout);
 
-    if(i != pipe.lastBoundSet)
+    if(i != pipe.LastBoundSet())
     {
       // if we come to a descriptor set that isn't compatible with the pipeline layout used in the
       // last bound set, don't bind this descriptor set
@@ -1025,10 +1032,10 @@ void VulkanRenderState::BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkC
 
       // quick check, if the pipeline layout is the same as the one used to bind the reference set
       // then its certainly compatible
-      if(pipe.descSets[i].pipeLayout != pipe.descSets[pipe.lastBoundSet].pipeLayout)
+      if(pipe.descSets[i].pipeLayout != pipe.descSets[pipe.LastBoundSet()].pipeLayout)
       {
         // are we below or above the last bound set
-        if(i < pipe.lastBoundSet)
+        if(i < pipe.LastBoundSet())
         {
           // we only check if this set is compatible with the pipeline layout on this set.
           // Technically the set might have been perturbed still, or we might invalidate this
@@ -1129,8 +1136,15 @@ void VulkanRenderState::BindDescriptorSetsForShaders(WrappedVulkan *vk, VkComman
   if(pipe.descSets.empty())
     return;
 
+  uint32_t lastSet = pipe.LastBoundSet();
+  ResourceId pipeLayoutId =
+      lastSet < pipe.descSets.size() ? pipe.descSets[lastSet].pipeLayout : ResourceId();
+
+  if(pipeLayoutId == ResourceId())
+    return;
+
   const rdcarray<ResourceId> &descSetLayouts =
-      vk->GetDebugManager()->GetPipelineLayoutInfo(pipe.descSets[pipe.lastBoundSet].pipeLayout).descSetLayouts;
+      vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).descSetLayouts;
 
   for(size_t i = 0; i < descSetLayouts.size(); i++)
   {

@@ -103,7 +103,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
 
       const ResourceId layoutID =
           (pipestate.graphics.shaderObject)
-              ? pipestate.graphics.descSets[pipestate.graphics.lastBoundSet].pipeLayout
+              ? pipestate.graphics.descSets[pipestate.graphics.LastBoundSet()].pipeLayout
               : p.vertLayout;
 
       const VulkanCreationInfo::PipelineLayout &layout =
@@ -292,7 +292,10 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
     if(pipestate.graphics.shaderObject)
     {
       pipestate.shaderObjects[4] = GetResID(shad.shad);
-      pipestate.graphics.lastBoundSet = shad.descSet;
+      if(pipestate.graphics.UsingDescBufs())
+        pipestate.graphics.lastBoundDescBufSet = shad.descSet;
+      else
+        pipestate.graphics.lastBoundDescSet = shad.descSet;
       pipestate.graphics.pipeline = ResourceId();
 
       RDCASSERT(pipestate.graphics.descSets.size() >= shad.descSet);
