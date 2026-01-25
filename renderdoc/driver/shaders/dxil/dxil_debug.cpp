@@ -8229,6 +8229,10 @@ const TypeData &Debugger::AddDebugType(const DXIL::Metadata *typeMD)
             AddDebugType(compositeType->base);
             typeData.baseType = compositeType->base;
           }
+          else
+          {
+            typeData.baseType = typeMD;
+          }
           break;
         }
         default:
