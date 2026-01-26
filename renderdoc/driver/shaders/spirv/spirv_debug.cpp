@@ -4882,6 +4882,192 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::SDotAccSat:
     case Op::UDotAccSat:
     case Op::SUDotAccSat:
+    {
+      Id vector1;
+      Id vector2;
+      Id result;
+      ShaderVariable acc;
+      bool leftSigned = true;
+      bool rightSigned = true;
+      switch(opdata.op)
+      {
+        case Op::SDot:
+        {
+          OpSDot dot(it);
+          vector1 = dot.vector1;
+          vector2 = dot.vector2;
+          result = dot.result;
+          break;
+        }
+        case Op::SDotAccSat:
+        {
+          OpSDotAccSat dot(it);
+          vector1 = dot.vector1;
+          vector2 = dot.vector2;
+          acc = GetSrc(dot.accumulator);
+          result = dot.result;
+          break;
+        }
+        case Op::UDot:
+        {
+          OpUDot dot(it);
+          vector1 = dot.vector1;
+          vector2 = dot.vector2;
+          result = dot.result;
+          leftSigned = false;
+          rightSigned = false;
+          break;
+        }
+        case Op::UDotAccSat:
+        {
+          OpUDotAccSat dot(it);
+          vector1 = dot.vector1;
+          vector2 = dot.vector2;
+          acc = GetSrc(dot.accumulator);
+          result = dot.result;
+          leftSigned = false;
+          rightSigned = false;
+          break;
+        }
+        case Op::SUDot:
+        {
+          OpSUDot dot(it);
+          vector1 = dot.vector1;
+          vector2 = dot.vector2;
+          result = dot.result;
+          rightSigned = false;
+          break;
+        }
+        case Op::SUDotAccSat:
+        {
+          OpSUDotAccSat dot(it);
+          vector1 = dot.vector1;
+          vector2 = dot.vector2;
+          acc = GetSrc(dot.accumulator);
+          result = dot.result;
+          rightSigned = false;
+          break;
+        }
+        default: RDCERR("Unexpected opcode %s", ToStr(opdata.op).c_str()); break;
+      }
+
+      ShaderVariable lhs = GetSrc(vector1);
+      ShaderVariable rhs = GetSrc(vector2);
+
+      RDCASSERTEQUAL(lhs.columns, rhs.columns);
+      // 1x32-bit is a 4x-8bit packed vector
+      bool packed = false;
+      if((lhs.columns == 1) && (lhs.type == VarType::SInt || lhs.type == VarType::UInt))
+      {
+        lhs.columns = 4;
+        rhs.columns = 4;
+        lhs.type = (lhs.type == VarType::SInt) ? VarType::SByte : VarType::UByte;
+        rhs.type = (rhs.type == VarType::SInt) ? VarType::SByte : VarType::UByte;
+        packed = true;
+      }
+      const DataType &resultType = debugger.GetType(opdata.resultType);
+      ShaderVariable var;
+      var.type = resultType.scalar().Type();
+      var.rows = 1;
+      var.columns = 1;
+      int64_t sMinValue = int64_t(INT64_MIN);
+      int64_t sMaxValue = int64_t(INT64_MAX);
+      if(var.type == VarType::SInt)
+      {
+        sMinValue = int64_t(INT32_MIN);
+        sMaxValue = int64_t(INT32_MAX);
+      }
+      else if(var.type == VarType::SShort)
+      {
+        sMinValue = int64_t(INT16_MIN);
+        sMaxValue = int64_t(INT16_MAX);
+      }
+      else if(var.type == VarType::SByte)
+      {
+        sMinValue = int64_t(INT8_MIN);
+        sMaxValue = int64_t(INT8_MAX);
+      }
+      uint64_t uMaxValue = uint64_t(UINT64_MAX);
+      if(var.type == VarType::UInt)
+      {
+        uMaxValue = uint64_t(UINT32_MAX);
+      }
+      else if(var.type == VarType::UShort)
+      {
+        uMaxValue = uint64_t(UINT16_MAX);
+      }
+      else if(var.type == VarType::UByte)
+      {
+        uMaxValue = uint64_t(UINT8_MAX);
+      }
+
+      if(leftSigned && rightSigned)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U)                                  \
+  int64_t ret(0);                                       \
+  if(!packed)                                           \
+  {                                                     \
+    for(uint8_t c = 0; c < lhs.columns; c++)            \
+      ret += comp<S>(lhs, c) * comp<S>(rhs, c);         \
+  }                                                     \
+  else                                                  \
+  {                                                     \
+    for(uint8_t c = 0; c < lhs.columns; c++)            \
+      ret += (S)lhs.value.s8v[c] * (S)rhs.value.s8v[c]; \
+  }                                                     \
+  ret += comp<S>(acc, 0);                               \
+  ret = RDCCLAMP(ret, sMinValue, sMaxValue);            \
+  comp<S>(var, 0) = (S)ret;
+
+        IMPL_FOR_INT_TYPES(_IMPL);
+      }
+      else if(!leftSigned && !rightSigned)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U)                                  \
+  uint64_t ret(0);                                      \
+  if(!packed)                                           \
+  {                                                     \
+    for(uint8_t c = 0; c < lhs.columns; c++)            \
+      ret += comp<U>(lhs, c) * comp<U>(rhs, c);         \
+  }                                                     \
+  else                                                  \
+  {                                                     \
+    for(uint8_t c = 0; c < lhs.columns; c++)            \
+      ret += (U)lhs.value.u8v[c] * (U)rhs.value.u8v[c]; \
+  }                                                     \
+  ret += comp<U>(acc, 0);                               \
+  ret = RDCMIN(ret, uMaxValue);                         \
+  comp<U>(var, 0) = (U)ret;
+
+        IMPL_FOR_INT_TYPES(_IMPL);
+      }
+      else if(leftSigned && !rightSigned)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U)                                  \
+  int64_t ret(0);                                       \
+  if(!packed)                                           \
+  {                                                     \
+    for(uint8_t c = 0; c < lhs.columns; c++)            \
+      ret += comp<S>(lhs, c) * comp<U>(rhs, c);         \
+  }                                                     \
+  else                                                  \
+  {                                                     \
+    for(uint8_t c = 0; c < lhs.columns; c++)            \
+      ret += (S)lhs.value.s8v[c] * (U)rhs.value.u8v[c]; \
+  }                                                     \
+  ret += comp<S>(acc, 0);                               \
+  ret = RDCCLAMP(ret, sMinValue, sMaxValue);            \
+  comp<S>(var, 0) = (S)ret;
+
+        IMPL_FOR_INT_TYPES(_IMPL);
+      }
+
+      SetDst(result, var);
+      break;
+    }
 
       // legacy/OpenCL/AMD group operations
     case Op::GroupAll:

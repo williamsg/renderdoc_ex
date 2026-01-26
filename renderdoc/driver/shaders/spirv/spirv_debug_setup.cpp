@@ -465,6 +465,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       "SPV_KHR_terminate_invocation",
       "SPV_KHR_vulkan_memory_model",
       "SPV_KHR_compute_shader_derivatives",
+      "SPV_KHR_integer_dot_product",
 
       // EXT extensions
       "SPV_EXT_demote_to_helper_invocation",
@@ -617,6 +618,11 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::SubgroupVoteKHR:
       case Capability::ComputeDerivativeGroupQuadsKHR:
       case Capability::ComputeDerivativeGroupLinearKHR:
+      // SPIR-V 1.6 / SPV_KHR_integer_dot_product
+      case Capability::DotProduct:
+      case Capability::DotProductInput4x8Bit:
+      case Capability::DotProductInput4x8BitPacked:
+      case Capability::DotProductInputAll:
       {
         supported = true;
         break;
@@ -643,16 +649,6 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::DenormFlushToZero:
       case Capability::RoundingModeRTE:
       case Capability::RoundingModeRTZ:
-      {
-        supported = false;
-        break;
-      }
-
-      // SPIR-V 1.6 / SPV_KHR_integer_dot_product
-      case Capability::DotProduct:
-      case Capability::DotProductInput4x8Bit:
-      case Capability::DotProductInput4x8BitPacked:
-      case Capability::DotProductInputAll:
       {
         supported = false;
         break;
