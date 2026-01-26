@@ -3310,6 +3310,96 @@ OpBranch %_bottomlabel
         });
       }
     }
+    // test integer dot product
+    if(intDotProdFeatures.shaderIntegerDotProduct)
+    {
+      std::vector<std::string> sTypes = {"int"};
+      std::vector<std::string> uTypes = {"uint"};
+      std::vector<std::string> sVecTypes = {"int4"};
+      std::vector<std::string> uVecTypes = {"uint4"};
+      if(float16Int8Features.shaderInt8)
+      {
+        sTypes.push_back("i8");
+        sVecTypes.push_back("i8v4");
+        uTypes.push_back("u8");
+        uVecTypes.push_back("u8v4");
+      }
+      if(features.shaderInt16)
+      {
+        sTypes.push_back("i16");
+        sVecTypes.push_back("i16v4");
+        uTypes.push_back("u16");
+        uVecTypes.push_back("u16v4");
+      }
+      if(features.shaderInt64)
+      {
+        sTypes.push_back("i64");
+        sVecTypes.push_back("i64v4");
+        uTypes.push_back("u64");
+        uVecTypes.push_back("u64v4");
+      }
+
+      // OpSDotKHR
+      // OpUDotKHR,
+      // OpSUDotKHR
+      // OpSDotAccSatKHR
+      // OpUDotAccSatKHR
+      // OpSUDotAccSatKHR
+      const char *prefixes[] = {"S", "U", "SU"};
+      for(size_t i = 0; i < sTypes.size(); ++i)
+      {
+        std::string signedTest;
+        std::string unsignedTest;
+        for(size_t j = 0; j < 3; ++j)
+        {
+          const char *prefix = prefixes[j];
+          const bool leftUnsigned = (j == 1);
+          const bool rightUnsigned = (j >= 1);
+          const std::string lhsType = leftUnsigned ? uTypes[i] : sTypes[i];
+          const std::string lhsVecType = leftUnsigned ? uVecTypes[i] : sVecTypes[i];
+          const std::string rhsType = rightUnsigned ? uTypes[i] : sTypes[i];
+          const std::string rhsVecType = rightUnsigned ? uVecTypes[i] : sVecTypes[i];
+          const std::string retType = lhsType;
+          std::string test;
+          test += fmt::format(
+              "%_lhs1_{6} = OpCompositeConstruct %{1} %{2}_1 %{2}_2 %{2}_3 %{2}_4\n"
+              "%_rhs1_{6} = OpCompositeConstruct %{3} %{4}_5 %{4}_6 %{4}_7 %{4}_8\n"
+              "%_res1_{6} = Op{5}DotKHR %{0} %_lhs1_{6} %_rhs1_{6}\n",
+              retType, lhsVecType, lhsType, rhsVecType, rhsType, prefix, j);
+          test += fmt::format(
+              "%_lhs2_{6} = OpCompositeConstruct %{1} %{2}_1 %{2}_2 %{2}_3 %{2}_4\n"
+              "%_rhs2_{6} = OpCompositeConstruct %{3} %{4}_9 %{4}_10 %{4}_11 %{4}_13\n"
+              "%_res2_{6} = Op{5}DotAccSatKHR %{0} %_lhs2_{6} %_rhs2_{6} %{0}_123\n",
+              retType, lhsVecType, lhsType, rhsVecType, rhsType, prefix, j);
+          if(leftUnsigned)
+            unsignedTest += test;
+          else
+            signedTest += test;
+        }
+        signedTest +=
+            fmt::format("%_out_{0} = OpCompositeConstruct %{0} %_res1_0 %_res2_0 %_res1_2 %_res2_2",
+                        sVecTypes[i]);
+        unsignedTest +=
+            fmt::format("%_out_{0} = OpCompositeConstruct %{0} %_res1_1 %_res2_1 %_res1_1 %_res2_1",
+                        uVecTypes[i]);
+        append_tests({signedTest, unsignedTest});
+      }
+      // Packed 4x8-bit
+      append_tests({
+          R"EOTEST(
+%_x = OpSDotKHR %int %int_dyn_0x01020304 %int_dyn_0x05060708
+%_y = OpSUDotKHR %int %int_dyn_0x090A0B0C %uint_dyn_0x0D0E0F10
+%_z = OpSDotAccSatKHR %int %int_dyn_0x01020304 %int_dyn_0x05060708 %int_191
+%_w = OpSUDotAccSatKHR %int %int_dyn_0x090A0B0C %uint_dyn_0x0D0E0F10 %int_neg237
+%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w
+)EOTEST",
+          R"EOTEST(
+%_x = OpUDotKHR %uint %uint_dyn_0x01020304 %uint_dyn_0x05060708
+%_y = OpUDotAccSatKHR %uint %uint_dyn_0x090A0B0C0D %uint_dyn_0x0E0F1011 %uint_73
+%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_x %_y
+)EOTEST",
+      });
+    }
   }
 
   std::string make_pixel_asm()
@@ -3326,7 +3416,9 @@ OpBranch %_bottomlabel
     std::set<uint32_t> uint_constants;
     std::set<int64_t> i64_constants;
     std::set<uint64_t> u64_constants;
+    std::set<int8_t> i8_constants;
     std::set<uint8_t> u8_constants;
+    std::set<int16_t> i16_constants;
     std::set<uint16_t> u16_constants;
 
     std::string cases;
@@ -3393,6 +3485,36 @@ OpBranch %_bottomlabel
         }
       }
 
+      // find any i8 constants referenced
+      offs = test.find("%i8_");
+      while(offs != std::string::npos)
+      {
+        offs += 4;    // past %i8_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        int8_t val = (int8_t)std::strtol(&test[offs], NULL, base);
+        i8_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%i8_", offs);
+      }
+
       // find any u8 constants referenced
       offs = test.find("%u8_");
       while(offs != std::string::npos)
@@ -3421,6 +3543,36 @@ OpBranch %_bottomlabel
         }
 
         offs = test.find("%u8_", offs);
+      }
+
+      // find any i16 constants referenced
+      offs = test.find("%i16_");
+      while(offs != std::string::npos)
+      {
+        offs += 5;    // past %i16_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        int16_t val = (int16_t)std::strtoul(&test[offs], NULL, base);
+        i16_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%i16_", offs);
       }
 
       // find any u16 constants referenced
@@ -3689,12 +3841,38 @@ OpBranch %_bottomlabel
               "%_f_{0}\n",
               i);
         }
+        else if(test.find("%_out_i64v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertSToF %float4 %_out_i64v4_{0}\n", i);
+        }
         else if(test.find("%_out_u64_") != std::string::npos)
         {
           cases += fmt::format(
               "%_f_{0} = OpConvertUToF %float %_out_u64_{0}\n"
               "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} "
               "%_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_u64v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_u64v4_{0}\n", i);
+        }
+        else if(test.find("%_out_i8_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertSToF %float %_out_i8_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} %_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_i8v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertSToF %float4 %_out_i8v4_{0}\n", i);
+        }
+        else if(test.find("%_out_u8_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float %_out_u8_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} %_f_{0}\n",
               i);
         }
         else if(test.find("%_out_u8v2_") != std::string::npos)
@@ -3707,6 +3885,17 @@ OpBranch %_bottomlabel
         else if(test.find("%_out_u8v4_") != std::string::npos)
         {
           cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_u8v4_{0}\n", i);
+        }
+        else if(test.find("%_out_i16_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertSToF %float %_out_i16_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} %_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_i16v4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertSToF %float4 %_out_i16v4_{0}\n", i);
         }
         else if(test.find("%_out_u16_") != std::string::npos)
         {
@@ -3779,6 +3968,7 @@ OpBranch %_bottomlabel
     {
       typesConstants +=
           "%i8 = OpTypeInt 8 1\n"
+          "%i8v4 = OpTypeVector %i8 4\n"
           "%u8 = OpTypeInt 8 0\n"
           "%u8v2 = OpTypeVector %u8 2\n"
           "%u8v4 = OpTypeVector %u8 4\n";
@@ -3789,7 +3979,9 @@ OpBranch %_bottomlabel
     {
       typesConstants +=
           "%i64 = OpTypeInt 64 1\n"
-          "%u64 = OpTypeInt 64 0\n";
+          "%i64v4 = OpTypeVector %i64 4\n"
+          "%u64 = OpTypeInt 64 0\n"
+          "%u64v4 = OpTypeVector %u64 4\n";
       capabilities += "OpCapability Int64\n";
     }
 
@@ -3799,6 +3991,7 @@ OpBranch %_bottomlabel
     {
       typesConstants +=
           "%i16 = OpTypeInt 16 1\n"
+          "%i16v4 = OpTypeVector %i16 4\n"
           "%u16 = OpTypeInt 16 0\n"
           "%u16v2 = OpTypeVector %u16 2\n"
           "%u16v4 = OpTypeVector %u16 4\n";
@@ -3854,6 +4047,19 @@ OpMemberDecorate %pushdata_struct 4 Offset 48       ; uint64_t bda_u64
 OpDecorate %bda_data_struct Block
 OpMemberDecorate %bda_data_struct 0 Offset 0        ; float f32[0..3]
 OpMemberDecorate %bda_data_struct 1 Offset 16       ; float f32[4..7]
+)EOSHADER";
+    }
+
+    if(intDotProdFeatures.shaderIntegerDotProduct)
+    {
+      capabilities += "OpCapability DotProductKHR\n";
+      capabilities += "OpCapability DotProductInputAllKHR\n";
+      // Requires Int8 support
+      if(float16Int8Features.shaderInt8)
+        capabilities += "OpCapability DotProductInput4x8BitKHR\n";
+      capabilities += "OpCapability DotProductInput4x8BitPackedKHR\n";
+      spv_extensions += R"EOSHADER(
+               OpExtension "SPV_KHR_integer_dot_product"
 )EOSHADER";
     }
 
@@ -3932,16 +4138,22 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     if(float16Int8Features.shaderInt8)
     {
+      for(int8_t i : i8_constants)
+        typesConstants += fmt::format("%i8_{0} = OpConstant %i8 {0}\n", i);
       typesConstants += "\n";
       for(uint8_t u : u8_constants)
         typesConstants += fmt::format("%u8_{0} = OpConstant %u8 {0}\n", u);
+      typesConstants += "\n";
     }
 
     if(features.shaderInt16)
     {
+      for(int16_t i : i16_constants)
+        typesConstants += fmt::format("%i16_{0} = OpConstant %i16 {0}\n", i);
       typesConstants += "\n";
       for(uint16_t u : u16_constants)
         typesConstants += fmt::format("%u16_{0} = OpConstant %u16 {0}\n", u);
+      typesConstants += "\n";
     }
 
     for(int32_t i : int_constants)
@@ -4159,6 +4371,10 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_NV,
   };
 
+  VkPhysicalDeviceShaderIntegerDotProductFeaturesKHR intDotProdFeatures = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_FEATURES_KHR,
+  };
+
   void Prepare(int argc, char **argv)
   {
     // require descriptor indexing
@@ -4180,6 +4396,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     // compute shader derivatives
     optDevExts.push_back(VK_NV_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME);
+
+    // integer dot product
+    optDevExts.push_back(VK_KHR_SHADER_INTEGER_DOT_PRODUCT_EXTENSION_NAME);
 
     // we require this to pixel shader debug anyway, so we might as well require it for all tests.
     features.fragmentStoresAndAtomics = VK_TRUE;
@@ -4205,6 +4424,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     const bool csDerivatives =
         std::find(devExts.begin(), devExts.end(), VK_NV_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME) !=
         devExts.end();
+    const bool intDotProduct =
+        std::find(devExts.begin(), devExts.end(),
+                  VK_KHR_SHADER_INTEGER_DOT_PRODUCT_EXTENSION_NAME) != devExts.end();
 
     vk_version = 0x10;
 
@@ -4351,6 +4573,13 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       csDerivFeatures.pNext = (void *)devInfoNext;
       devInfoNext = &csDerivFeatures;
     }
+
+    if(intDotProduct)
+    {
+      getPhysFeatures2(&intDotProdFeatures);
+      intDotProdFeatures.pNext = (void *)devInfoNext;
+      devInfoNext = &intDotProdFeatures;
+    }
   }
 
   int main()
@@ -4374,6 +4603,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     const bool csDerivatives =
         std::find(devExts.begin(), devExts.end(), VK_NV_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME) !=
         devExts.end();
+    const bool intDotProduct =
+        std::find(devExts.begin(), devExts.end(),
+                  VK_KHR_SHADER_INTEGER_DOT_PRODUCT_EXTENSION_NAME) != devExts.end();
 
     bool subgroupSupport = true;
     static VkPhysicalDeviceSubgroupProperties subProps = {
@@ -4435,6 +4667,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         TEST_LOG("Running tests on compute shader derivatives + suubgroup");
       else
         TEST_LOG("Running tests on compute shader derivatives");
+    }
+
+    if(intDotProduct)
+    {
+      if(intDotProdFeatures.shaderIntegerDotProduct)
+        TEST_LOG("Running tests on integer dot product");
     }
 
     if(features.shaderFloat64)
