@@ -99,7 +99,6 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                 a for a in comp_dim.children if a.flags & rd.ActionFlags.Dispatch]
 
             for test, action in enumerate(compute_tests):
-                failed = False
                 self.controller.SetFrameEvent(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
                 csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
