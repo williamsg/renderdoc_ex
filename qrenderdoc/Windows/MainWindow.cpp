@@ -3066,17 +3066,18 @@ void MainWindow::loadLayout_triggered()
 
 void MainWindow::updateToolsMenuOptions()
 {
-  bool hasEmbeddedDependencies = false;
-  bool hasPendingDependencies = false;
-
   if(m_Ctx.Replay().GetCaptureAccess())
   {
-    hasEmbeddedDependencies = m_Ctx.Replay().GetCaptureAccess()->HasEmbeddedDependencies();
-    hasPendingDependencies = m_Ctx.Replay().GetCaptureAccess()->HasPendingDependencies();
-  }
+    m_Ctx.Replay().AsyncInvoke([this](IReplayController *) {
+      bool hasEmbeddedDependencies = m_Ctx.Replay().GetCaptureAccess()->HasEmbeddedDependencies();
+      bool hasPendingDependencies = m_Ctx.Replay().GetCaptureAccess()->HasPendingDependencies();
 
-  ui->action_EmbedExternalFiles->setEnabled(!hasEmbeddedDependencies && hasPendingDependencies);
-  ui->action_RemoveExternalFiles->setEnabled(hasEmbeddedDependencies);
+      GUIInvoke::call(this, [this, hasEmbeddedDependencies, hasPendingDependencies]() {
+        ui->action_EmbedExternalFiles->setEnabled(!hasEmbeddedDependencies && hasPendingDependencies);
+        ui->action_RemoveExternalFiles->setEnabled(hasEmbeddedDependencies);
+      });
+    });
+  }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)

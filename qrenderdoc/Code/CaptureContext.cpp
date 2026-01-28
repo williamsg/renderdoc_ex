@@ -2893,7 +2893,22 @@ void CaptureContext::EmbedDependentFiles()
     return;
 
   // Always operate on the capture access (local or remote)
-  m_Replay.GetCaptureAccess()->EmbedDependenciesIntoCapture();
+  QString tag = lit("replayEmbedDependenciesIntoCapture");
+  bool done = false;
+
+  Replay().AsyncInvoke(tag, [this, &done](IReplayController *) {
+    m_Replay.GetCaptureAccess()->EmbedDependenciesIntoCapture();
+    done = true;
+  });
+
+  // wait a short while before displaying the progress dialog
+  for(int i = 0; !done && (i < 100 || m_Replay.GetCurrentProcessingTag().isEmpty() ||
+                           m_Replay.GetCurrentProcessingTag() == tag);
+      i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(m_MainWindow->Widget(), tr("Please wait, working..."),
+                     [&done]() { return done; });
 
   // Local replay
   if(m_Replay.GetCaptureFile())
@@ -2923,7 +2938,22 @@ void CaptureContext::RemoveDependentFiles()
     return;
 
   // Always operate on the capture access (local or remote)
-  m_Replay.GetCaptureAccess()->RemoveDependenciesFromCapture();
+  QString tag = lit("replayRemoveDependenciesFromCapture");
+  bool done = false;
+
+  Replay().AsyncInvoke(tag, [this, &done](IReplayController *) {
+    m_Replay.GetCaptureAccess()->RemoveDependenciesFromCapture();
+    done = true;
+  });
+
+  // wait a short while before displaying the progress dialog
+  for(int i = 0; !done && (i < 100 || m_Replay.GetCurrentProcessingTag().isEmpty() ||
+                           m_Replay.GetCurrentProcessingTag() == tag);
+      i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(m_MainWindow->Widget(), tr("Please wait, working..."),
+                     [&done]() { return done; });
 
   // Local replay
   if(m_Replay.GetCaptureFile())
