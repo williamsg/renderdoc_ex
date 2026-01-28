@@ -1095,6 +1095,9 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
     m_PostloadProgress = 1.0f;
   });
 
+  if(m_FrameInfo.containsAnnotations)
+    ANALYTIC_SET(CaptureFeatures.CustomAnnotations, true);
+
   QThread::msleep(20);
 
   QDateTime today = QDateTime::currentDateTimeUtc();
