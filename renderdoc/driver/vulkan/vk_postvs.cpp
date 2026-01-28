@@ -1511,9 +1511,9 @@ static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConst
                                 const rdcspv::DataType &type, rdcspv::Id &structType,
                                 uint32_t &byteSize);
 
-static rdcspv::Id GetArraySizeAndAlign(rdcspv::Editor &editor, const rdcarray<SpecConstant> &specInfo,
-                                       rdcspv::SparseIdMap<rdcspv::Id> &outputTypeReplacements,
-                                       const rdcspv::DataType &type, uint32_t &size)
+static void LayOutStorageArray(rdcspv::Editor &editor, const rdcarray<SpecConstant> &specInfo,
+                               rdcspv::SparseIdMap<rdcspv::Id> &outputTypeReplacements,
+                               const rdcspv::DataType &type, rdcspv::Id &arrayType, uint32_t &size)
 {
   const rdcspv::DataType &arrayInnerType = editor.GetDataType(type.InnerType());
 
@@ -1522,14 +1522,12 @@ static rdcspv::Id GetArraySizeAndAlign(rdcspv::Editor &editor, const rdcarray<Sp
   // handle arrays-of-arrays and arrays-of-struts
   if(arrayInnerType.type == rdcspv::DataType::StructType)
   {
-    innerId = arrayInnerType.InnerType();
-    LayOutStorageStruct(editor, specInfo, outputTypeReplacements,
-                        editor.GetDataType(arrayInnerType.InnerType()), innerId, size);
+    LayOutStorageStruct(editor, specInfo, outputTypeReplacements, arrayInnerType, innerId, size);
   }
   else if(arrayInnerType.type == rdcspv::DataType::ArrayType)
   {
-    innerId = GetArraySizeAndAlign(editor, specInfo, outputTypeReplacements,
-                                   editor.GetDataType(arrayInnerType.InnerType()), size);
+    LayOutStorageArray(editor, specInfo, outputTypeReplacements,
+                       editor.GetDataType(arrayInnerType.InnerType()), innerId, size);
   }
   else
   {
@@ -1542,17 +1540,14 @@ static rdcspv::Id GetArraySizeAndAlign(rdcspv::Editor &editor, const rdcarray<Sp
   }
 
   // make a new array type so we can decorate it with a stride
-  rdcspv::Id memberTypeId =
-      editor.AddType(rdcspv::OpTypeArray(editor.MakeId(), innerId, type.length));
-  outputTypeReplacements[type.id] = memberTypeId;
-  editor.SetName(memberTypeId, StringFormat::Fmt("stridedArray%d", type.id.value()));
+  arrayType = editor.AddType(rdcspv::OpTypeArray(editor.MakeId(), innerId, type.length));
+  outputTypeReplacements[type.id] = arrayType;
+  editor.SetName(arrayType, StringFormat::Fmt("stridedArray%d", type.id.value()));
 
   editor.AddDecoration(rdcspv::OpDecorate(
-      memberTypeId, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(size)));
+      arrayType, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(size)));
 
   size *= editor.EvaluateConstant(type.length, specInfo).value.u32v[0];
-
-  return memberTypeId;
 }
 
 static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConstant> &specInfo,
@@ -1585,18 +1580,10 @@ static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConst
       offset = AlignUp16(offset);
       LayOutStorageStruct(editor, specInfo, outputTypeReplacements, childType, memberTypeId, size);
     }
-    else if(childType.type == rdcspv::DataType::ArrayType &&
-            editor.GetDataType(childType.InnerType()).type == rdcspv::DataType::StructType)
-    {
-      offset = AlignUp16(offset);
-      LayOutStorageStruct(editor, specInfo, outputTypeReplacements,
-                          editor.GetDataType(childType.InnerType()), memberTypeId, size);
-    }
     else if(childType.type == rdcspv::DataType::ArrayType)
     {
-      memberTypeId = GetArraySizeAndAlign(editor, specInfo, outputTypeReplacements, childType, size);
-
       offset = AlignUp16(offset);
+      LayOutStorageArray(editor, specInfo, outputTypeReplacements, childType, memberTypeId, size);
     }
     else
     {
@@ -2383,7 +2370,7 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
     else if(type.type == rdcspv::DataType::ArrayType)
     {
       // handle arrays-of-arrays and arrays-of-structs here
-      arrayInnerType = GetArraySizeAndAlign(editor, specInfo, outputTypeReplacements, type, byteSize);
+      LayOutStorageArray(editor, specInfo, outputTypeReplacements, type, arrayInnerType, byteSize);
 
       stride = byteSize;
 
