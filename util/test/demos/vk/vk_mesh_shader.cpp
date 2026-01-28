@@ -35,9 +35,16 @@ RD_TEST(VK_Mesh_Shader, VulkanGraphicsTest)
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+struct Inner
+{
+  uint a;
+  uint b;
+};
+
 struct PayLoad
 {
   uint tri[4];
+  Inner inner[4];
 };
 
 taskPayloadSharedEXT PayLoad payLoad;
@@ -48,6 +55,16 @@ void main()
 	payLoad.tri[1] = 1;
 	payLoad.tri[2] = 2;
 	payLoad.tri[3] = 3;
+
+	payLoad.inner[0].a = 10;
+	payLoad.inner[0].b = 10;
+	payLoad.inner[1].a = 11;
+	payLoad.inner[1].b = 11;
+	payLoad.inner[2].a = 12;
+	payLoad.inner[2].b = 12;
+	payLoad.inner[3].a = 13;
+	payLoad.inner[3].b = 13;
+
   EmitMeshTasksEXT(4, 1, 1);
 }
 
@@ -58,9 +75,16 @@ void main()
 #version 460
 #extension GL_EXT_mesh_shader : require
 
+struct Inner
+{
+  uint a;
+  uint b;
+};
+
 struct PayLoad
 {
   uint tri[4];
+  Inner inner[4];
 };
 
 taskPayloadSharedEXT PayLoad payLoad;

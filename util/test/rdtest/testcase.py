@@ -1007,6 +1007,9 @@ class TestCase:
         for var in payload.variables:
             var_data = {}
             var_data[var.name] = []
+            if (var.type.baseType == rd.VarType.Struct):
+                log.print(f"Ignoring struct variable '{var.name}'")
+                continue
             # This is not complete to decode all possible payload layouts
             for i in range(var.type.elements):
                 format = rd.ResourceFormat()
