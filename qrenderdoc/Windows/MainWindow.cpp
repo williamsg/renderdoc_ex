@@ -2247,9 +2247,17 @@ void MainWindow::OnCaptureLoaded()
   updateToolsMenuOptions();
 
   ui->action_Start_Replay_Loop->setEnabled(true);
-  ui->action_Open_RGP_Profile->setEnabled(
-      m_Ctx.Replay().GetCaptureAccess()->FindSectionByType(SectionType::AMDRGPProfile) >= 0);
+
+  ui->action_Open_RGP_Profile->setEnabled(false);
   ui->action_Create_RGP_Profile->setEnabled(m_Ctx.APIProps().rgpCapture && m_Ctx.IsCaptureLocal());
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *) {
+    bool hasAMDGRPPorfile =
+        (m_Ctx.Replay().GetCaptureAccess()->FindSectionByType(SectionType::AMDRGPProfile) >= 0);
+
+    GUIInvoke::call(this, [this, hasAMDGRPPorfile]() {
+      ui->action_Open_RGP_Profile->setEnabled(hasAMDGRPPorfile);
+    });
+  });
 
   setCaptureHasErrors(!m_Ctx.DebugMessages().empty());
 
