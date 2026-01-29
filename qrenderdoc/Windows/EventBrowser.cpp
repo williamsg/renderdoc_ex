@@ -1953,7 +1953,7 @@ and vice-versa.
     }
     else
     {
-      int i = parameters.indexOf(QLatin1Char(' '));
+      int i = rdcstr(parameters).find_first_of(" <>=~!");
       if(i < 0)
       {
         keyPath = parameters;
@@ -1963,7 +1963,7 @@ and vice-versa.
       parameters = parameters.mid(i).trimmed();
     }
 
-    QList<Token> tokens = tokenise(parameters, lit("~"));
+    QList<Token> tokens = tokenise(parameters, lit("~!"));
 
     std::function<bool(const SDObject *)> comparer;
 
