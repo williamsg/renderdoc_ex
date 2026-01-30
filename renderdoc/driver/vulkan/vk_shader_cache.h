@@ -35,6 +35,7 @@ enum class BuiltinShader
   BlitVS,
   First = BlitVS,
   CheckerboardFS,
+  CheckerboardMultiviewFS,
   TexDisplayFS,
   FixedColFS,
   TextVS,

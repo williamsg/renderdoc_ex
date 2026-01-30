@@ -4600,13 +4600,13 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   CREATE_OBJECT(m_CheckerDescSet, descriptorPool, m_CheckerDescSetLayout);
   CREATE_OBJECT(m_DepthCopyDescSet, descriptorPool, m_DepthCopyDescSetLayout);
 
-  m_CheckerUBO.Create(driver, driver->GetDev(), 128, 10, 0);
+  m_CheckerUBO.Create(driver, driver->GetDev(), 128, 64, 0);
   m_CheckerUBO.Name("m_CheckerUBO");
   RDCCOMPILE_ASSERT(sizeof(CheckerboardUBOData) <= 128, "checkerboard UBO size");
 
   m_DummyMeshletSSBO.Create(driver, driver->GetDev(), sizeof(Vec4f) * 2, 1,
                             GPUBuffer::eGPUBufferSSBO);
-  m_TriSizeUBO.Create(driver, driver->GetDev(), sizeof(Vec4f), 4096, 0);
+  m_TriSizeUBO.Create(driver, driver->GetDev(), sizeof(Vec4f), 4096, 32);
   m_DummyMeshletSSBO.Name("m_DummyMeshletSSBO");
   m_TriSizeUBO.Name("m_TriSizeUBO");
 
@@ -4974,7 +4974,8 @@ VkPipeline VulkanReplay::OverlayRendering::CreateTempViewportPipe(WrappedVulkan 
       NoDepthRP,
       m_CheckerPipeLayout,
       shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
-      shaderCache->GetBuiltinModule(BuiltinShader::CheckerboardFS),
+      shaderCache->GetBuiltinModule(MultiViewMask ? BuiltinShader::CheckerboardMultiviewFS
+                                                  : BuiltinShader::CheckerboardFS),
       {VK_DYNAMIC_STATE_VIEWPORT},
       Samples,
       false,    // sampleRateShading

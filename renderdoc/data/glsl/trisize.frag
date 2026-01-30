@@ -42,7 +42,7 @@ IO_LOCATION(0) out vec4 color_out;
 void main(void)
 {
 #if defined(VULKAN) && defined(USE_MULTIVIEW)
-  if(gl_ViewIndex != multiview.targetView)
+  if(gl_ViewIndex != multiview.targetView && multiview.targetView >= 0)
     discard;
 #endif
   float area = max(pixarea, 0.001f);

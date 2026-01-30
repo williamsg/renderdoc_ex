@@ -1628,20 +1628,33 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       CHECK_VKR(m_pDriver, vkr);
 
-      {
-        VkClearValue clearval = {};
-        VkRenderPassBeginInfo rpbegin = {
-            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            NULL,
-            Unwrap(m_Overlay.NoDepthRP),
-            Unwrap(m_Overlay.NoDepthFB),
-            state.renderArea,
-            1,
-            &clearval,
-        };
-        vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+      uint32_t firstView = 0;
+      uint32_t lastView = 0;
 
-        VkViewport viewport = state.views[0];
+      // if we have multiview and _exactly_ as many viewports as multiview, assume a sane 1:1
+      // mapping in reality this depends on shader execution to export ViewportIndex
+      // if multiview is disabled we just use the first viewport/scissor
+      if(multiviewMask == (1U << (state.views.size())) - 1)
+      {
+        firstView = Bits::CountTrailingZeroes(multiviewMask);
+        lastView = 31 - Bits::CountLeadingZeroes(multiviewMask);
+      }
+
+      VkClearValue clearval = {};
+      VkRenderPassBeginInfo rpbegin = {
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          NULL,
+          Unwrap(m_Overlay.NoDepthRP),
+          Unwrap(m_Overlay.NoDepthFB),
+          state.renderArea,
+          1,
+          &clearval,
+      };
+      vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+      for(uint32_t viewIndex = firstView; viewIndex <= lastView; viewIndex++)
+      {
+        VkViewport viewport = state.views[viewIndex];
         vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
         uint32_t uboOffs = 0;
@@ -1660,6 +1673,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         // set viewport rect
         ubo->RectPosition = Vec2f(viewport.x, viewport.y);
         ubo->RectSize = Vec2f(viewport.width, viewport.height);
+
+        ubo->TargetView = firstView != lastView ? viewIndex : -1;
 
         if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_AMD_negative_viewport_height ||
            m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_maintenance1)
@@ -1681,11 +1696,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
-        if(!state.scissors.empty())
+        if(viewIndex < state.scissors.size())
         {
-          Vec4f scissor((float)state.scissors[0].offset.x, (float)state.scissors[0].offset.y,
-                        (float)state.scissors[0].extent.width,
-                        (float)state.scissors[0].extent.height);
+          Vec4f scissor((float)state.scissors[viewIndex].offset.x,
+                        (float)state.scissors[viewIndex].offset.y,
+                        (float)state.scissors[viewIndex].extent.width,
+                        (float)state.scissors[viewIndex].extent.height);
 
           ubo = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
           if(!ubo)
@@ -1704,6 +1720,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           ubo->RectPosition = Vec2f(scissor.x, scissor.y);
           ubo->RectSize = Vec2f(scissor.z, scissor.w);
 
+          ubo->TargetView = firstView != lastView ? viewIndex : -1;
+
           m_Overlay.m_CheckerUBO.Unmap();
 
           viewport.x = scissor.x;
@@ -1718,9 +1736,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
           vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
         }
-
-        vt->CmdEndRenderPass(Unwrap(cmd));
       }
+
+      vt->CmdEndRenderPass(Unwrap(cmd));
 
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CHECK_VKR(m_pDriver, vkr);
@@ -3342,14 +3360,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         data->exploderCentre = Vec3f();
         m_MeshRender.UBO.Unmap();
 
-        uint32_t viewOffs = 0;
-        Vec4f *ubo = (Vec4f *)m_Overlay.m_TriSizeUBO.Map(&viewOffs);
-        if(!ubo)
-          return ResourceId();
-        *ubo = Vec4f(state.views[0].width, state.views[0].height, 0.0f, 0.0f);
-        m_Overlay.m_TriSizeUBO.Unmap();
-
-        uint32_t offsets[2] = {meshOffs, viewOffs};
+        // second offset can vary per-view
+        uint32_t offsets[2] = {meshOffs, 0};
 
         VkDescriptorBufferInfo bufdesc;
         m_MeshRender.UBO.FillDescriptor(bufdesc);
@@ -3677,6 +3689,41 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           unwrappedShaders[2] = Unwrap(shaders[2]);
         }
 
+        uint32_t viewOffset[32] = {};
+
+        uint32_t firstView = 0;
+        uint32_t lastView = 0;
+
+        if(multiviewMask > 0)
+        {
+          firstView = Bits::CountTrailingZeroes(multiviewMask);
+          lastView = 31 - Bits::CountLeadingZeroes(multiviewMask);
+        }
+
+        bool viewportPerView = false;
+
+        for(uint32_t view = firstView; view <= lastView; view++)
+        {
+          Vec4f *ubo = (Vec4f *)m_Overlay.m_TriSizeUBO.Map(&viewOffset[view]);
+          if(!ubo)
+            return ResourceId();
+
+          // if we have multiview and _exactly_ as many viewports as multiview, assume a sane 1:1
+          // mapping in reality this depends on shader execution to export ViewportIndex
+          // if multiview is disabled we just use the first viewport/scissor
+          if(multiviewMask == (1U << (state.views.size())) - 1)
+          {
+            *ubo = Vec4f(state.views[view].width, state.views[view].height, 0.0f, 0.0f);
+            viewportPerView = true;
+          }
+          else
+          {
+            *ubo = Vec4f(state.views[0].width, state.views[0].height, 0.0f, 0.0f);
+          }
+
+          m_Overlay.m_TriSizeUBO.Unmap();
+        }
+
         for(size_t i = 0; i < events.size(); i++)
         {
           cmd = m_pDriver->GetNextCmd();
@@ -3707,20 +3754,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
           const ActionDescription *action = m_pDriver->GetAction(events[i]);
 
-          uint32_t firstView = 0;
-          uint32_t lastView = 0;
-
-          if(multiviewMask > 0)
-          {
-            firstView = Bits::CountTrailingZeroes(multiviewMask);
-            lastView = 31 - Bits::CountLeadingZeroes(multiviewMask);
-          }
-
           for(uint32_t view = firstView; view <= lastView; view++)
           {
             // skip if this view isn't in the multiview mask (if we have one)
             if(multiviewMask > 0 && (multiviewMask & (1 << view)) == 0)
               continue;
+
+            offsets[1] = viewOffset[view];
 
             for(uint32_t inst = 0; action && inst < RDCMAX(1U, action->numInstances); inst++)
             {
@@ -3775,12 +3815,27 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
                   if(!state.views.empty() && d == VK_DYNAMIC_STATE_VIEWPORT)
                   {
-                    vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &state.views[0]);
+                    if(viewportPerView)
+                    {
+                      vt->CmdSetViewport(Unwrap(cmd), 0, 1, &state.views[view]);
+                    }
+                    else
+                    {
+                      vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(),
+                                         &state.views[0]);
+                    }
                   }
                   else if(!state.scissors.empty() && d == VK_DYNAMIC_STATE_SCISSOR)
                   {
-                    vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
-                                      &state.scissors[0]);
+                    if(viewportPerView && view < state.scissors.size())
+                    {
+                      vt->CmdSetScissor(Unwrap(cmd), 0, 1, &state.scissors[view]);
+                    }
+                    else
+                    {
+                      vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
+                                        &state.scissors[0]);
+                    }
                   }
                   else if(d == VK_DYNAMIC_STATE_LINE_WIDTH)
                   {
