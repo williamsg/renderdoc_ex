@@ -49,6 +49,7 @@ enum class BuiltinShader
   QuadWriteMultiviewFS,
   TrisizeGS,
   TrisizeFS,
+  TrisizeMultiviewFS,
   TexRemap,
   PixelHistoryMSCopyCS,
   PixelHistoryMSCopyDepthCS,

@@ -3255,11 +3255,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     {
       VulkanRenderState prevstate = state;
 
+      const BuiltinShader pixelShaderVariant =
+          multiviewMask > 0 ? BuiltinShader::TrisizeMultiviewFS : BuiltinShader::TrisizeFS;
+
       VkPipelineShaderStageCreateInfo stages[3] = {
           {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
            shaderCache->GetBuiltinModule(BuiltinShader::MeshVS), "main", NULL},
           {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-           shaderCache->GetBuiltinModule(BuiltinShader::TrisizeFS), "main", NULL},
+           shaderCache->GetBuiltinModule(pixelShaderVariant), "main", NULL},
           {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_GEOMETRY_BIT,
            shaderCache->GetBuiltinModule(BuiltinShader::TrisizeGS), "main", NULL},
       };
@@ -3627,8 +3630,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           shadInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
           shadInfo.nextStage = 0;
           shadInfo.codeSize =
-              shaderCache->GetBuiltinBlob(BuiltinShader::TrisizeFS)->size() * sizeof(uint32_t);
-          shadInfo.pCode = shaderCache->GetBuiltinBlob(BuiltinShader::TrisizeFS)->data();
+              shaderCache->GetBuiltinBlob(pixelShaderVariant)->size() * sizeof(uint32_t);
+          shadInfo.pCode = shaderCache->GetBuiltinBlob(pixelShaderVariant)->data();
 
           vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shadInfo, NULL, &shaders[1]);
 
@@ -3704,519 +3707,547 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
           const ActionDescription *action = m_pDriver->GetAction(events[i]);
 
-          for(uint32_t inst = 0; action && inst < RDCMAX(1U, action->numInstances); inst++)
+          uint32_t firstView = 0;
+          uint32_t lastView = 0;
+
+          if(multiviewMask > 0)
           {
-            MeshFormat fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
-            if(fmt.vertexResourceId == ResourceId())
-              fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::VSOut);
-            if(fmt.vertexResourceId == ResourceId())
-              fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::MeshOut);
+            firstView = Bits::CountTrailingZeroes(multiviewMask);
+            lastView = 31 - Bits::CountLeadingZeroes(multiviewMask);
+          }
 
-            if(fmt.vertexResourceId != ResourceId())
+          for(uint32_t view = firstView; view <= lastView; view++)
+          {
+            // skip if this view isn't in the multiview mask (if we have one)
+            if(multiviewMask > 0 && (multiviewMask & (1 << view)) == 0)
+              continue;
+
+            for(uint32_t inst = 0; action && inst < RDCMAX(1U, action->numInstances); inst++)
             {
-              ia.topology = MakeVkPrimitiveTopology(fmt.topology);
+              MeshFormat fmt = GetPostVSBuffers(events[i], inst, view, MeshDataStage::GSOut);
+              if(fmt.vertexResourceId == ResourceId())
+                fmt = GetPostVSBuffers(events[i], inst, view, MeshDataStage::VSOut);
+              if(fmt.vertexResourceId == ResourceId())
+                fmt = GetPostVSBuffers(events[i], inst, view, MeshDataStage::MeshOut);
 
-              binds[0].stride = binds[1].stride = fmt.vertexByteStride;
-              soBinds[0].stride = soBinds[1].stride = fmt.vertexByteStride;
-
-              PipeKey key = make_rdcpair(fmt.vertexByteStride, fmt.topology);
-              VkPipeline pipe = pipes[key];
-
-              if(pipe == VK_NULL_HANDLE && !state.graphics.shaderObject)
+              if(fmt.vertexResourceId != ResourceId())
               {
-                vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1,
-                                                           &pipeCreateInfo, NULL, &pipe);
-                CHECK_VKR(m_pDriver, vkr);
-              }
+                ia.topology = MakeVkPrimitiveTopology(fmt.topology);
 
-              VkBuffer vb =
-                  m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(fmt.vertexResourceId);
+                binds[0].stride = binds[1].stride = fmt.vertexByteStride;
+                soBinds[0].stride = soBinds[1].stride = fmt.vertexByteStride;
 
-              VkDeviceSize offs = fmt.vertexByteOffset;
-              vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
+                PipeKey key = make_rdcpair(fmt.vertexByteStride, fmt.topology);
+                VkPipeline pipe = pipes[key];
 
-              pipes[key] = pipe;
-
-              vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        Unwrap(m_Overlay.m_TriSizePipeLayout), 0, 1,
-                                        UnwrapPtr(m_Overlay.m_TriSizeDescSet), 2, offsets);
-
-              if(state.graphics.shaderObject)
-                vt->CmdBindShadersEXT(Unwrap(cmd), 3, stageFlags, unwrappedShaders);
-              else
-                vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
-
-              const VkPipelineDynamicStateCreateInfo *dyn = pipeCreateInfo.pDynamicState;
-
-              for(uint32_t dynState = 0; dyn && dynState < dyn->dynamicStateCount; dynState++)
-              {
-                VkDynamicState d = dyn->pDynamicStates[dynState];
-
-                if(!state.views.empty() && d == VK_DYNAMIC_STATE_VIEWPORT)
+                if(pipe == VK_NULL_HANDLE && !state.graphics.shaderObject)
                 {
-                  vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &state.views[0]);
-                }
-                else if(!state.scissors.empty() && d == VK_DYNAMIC_STATE_SCISSOR)
-                {
-                  vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
-                                    &state.scissors[0]);
-                }
-                else if(d == VK_DYNAMIC_STATE_LINE_WIDTH)
-                {
-                  vt->CmdSetLineWidth(Unwrap(cmd), state.lineWidth);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_BIAS)
-                {
-                  vt->CmdSetDepthBias(Unwrap(cmd), state.bias.depth, state.bias.biasclamp,
-                                      state.bias.slope);
-                }
-                else if(d == VK_DYNAMIC_STATE_BLEND_CONSTANTS)
-                {
-                  vt->CmdSetBlendConstants(Unwrap(cmd), state.blendConst);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_BOUNDS)
-                {
-                  vt->CmdSetDepthBounds(Unwrap(cmd), state.mindepth, state.maxdepth);
-                }
-                else if(d == VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK)
-                {
-                  vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
-                                               state.back.compare);
-                  vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
-                                               state.front.compare);
-                }
-                else if(d == VK_DYNAMIC_STATE_STENCIL_WRITE_MASK)
-                {
-                  vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.write);
-                  vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
-                                             state.front.write);
-                }
-                else if(d == VK_DYNAMIC_STATE_STENCIL_REFERENCE)
-                {
-                  vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.ref);
-                  vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.ref);
-                }
-                else if(d == VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT)
-                {
-                  vt->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)state.views.size(),
-                                                 state.views.data());
-                }
-                else if(d == VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT)
-                {
-                  vt->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)state.scissors.size(),
-                                                state.scissors.data());
-                }
-                else if(d == VK_DYNAMIC_STATE_CULL_MODE)
-                {
-                  vt->CmdSetCullModeEXT(Unwrap(cmd), state.cullMode);
-                }
-                else if(d == VK_DYNAMIC_STATE_FRONT_FACE)
-                {
-                  vt->CmdSetFrontFaceEXT(Unwrap(cmd), state.frontFace);
-                }
-                else if(d == VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY)
-                {
-                  RDCERR("Primitive topology dynamic state found, should have been stripped");
-                }
-                else if(d == VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE)
-                {
-                  RDCERR(
-                      "Vertex input binding stride dynamic state found, should have been stripped");
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE)
-                {
-                  vt->CmdSetDepthTestEnableEXT(Unwrap(cmd), state.depthTestEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE)
-                {
-                  vt->CmdSetDepthWriteEnableEXT(Unwrap(cmd), state.depthWriteEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_COMPARE_OP)
-                {
-                  vt->CmdSetDepthCompareOpEXT(Unwrap(cmd), state.depthCompareOp);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE)
-                {
-                  vt->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), state.depthBoundsTestEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE)
-                {
-                  vt->CmdSetStencilTestEnableEXT(Unwrap(cmd), state.stencilTestEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_STENCIL_OP)
-                {
-                  vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.failOp,
-                                         state.front.passOp, state.front.depthFailOp,
-                                         state.front.compareOp);
-                  vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.front.failOp,
-                                         state.front.passOp, state.front.depthFailOp,
-                                         state.front.compareOp);
-                }
-                else if(d == VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT)
-                {
-                  vt->CmdSetColorWriteEnableEXT(Unwrap(cmd), (uint32_t)state.colorWriteEnable.size(),
-                                                state.colorWriteEnable.data());
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE)
-                {
-                  vt->CmdSetDepthBiasEnableEXT(Unwrap(cmd), state.depthBiasEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_LOGIC_OP_EXT)
-                {
-                  vt->CmdSetLogicOpEXT(Unwrap(cmd), state.logicOp);
-                }
-                else if(d == VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT)
-                {
-                  vt->CmdSetPatchControlPointsEXT(Unwrap(cmd), state.patchControlPoints);
-                }
-                else if(d == VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE)
-                {
-                  vt->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), state.primRestartEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE)
-                {
-                  vt->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), state.rastDiscardEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_VERTEX_INPUT_EXT)
-                {
-                  RDCERR("Vertex input dynamic state found, should have been stripped");
-                }
-                else if(d == VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT)
-                {
-                  vt->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), state.feedbackAspects);
-                }
-                else if(d == VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT)
-                {
-                  vt->CmdSetAlphaToCoverageEnableEXT(Unwrap(cmd), state.alphaToCoverageEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT)
-                {
-                  vt->CmdSetAlphaToOneEnableEXT(Unwrap(cmd), state.alphaToOneEnable);
-                }
-                else if(!state.colorBlendEnable.empty() &&
-                        d == VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT)
-                {
-                  vt->CmdSetColorBlendEnableEXT(Unwrap(cmd), 0,
-                                                (uint32_t)state.colorBlendEnable.size(),
-                                                state.colorBlendEnable.data());
-                }
-                else if(!state.colorBlendEquation.empty() &&
-                        d == VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT)
-                {
-                  vt->CmdSetColorBlendEquationEXT(Unwrap(cmd), 0,
-                                                  (uint32_t)state.colorBlendEquation.size(),
-                                                  state.colorBlendEquation.data());
-                }
-                else if(!state.colorWriteMask.empty() && d == VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT)
-                {
-                  vt->CmdSetColorWriteMaskEXT(Unwrap(cmd), 0, (uint32_t)state.colorWriteMask.size(),
-                                              state.colorWriteMask.data());
-                }
-                else if(d == VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT)
-                {
-                  vt->CmdSetConservativeRasterizationModeEXT(Unwrap(cmd), state.conservativeRastMode);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT)
-                {
-                  vt->CmdSetDepthClampEnableEXT(Unwrap(cmd), state.depthClampEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT)
-                {
-                  vt->CmdSetDepthClipEnableEXT(Unwrap(cmd), state.depthClipEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT)
-                {
-                  vt->CmdSetDepthClipNegativeOneToOneEXT(Unwrap(cmd), state.negativeOneToOne);
-                }
-                else if(d == VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT)
-                {
-                  vt->CmdSetExtraPrimitiveOverestimationSizeEXT(Unwrap(cmd),
-                                                                state.primOverestimationSize);
-                }
-                else if(d == VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT)
-                {
-                  vt->CmdSetLineRasterizationModeEXT(Unwrap(cmd), state.lineRasterMode);
-                }
-                else if(d == VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT)
-                {
-                  vt->CmdSetLineStippleEnableEXT(Unwrap(cmd), state.stippledLineEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT)
-                {
-                  vt->CmdSetLogicOpEnableEXT(Unwrap(cmd), state.logicOpEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_POLYGON_MODE_EXT)
-                {
-                  vt->CmdSetPolygonModeEXT(Unwrap(cmd), state.polygonMode);
-                }
-                else if(d == VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT)
-                {
-                  vt->CmdSetProvokingVertexModeEXT(Unwrap(cmd), state.provokingVertexMode);
-                }
-                else if(d == VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT)
-                {
-                  vt->CmdSetRasterizationSamplesEXT(Unwrap(cmd), state.rastSamples);
-                }
-                else if(d == VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT)
-                {
-                  vt->CmdSetRasterizationStreamEXT(Unwrap(cmd), state.rasterStream);
-                }
-                else if(d == VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT)
-                {
-                  vt->CmdSetSampleLocationsEnableEXT(Unwrap(cmd), state.sampleLocEnable);
-                }
-                else if(d == VK_DYNAMIC_STATE_SAMPLE_MASK_EXT)
-                {
-                  vt->CmdSetSampleMaskEXT(Unwrap(cmd), state.rastSamples, state.sampleMask.data());
-                }
-                else if(d == VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT)
-                {
-                  vt->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), state.domainOrigin);
-                }
-              }
-
-              if(state.graphics.shaderObject)
-              {
-                if(!state.views.empty() && state.dynamicStates[VkDynamicViewport])
-                {
-                  vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &state.views[0]);
-                }
-                if(!state.scissors.empty() && state.dynamicStates[VkDynamicScissor])
-                {
-                  vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
-                                    &state.scissors[0]);
-                }
-                if(state.dynamicStates[VkDynamicLineWidth])
-                {
-                  vt->CmdSetLineWidth(Unwrap(cmd), state.lineWidth);
-                }
-                if(state.dynamicStates[VkDynamicDepthBias])
-                {
-                  vt->CmdSetDepthBias(Unwrap(cmd), state.bias.depth, state.bias.biasclamp,
-                                      state.bias.slope);
-                }
-                if(state.dynamicStates[VkDynamicBlendConstants])
-                {
-                  vt->CmdSetBlendConstants(Unwrap(cmd), state.blendConst);
-                }
-                if(state.dynamicStates[VkDynamicDepthBounds])
-                {
-                  vt->CmdSetDepthBounds(Unwrap(cmd), state.mindepth, state.maxdepth);
-                }
-                if(state.dynamicStates[VkDynamicStencilCompareMask])
-                {
-                  vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
-                                               state.back.compare);
-                  vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
-                                               state.front.compare);
-                }
-                if(state.dynamicStates[VkDynamicStencilWriteMask])
-                {
-                  vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.write);
-                  vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
-                                             state.front.write);
-                }
-                if(state.dynamicStates[VkDynamicStencilReference])
-                {
-                  vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.ref);
-                  vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.ref);
-                }
-                if(state.dynamicStates[VkDynamicViewportCount])
-                {
-                  vt->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)state.views.size(),
-                                                 state.views.data());
-                }
-                if(state.dynamicStates[VkDynamicScissorCount])
-                {
-                  vt->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)state.scissors.size(),
-                                                state.scissors.data());
-                }
-                if(state.dynamicStates[VkDynamicCullMode])
-                {
-                  vt->CmdSetCullModeEXT(Unwrap(cmd), state.cullMode);
-                }
-                if(state.dynamicStates[VkDynamicFrontFace])
-                {
-                  vt->CmdSetFrontFaceEXT(Unwrap(cmd), state.frontFace);
+                  vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1,
+                                                             &pipeCreateInfo, NULL, &pipe);
+                  CHECK_VKR(m_pDriver, vkr);
                 }
 
-                // overriding topology
-                vt->CmdSetPrimitiveTopologyEXT(Unwrap(cmd), MakeVkPrimitiveTopology(fmt.topology));
+                VkBuffer vb =
+                    m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(fmt.vertexResourceId);
 
-                // VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE unnecessary since utilizing vertex input
+                VkDeviceSize offs = fmt.vertexByteOffset;
+                vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
 
-                if(state.dynamicStates[VkDynamicDepthTestEnable])
+                pipes[key] = pipe;
+
+                vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                          Unwrap(m_Overlay.m_TriSizePipeLayout), 0, 1,
+                                          UnwrapPtr(m_Overlay.m_TriSizeDescSet), 2, offsets);
+
+                if(state.graphics.shaderObject)
+                  vt->CmdBindShadersEXT(Unwrap(cmd), 3, stageFlags, unwrappedShaders);
+                else
+                  vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+
+                vt->CmdPushConstants(Unwrap(cmd), Unwrap(m_Overlay.m_TriSizePipeLayout),
+                                     VK_SHADER_STAGE_ALL, 0, 4, &view);
+
+                const VkPipelineDynamicStateCreateInfo *dyn = pipeCreateInfo.pDynamicState;
+
+                for(uint32_t dynState = 0; dyn && dynState < dyn->dynamicStateCount; dynState++)
                 {
-                  vt->CmdSetDepthTestEnableEXT(Unwrap(cmd), state.depthTestEnable);
-                }
-                if(state.dynamicStates[VkDynamicDepthWriteEnable])
-                {
-                  vt->CmdSetDepthWriteEnableEXT(Unwrap(cmd), state.depthWriteEnable);
-                }
-                if(state.dynamicStates[VkDynamicDepthCompareOp])
-                {
-                  vt->CmdSetDepthCompareOpEXT(Unwrap(cmd), state.depthCompareOp);
-                }
-                if(state.dynamicStates[VkDynamicDepthBoundsTestEnable])
-                {
-                  vt->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), state.depthBoundsTestEnable);
-                }
-                if(state.dynamicStates[VkDynamicStencilTestEnable])
-                {
-                  vt->CmdSetStencilTestEnableEXT(Unwrap(cmd), state.stencilTestEnable);
-                }
-                if(state.dynamicStates[VkDynamicStencilOp])
-                {
-                  vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.failOp,
-                                         state.front.passOp, state.front.depthFailOp,
-                                         state.front.compareOp);
-                  vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.front.failOp,
-                                         state.front.passOp, state.front.depthFailOp,
-                                         state.front.compareOp);
-                }
-                if(!state.colorWriteEnable.empty() && state.dynamicStates[VkDynamicColorWriteEXT])
-                {
-                  vt->CmdSetColorWriteEnableEXT(Unwrap(cmd), (uint32_t)state.colorWriteEnable.size(),
-                                                state.colorWriteEnable.data());
-                }
-                if(state.dynamicStates[VkDynamicDepthBiasEnable])
-                {
-                  vt->CmdSetDepthBiasEnableEXT(Unwrap(cmd), state.depthBiasEnable);
-                }
-                if(state.dynamicStates[VkDynamicLogicOpEXT])
-                {
-                  vt->CmdSetLogicOpEXT(Unwrap(cmd), state.logicOp);
-                }
-                if(state.dynamicStates[VkDynamicControlPointsEXT])
-                {
-                  vt->CmdSetPatchControlPointsEXT(Unwrap(cmd), state.patchControlPoints);
-                }
-                if(state.dynamicStates[VkDynamicPrimRestart])
-                {
-                  vt->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), state.primRestartEnable);
-                }
-                if(state.dynamicStates[VkDynamicRastDiscard])
-                {
-                  vt->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), state.rastDiscardEnable);
+                  VkDynamicState d = dyn->pDynamicStates[dynState];
+
+                  if(!state.views.empty() && d == VK_DYNAMIC_STATE_VIEWPORT)
+                  {
+                    vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &state.views[0]);
+                  }
+                  else if(!state.scissors.empty() && d == VK_DYNAMIC_STATE_SCISSOR)
+                  {
+                    vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
+                                      &state.scissors[0]);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_LINE_WIDTH)
+                  {
+                    vt->CmdSetLineWidth(Unwrap(cmd), state.lineWidth);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_BIAS)
+                  {
+                    vt->CmdSetDepthBias(Unwrap(cmd), state.bias.depth, state.bias.biasclamp,
+                                        state.bias.slope);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_BLEND_CONSTANTS)
+                  {
+                    vt->CmdSetBlendConstants(Unwrap(cmd), state.blendConst);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_BOUNDS)
+                  {
+                    vt->CmdSetDepthBounds(Unwrap(cmd), state.mindepth, state.maxdepth);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK)
+                  {
+                    vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                                 state.back.compare);
+                    vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                                 state.front.compare);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_STENCIL_WRITE_MASK)
+                  {
+                    vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                               state.back.write);
+                    vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                               state.front.write);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_STENCIL_REFERENCE)
+                  {
+                    vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.ref);
+                    vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                               state.front.ref);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT)
+                  {
+                    vt->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)state.views.size(),
+                                                   state.views.data());
+                  }
+                  else if(d == VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT)
+                  {
+                    vt->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)state.scissors.size(),
+                                                  state.scissors.data());
+                  }
+                  else if(d == VK_DYNAMIC_STATE_CULL_MODE)
+                  {
+                    vt->CmdSetCullModeEXT(Unwrap(cmd), state.cullMode);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_FRONT_FACE)
+                  {
+                    vt->CmdSetFrontFaceEXT(Unwrap(cmd), state.frontFace);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY)
+                  {
+                    RDCERR("Primitive topology dynamic state found, should have been stripped");
+                  }
+                  else if(d == VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE)
+                  {
+                    RDCERR(
+                        "Vertex input binding stride dynamic state found, should have been "
+                        "stripped");
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE)
+                  {
+                    vt->CmdSetDepthTestEnableEXT(Unwrap(cmd), state.depthTestEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE)
+                  {
+                    vt->CmdSetDepthWriteEnableEXT(Unwrap(cmd), state.depthWriteEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_COMPARE_OP)
+                  {
+                    vt->CmdSetDepthCompareOpEXT(Unwrap(cmd), state.depthCompareOp);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE)
+                  {
+                    vt->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), state.depthBoundsTestEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE)
+                  {
+                    vt->CmdSetStencilTestEnableEXT(Unwrap(cmd), state.stencilTestEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_STENCIL_OP)
+                  {
+                    vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                           state.front.failOp, state.front.passOp,
+                                           state.front.depthFailOp, state.front.compareOp);
+                    vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                           state.front.failOp, state.front.passOp,
+                                           state.front.depthFailOp, state.front.compareOp);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT)
+                  {
+                    vt->CmdSetColorWriteEnableEXT(Unwrap(cmd),
+                                                  (uint32_t)state.colorWriteEnable.size(),
+                                                  state.colorWriteEnable.data());
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE)
+                  {
+                    vt->CmdSetDepthBiasEnableEXT(Unwrap(cmd), state.depthBiasEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_LOGIC_OP_EXT)
+                  {
+                    vt->CmdSetLogicOpEXT(Unwrap(cmd), state.logicOp);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT)
+                  {
+                    vt->CmdSetPatchControlPointsEXT(Unwrap(cmd), state.patchControlPoints);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE)
+                  {
+                    vt->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), state.primRestartEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE)
+                  {
+                    vt->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), state.rastDiscardEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_VERTEX_INPUT_EXT)
+                  {
+                    RDCERR("Vertex input dynamic state found, should have been stripped");
+                  }
+                  else if(d == VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT)
+                  {
+                    vt->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), state.feedbackAspects);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT)
+                  {
+                    vt->CmdSetAlphaToCoverageEnableEXT(Unwrap(cmd), state.alphaToCoverageEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT)
+                  {
+                    vt->CmdSetAlphaToOneEnableEXT(Unwrap(cmd), state.alphaToOneEnable);
+                  }
+                  else if(!state.colorBlendEnable.empty() &&
+                          d == VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT)
+                  {
+                    vt->CmdSetColorBlendEnableEXT(Unwrap(cmd), 0,
+                                                  (uint32_t)state.colorBlendEnable.size(),
+                                                  state.colorBlendEnable.data());
+                  }
+                  else if(!state.colorBlendEquation.empty() &&
+                          d == VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT)
+                  {
+                    vt->CmdSetColorBlendEquationEXT(Unwrap(cmd), 0,
+                                                    (uint32_t)state.colorBlendEquation.size(),
+                                                    state.colorBlendEquation.data());
+                  }
+                  else if(!state.colorWriteMask.empty() && d == VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT)
+                  {
+                    vt->CmdSetColorWriteMaskEXT(Unwrap(cmd), 0, (uint32_t)state.colorWriteMask.size(),
+                                                state.colorWriteMask.data());
+                  }
+                  else if(d == VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT)
+                  {
+                    vt->CmdSetConservativeRasterizationModeEXT(Unwrap(cmd),
+                                                               state.conservativeRastMode);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT)
+                  {
+                    vt->CmdSetDepthClampEnableEXT(Unwrap(cmd), state.depthClampEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT)
+                  {
+                    vt->CmdSetDepthClipEnableEXT(Unwrap(cmd), state.depthClipEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT)
+                  {
+                    vt->CmdSetDepthClipNegativeOneToOneEXT(Unwrap(cmd), state.negativeOneToOne);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT)
+                  {
+                    vt->CmdSetExtraPrimitiveOverestimationSizeEXT(Unwrap(cmd),
+                                                                  state.primOverestimationSize);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT)
+                  {
+                    vt->CmdSetLineRasterizationModeEXT(Unwrap(cmd), state.lineRasterMode);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT)
+                  {
+                    vt->CmdSetLineStippleEnableEXT(Unwrap(cmd), state.stippledLineEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT)
+                  {
+                    vt->CmdSetLogicOpEnableEXT(Unwrap(cmd), state.logicOpEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_POLYGON_MODE_EXT)
+                  {
+                    vt->CmdSetPolygonModeEXT(Unwrap(cmd), state.polygonMode);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT)
+                  {
+                    vt->CmdSetProvokingVertexModeEXT(Unwrap(cmd), state.provokingVertexMode);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT)
+                  {
+                    vt->CmdSetRasterizationSamplesEXT(Unwrap(cmd), state.rastSamples);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT)
+                  {
+                    vt->CmdSetRasterizationStreamEXT(Unwrap(cmd), state.rasterStream);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT)
+                  {
+                    vt->CmdSetSampleLocationsEnableEXT(Unwrap(cmd), state.sampleLocEnable);
+                  }
+                  else if(d == VK_DYNAMIC_STATE_SAMPLE_MASK_EXT)
+                  {
+                    vt->CmdSetSampleMaskEXT(Unwrap(cmd), state.rastSamples, state.sampleMask.data());
+                  }
+                  else if(d == VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT)
+                  {
+                    vt->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), state.domainOrigin);
+                  }
                 }
 
-                // overriding vertex input
-                vt->CmdSetVertexInputEXT(Unwrap(cmd), 2, soBinds, 2, soAttrs);
+                if(state.graphics.shaderObject)
+                {
+                  if(!state.views.empty() && state.dynamicStates[VkDynamicViewport])
+                  {
+                    vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &state.views[0]);
+                  }
+                  if(!state.scissors.empty() && state.dynamicStates[VkDynamicScissor])
+                  {
+                    vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
+                                      &state.scissors[0]);
+                  }
+                  if(state.dynamicStates[VkDynamicLineWidth])
+                  {
+                    vt->CmdSetLineWidth(Unwrap(cmd), state.lineWidth);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthBias])
+                  {
+                    vt->CmdSetDepthBias(Unwrap(cmd), state.bias.depth, state.bias.biasclamp,
+                                        state.bias.slope);
+                  }
+                  if(state.dynamicStates[VkDynamicBlendConstants])
+                  {
+                    vt->CmdSetBlendConstants(Unwrap(cmd), state.blendConst);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthBounds])
+                  {
+                    vt->CmdSetDepthBounds(Unwrap(cmd), state.mindepth, state.maxdepth);
+                  }
+                  if(state.dynamicStates[VkDynamicStencilCompareMask])
+                  {
+                    vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                                 state.back.compare);
+                    vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                                 state.front.compare);
+                  }
+                  if(state.dynamicStates[VkDynamicStencilWriteMask])
+                  {
+                    vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                               state.back.write);
+                    vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                               state.front.write);
+                  }
+                  if(state.dynamicStates[VkDynamicStencilReference])
+                  {
+                    vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.ref);
+                    vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                               state.front.ref);
+                  }
+                  if(state.dynamicStates[VkDynamicViewportCount])
+                  {
+                    vt->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)state.views.size(),
+                                                   state.views.data());
+                  }
+                  if(state.dynamicStates[VkDynamicScissorCount])
+                  {
+                    vt->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)state.scissors.size(),
+                                                  state.scissors.data());
+                  }
+                  if(state.dynamicStates[VkDynamicCullMode])
+                  {
+                    vt->CmdSetCullModeEXT(Unwrap(cmd), state.cullMode);
+                  }
+                  if(state.dynamicStates[VkDynamicFrontFace])
+                  {
+                    vt->CmdSetFrontFaceEXT(Unwrap(cmd), state.frontFace);
+                  }
 
-                if(state.dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT])
-                {
-                  vt->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), state.feedbackAspects);
-                }
-                if(state.dynamicStates[VkDynamicAlphaToCoverageEXT])
-                {
-                  vt->CmdSetAlphaToCoverageEnableEXT(Unwrap(cmd), state.alphaToCoverageEnable);
-                }
-                if(state.dynamicStates[VkDynamicAlphaToOneEXT])
-                {
-                  vt->CmdSetAlphaToOneEnableEXT(Unwrap(cmd), state.alphaToOneEnable);
-                }
-                if(!state.colorBlendEnable.empty() &&
-                   state.dynamicStates[VkDynamicColorBlendEnableEXT])
-                {
-                  vt->CmdSetColorBlendEnableEXT(Unwrap(cmd), 0,
-                                                (uint32_t)state.colorBlendEnable.size(),
-                                                state.colorBlendEnable.data());
-                }
-                if(!state.colorBlendEquation.empty() &&
-                   state.dynamicStates[VkDynamicColorBlendEquationEXT])
-                {
-                  vt->CmdSetColorBlendEquationEXT(Unwrap(cmd), 0,
-                                                  (uint32_t)state.colorBlendEquation.size(),
-                                                  state.colorBlendEquation.data());
-                }
-                if(!state.colorWriteMask.empty() && state.dynamicStates[VkDynamicColorWriteMaskEXT])
-                {
-                  vt->CmdSetColorWriteMaskEXT(Unwrap(cmd), 0, (uint32_t)state.colorWriteMask.size(),
-                                              state.colorWriteMask.data());
-                }
-                if(state.dynamicStates[VkDynamicConservativeRastModeEXT])
-                {
-                  vt->CmdSetConservativeRasterizationModeEXT(Unwrap(cmd), state.conservativeRastMode);
-                }
-                if(state.dynamicStates[VkDynamicDepthClampEnableEXT])
-                {
-                  vt->CmdSetDepthClampEnableEXT(Unwrap(cmd), state.depthClampEnable);
-                }
-                if(state.dynamicStates[VkDynamicDepthClipEnableEXT])
-                {
-                  vt->CmdSetDepthClipEnableEXT(Unwrap(cmd), state.depthClipEnable);
-                }
-                if(state.dynamicStates[VkDynamicDepthClipNegativeOneEXT])
-                {
-                  vt->CmdSetDepthClipNegativeOneToOneEXT(Unwrap(cmd), state.negativeOneToOne);
-                }
-                if(state.dynamicStates[VkDynamicOverstimationSizeEXT])
-                {
-                  vt->CmdSetExtraPrimitiveOverestimationSizeEXT(Unwrap(cmd),
-                                                                state.primOverestimationSize);
-                }
-                if(state.dynamicStates[VkDynamicLineRastModeEXT])
-                {
-                  vt->CmdSetLineRasterizationModeEXT(Unwrap(cmd), state.lineRasterMode);
-                }
-                if(state.dynamicStates[VkDynamicLineStippleEnableEXT])
-                {
-                  vt->CmdSetLineStippleEnableEXT(Unwrap(cmd), state.stippledLineEnable);
-                }
-                if(state.dynamicStates[VkDynamicLogicOpEnableEXT])
-                {
-                  vt->CmdSetLogicOpEnableEXT(Unwrap(cmd), state.logicOpEnable);
-                }
-                if(state.dynamicStates[VkDynamicPolygonModeEXT])
-                {
-                  vt->CmdSetPolygonModeEXT(Unwrap(cmd), state.polygonMode);
-                }
-                if(state.dynamicStates[VkDynamicProvokingVertexModeEXT])
-                {
-                  vt->CmdSetProvokingVertexModeEXT(Unwrap(cmd), state.provokingVertexMode);
-                }
-                if(state.dynamicStates[VkDynamicRasterizationSamplesEXT])
-                {
-                  vt->CmdSetRasterizationSamplesEXT(Unwrap(cmd), state.rastSamples);
-                }
-                if(state.dynamicStates[VkDynamicRasterizationStreamEXT])
-                {
-                  vt->CmdSetRasterizationStreamEXT(Unwrap(cmd), state.rasterStream);
-                }
-                if(state.dynamicStates[VkDynamicSampleLocationsEnableEXT])
-                {
-                  vt->CmdSetSampleLocationsEnableEXT(Unwrap(cmd), state.sampleLocEnable);
-                }
-                if(state.dynamicStates[VkDynamicSampleMaskEXT])
-                {
-                  vt->CmdSetSampleMaskEXT(Unwrap(cmd), state.rastSamples, state.sampleMask.data());
-                }
-                if(state.dynamicStates[VkDynamicTessDomainOriginEXT])
-                {
-                  vt->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), state.domainOrigin);
-                }
-              }
+                  // overriding topology
+                  vt->CmdSetPrimitiveTopologyEXT(Unwrap(cmd), MakeVkPrimitiveTopology(fmt.topology));
 
-              if(fmt.indexByteStride)
-              {
-                VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
-                if(fmt.indexByteStride == 4)
-                  idxtype = VK_INDEX_TYPE_UINT32;
-                else if(fmt.indexByteStride == 1)
-                  idxtype = VK_INDEX_TYPE_UINT8;
+                  // VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE unnecessary since utilizing vertex input
 
-                if(fmt.indexResourceId != ResourceId())
-                {
-                  VkBuffer ib =
-                      m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(fmt.indexResourceId);
+                  if(state.dynamicStates[VkDynamicDepthTestEnable])
+                  {
+                    vt->CmdSetDepthTestEnableEXT(Unwrap(cmd), state.depthTestEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthWriteEnable])
+                  {
+                    vt->CmdSetDepthWriteEnableEXT(Unwrap(cmd), state.depthWriteEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthCompareOp])
+                  {
+                    vt->CmdSetDepthCompareOpEXT(Unwrap(cmd), state.depthCompareOp);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthBoundsTestEnable])
+                  {
+                    vt->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), state.depthBoundsTestEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicStencilTestEnable])
+                  {
+                    vt->CmdSetStencilTestEnableEXT(Unwrap(cmd), state.stencilTestEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicStencilOp])
+                  {
+                    vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                           state.front.failOp, state.front.passOp,
+                                           state.front.depthFailOp, state.front.compareOp);
+                    vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                           state.front.failOp, state.front.passOp,
+                                           state.front.depthFailOp, state.front.compareOp);
+                  }
+                  if(!state.colorWriteEnable.empty() && state.dynamicStates[VkDynamicColorWriteEXT])
+                  {
+                    vt->CmdSetColorWriteEnableEXT(Unwrap(cmd),
+                                                  (uint32_t)state.colorWriteEnable.size(),
+                                                  state.colorWriteEnable.data());
+                  }
+                  if(state.dynamicStates[VkDynamicDepthBiasEnable])
+                  {
+                    vt->CmdSetDepthBiasEnableEXT(Unwrap(cmd), state.depthBiasEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicLogicOpEXT])
+                  {
+                    vt->CmdSetLogicOpEXT(Unwrap(cmd), state.logicOp);
+                  }
+                  if(state.dynamicStates[VkDynamicControlPointsEXT])
+                  {
+                    vt->CmdSetPatchControlPointsEXT(Unwrap(cmd), state.patchControlPoints);
+                  }
+                  if(state.dynamicStates[VkDynamicPrimRestart])
+                  {
+                    vt->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), state.primRestartEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicRastDiscard])
+                  {
+                    vt->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), state.rastDiscardEnable);
+                  }
 
-                  vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.indexByteOffset, idxtype);
-                  vt->CmdDrawIndexed(Unwrap(cmd), fmt.numIndices, 1, 0, fmt.baseVertex, 0);
+                  // overriding vertex input
+                  vt->CmdSetVertexInputEXT(Unwrap(cmd), 2, soBinds, 2, soAttrs);
+
+                  if(state.dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT])
+                  {
+                    vt->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), state.feedbackAspects);
+                  }
+                  if(state.dynamicStates[VkDynamicAlphaToCoverageEXT])
+                  {
+                    vt->CmdSetAlphaToCoverageEnableEXT(Unwrap(cmd), state.alphaToCoverageEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicAlphaToOneEXT])
+                  {
+                    vt->CmdSetAlphaToOneEnableEXT(Unwrap(cmd), state.alphaToOneEnable);
+                  }
+                  if(!state.colorBlendEnable.empty() &&
+                     state.dynamicStates[VkDynamicColorBlendEnableEXT])
+                  {
+                    vt->CmdSetColorBlendEnableEXT(Unwrap(cmd), 0,
+                                                  (uint32_t)state.colorBlendEnable.size(),
+                                                  state.colorBlendEnable.data());
+                  }
+                  if(!state.colorBlendEquation.empty() &&
+                     state.dynamicStates[VkDynamicColorBlendEquationEXT])
+                  {
+                    vt->CmdSetColorBlendEquationEXT(Unwrap(cmd), 0,
+                                                    (uint32_t)state.colorBlendEquation.size(),
+                                                    state.colorBlendEquation.data());
+                  }
+                  if(!state.colorWriteMask.empty() && state.dynamicStates[VkDynamicColorWriteMaskEXT])
+                  {
+                    vt->CmdSetColorWriteMaskEXT(Unwrap(cmd), 0, (uint32_t)state.colorWriteMask.size(),
+                                                state.colorWriteMask.data());
+                  }
+                  if(state.dynamicStates[VkDynamicConservativeRastModeEXT])
+                  {
+                    vt->CmdSetConservativeRasterizationModeEXT(Unwrap(cmd),
+                                                               state.conservativeRastMode);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthClampEnableEXT])
+                  {
+                    vt->CmdSetDepthClampEnableEXT(Unwrap(cmd), state.depthClampEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthClipEnableEXT])
+                  {
+                    vt->CmdSetDepthClipEnableEXT(Unwrap(cmd), state.depthClipEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicDepthClipNegativeOneEXT])
+                  {
+                    vt->CmdSetDepthClipNegativeOneToOneEXT(Unwrap(cmd), state.negativeOneToOne);
+                  }
+                  if(state.dynamicStates[VkDynamicOverstimationSizeEXT])
+                  {
+                    vt->CmdSetExtraPrimitiveOverestimationSizeEXT(Unwrap(cmd),
+                                                                  state.primOverestimationSize);
+                  }
+                  if(state.dynamicStates[VkDynamicLineRastModeEXT])
+                  {
+                    vt->CmdSetLineRasterizationModeEXT(Unwrap(cmd), state.lineRasterMode);
+                  }
+                  if(state.dynamicStates[VkDynamicLineStippleEnableEXT])
+                  {
+                    vt->CmdSetLineStippleEnableEXT(Unwrap(cmd), state.stippledLineEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicLogicOpEnableEXT])
+                  {
+                    vt->CmdSetLogicOpEnableEXT(Unwrap(cmd), state.logicOpEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicPolygonModeEXT])
+                  {
+                    vt->CmdSetPolygonModeEXT(Unwrap(cmd), state.polygonMode);
+                  }
+                  if(state.dynamicStates[VkDynamicProvokingVertexModeEXT])
+                  {
+                    vt->CmdSetProvokingVertexModeEXT(Unwrap(cmd), state.provokingVertexMode);
+                  }
+                  if(state.dynamicStates[VkDynamicRasterizationSamplesEXT])
+                  {
+                    vt->CmdSetRasterizationSamplesEXT(Unwrap(cmd), state.rastSamples);
+                  }
+                  if(state.dynamicStates[VkDynamicRasterizationStreamEXT])
+                  {
+                    vt->CmdSetRasterizationStreamEXT(Unwrap(cmd), state.rasterStream);
+                  }
+                  if(state.dynamicStates[VkDynamicSampleLocationsEnableEXT])
+                  {
+                    vt->CmdSetSampleLocationsEnableEXT(Unwrap(cmd), state.sampleLocEnable);
+                  }
+                  if(state.dynamicStates[VkDynamicSampleMaskEXT])
+                  {
+                    vt->CmdSetSampleMaskEXT(Unwrap(cmd), state.rastSamples, state.sampleMask.data());
+                  }
+                  if(state.dynamicStates[VkDynamicTessDomainOriginEXT])
+                  {
+                    vt->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), state.domainOrigin);
+                  }
                 }
-              }
-              else
-              {
-                vt->CmdDraw(Unwrap(cmd), fmt.numIndices, 1, 0, 0);
+
+                if(fmt.indexByteStride)
+                {
+                  VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
+                  if(fmt.indexByteStride == 4)
+                    idxtype = VK_INDEX_TYPE_UINT32;
+                  else if(fmt.indexByteStride == 1)
+                    idxtype = VK_INDEX_TYPE_UINT8;
+
+                  if(fmt.indexResourceId != ResourceId())
+                  {
+                    VkBuffer ib =
+                        m_pDriver->GetResourceManager()->GetHandle<VkBuffer>(fmt.indexResourceId);
+
+                    vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.indexByteOffset, idxtype);
+                    vt->CmdDrawIndexed(Unwrap(cmd), fmt.numIndices, 1, 0, fmt.baseVertex, 0);
+                  }
+                }
+                else
+                {
+                  vt->CmdDraw(Unwrap(cmd), fmt.numIndices, 1, 0, 0);
+                }
               }
             }
           }

@@ -4593,7 +4593,7 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
   CREATE_OBJECT(m_CheckerPipeLayout, m_CheckerDescSetLayout, 0);
   CREATE_OBJECT(m_QuadResolvePipeLayout, m_QuadDescSetLayout, 0);
-  CREATE_OBJECT(m_TriSizePipeLayout, m_TriSizeDescSetLayout, 0);
+  CREATE_OBJECT(m_TriSizePipeLayout, m_TriSizeDescSetLayout, 4);
   CREATE_OBJECT(m_DepthCopyPipeLayout, m_DepthCopyDescSetLayout, 0);
   CREATE_OBJECT(m_QuadDescSet, descriptorPool, m_QuadDescSetLayout);
   CREATE_OBJECT(m_TriSizeDescSet, descriptorPool, m_TriSizeDescSetLayout);
