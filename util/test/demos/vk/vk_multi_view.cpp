@@ -122,6 +122,9 @@ void main()
 }
 
 )EOSHADER";
+
+  bool geometryTest = false;
+
   void Prepare(int argc, char **argv)
   {
     features.geometryShader = VK_TRUE;
@@ -136,6 +139,8 @@ void main()
     getPhysFeatures2(&multiview);
     if(!multiview.multiview)
       Avail = "Multiview feature 'multiview' not available";
+
+    geometryTest = multiview.multiviewGeometryShader == VK_TRUE;
 
     devInfoNext = &multiview;
   }
@@ -233,13 +238,16 @@ void main()
     testPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
     testNames.push_back("Fragment: viewIndex");
 
-    pipeCreateInfo.stages = {
-        CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(VKDefaultPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
-        CompileShaderModule(multiViewGeom, ShaderLang::glsl, ShaderStage::geom, "main"),
-    };
-    testPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
-    testNames.push_back("Geometry: viewIndex");
+    if(geometryTest)
+    {
+      pipeCreateInfo.stages = {
+          CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+          CompileShaderModule(VKDefaultPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+          CompileShaderModule(multiViewGeom, ShaderLang::glsl, ShaderStage::geom, "main"),
+      };
+      testPipes.push_back(createGraphicsPipeline(pipeCreateInfo));
+      testNames.push_back("Geometry: viewIndex");
+    }
 
     pipeCreateInfo.stages = {
         CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),

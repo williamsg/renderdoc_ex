@@ -580,6 +580,7 @@ private:
   bool m_DynVertexInput = false;
   bool m_DynAttachmentLoop = false;
   bool m_MultiView = false;
+  bool m_MultiViewGeometryShaders = false;
   bool m_MeshQueries = false;
   bool m_MeshShaders = false;
   bool m_TaskShaders = false;
@@ -1571,6 +1572,7 @@ public:
   bool Maintenance6() const { return m_Maintenance6; }
   bool Maintenance9() const { return m_Maintenance9; }
   bool DescriptorBuffers() const { return m_DescriptorBuffers; }
+  bool MultiViewGeometryShaders() const { return m_MultiViewGeometryShaders; }
   bool MultiviewPerViewViewports() const { return m_MultiviewPerViewViewports; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }

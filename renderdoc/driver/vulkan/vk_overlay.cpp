@@ -3324,7 +3324,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   }
   else if(overlay == DebugOverlay::TriangleSizePass || overlay == DebugOverlay::TriangleSizeDraw)
   {
-    if(!state.rastDiscardEnable)
+    if(!state.rastDiscardEnable && (multiviewMask == 0 || m_pDriver->MultiViewGeometryShaders()))
     {
       VulkanRenderState prevstate = state;
 
