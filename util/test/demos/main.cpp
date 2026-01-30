@@ -390,8 +390,6 @@ int main(int argc, char **argv)
 {
   std::vector<TestMetadata> &tests = test_list();
 
-  LoadLibraryA("P:/renderdoc/x64/development/renderdoc.dll");
-
   std::sort(tests.begin(), tests.end());
 
   if(argc >= 2 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h") || !strcmp(argv[1], "-?") ||
