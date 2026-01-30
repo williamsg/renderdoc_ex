@@ -1451,6 +1451,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       VulkanRenderState prevstate = state;
 
       // make patched shader
+      VkPipeline checkerPipe = VK_NULL_HANDLE;
       VkShaderModule mod[2] = {0};
       VkPipeline pipe[2] = {0};
       VkShaderEXT shad[2] = {0};
@@ -1558,6 +1559,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                                                    NULL, &pipe[1]);
         CHECK_VKR(m_pDriver, vkr);
       }
+
+      checkerPipe = m_Overlay.CreateTempViewportPipe(m_pDriver);
 
       // disable tests in dynamic state too
       state.depthTestEnable = VK_FALSE;
@@ -1671,8 +1674,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         m_Overlay.m_CheckerUBO.Unmap();
 
-        vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            Unwrap(m_Overlay.m_CheckerF16Pipeline[SampleIndex(iminfo.samples)]));
+        vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(checkerPipe));
         vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   Unwrap(m_Overlay.m_CheckerPipeLayout), 0, 1,
                                   UnwrapPtr(m_Overlay.m_CheckerDescSet), 1, &uboOffs);
@@ -1727,14 +1729,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();
 
-      cmd = m_pDriver->GetNextCmd();
-
-      if(cmd == VK_NULL_HANDLE)
-        return ResourceId();
-
-      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CHECK_VKR(m_pDriver, vkr);
-
       for(int i = 0; i < 2; i++)
       {
         if(shad[i] != VK_NULL_HANDLE)
@@ -1742,6 +1736,15 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         m_pDriver->vkDestroyPipeline(m_Device, pipe[i], NULL);
         m_pDriver->vkDestroyShaderModule(m_Device, mod[i], NULL);
       }
+      m_pDriver->vkDestroyPipeline(m_Device, checkerPipe, NULL);
+
+      cmd = m_pDriver->GetNextCmd();
+
+      if(cmd == VK_NULL_HANDLE)
+        return ResourceId();
+
+      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      CHECK_VKR(m_pDriver, vkr);
     }
   }
   else if(overlay == DebugOverlay::BackfaceCull)

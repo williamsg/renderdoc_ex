@@ -4637,12 +4637,9 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
   uint32_t samplesHandled = 0;
 
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(m_CheckerF16Pipeline) == ARRAY_COUNT(m_QuadResolvePipeline),
-                    "Arrays are mismatched in size!");
-
   uint32_t supportedColorSampleCounts = driver->GetDeviceProps().limits.framebufferColorSampleCounts;
 
-  for(size_t i = 0; i < ARRAY_COUNT(m_CheckerF16Pipeline); i++)
+  for(size_t i = 0; i < ARRAY_COUNT(m_QuadResolvePipeline); i++)
   {
     VkSampleCountFlagBits samples = VkSampleCountFlagBits(1 << i);
 
@@ -4661,13 +4658,6 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     // if we know this sample count is supported then create a pipeline
     pipeInfo.renderPass = RGBA16MSRP;
     pipeInfo.sampleCount = VkSampleCountFlagBits(1 << i);
-
-    // set up outline pipeline configuration
-    pipeInfo.blendEnable = true;
-    pipeInfo.fragment = shaderCache->GetBuiltinModule(BuiltinShader::CheckerboardFS);
-    pipeInfo.pipeLayout = m_CheckerPipeLayout;
-
-    CREATE_OBJECT(m_CheckerF16Pipeline[i], pipeInfo);
 
     // set up quad resolve pipeline configuration
     pipeInfo.blendEnable = false;
@@ -4976,6 +4966,34 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8MSRP, NULL);
 }
 
+VkPipeline VulkanReplay::OverlayRendering::CreateTempViewportPipe(WrappedVulkan *driver)
+{
+  VulkanShaderCache *shaderCache = driver->GetShaderCache();
+
+  ConciseGraphicsPipeline pipeInfo = {
+      NoDepthRP,
+      m_CheckerPipeLayout,
+      shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
+      shaderCache->GetBuiltinModule(BuiltinShader::CheckerboardFS),
+      {VK_DYNAMIC_STATE_VIEWPORT},
+      Samples,
+      false,    // sampleRateShading
+      false,    // depthEnable
+      false,    // stencilEnable
+      StencilMode::KEEP,
+      true,    // colourOutput
+      true,    // blendEnable
+      VK_BLEND_FACTOR_SRC_ALPHA,
+      VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      0xf,    // writeMask
+  };
+
+  VkPipeline ret;
+  CREATE_OBJECT(ret, pipeInfo);
+
+  return ret;
+}
+
 VkPipeline VulkanReplay::OverlayRendering::CreateTempMultiviewQuadResolvePipe(WrappedVulkan *driver)
 {
   VulkanShaderCache *shaderCache = driver->GetShaderCache();
@@ -5038,8 +5056,6 @@ void VulkanReplay::OverlayRendering::Destroy(WrappedVulkan *driver)
 
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), m_CheckerDescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), m_CheckerPipeLayout, NULL);
-  for(size_t i = 0; i < ARRAY_COUNT(m_CheckerF16Pipeline); i++)
-    driver->vkDestroyPipeline(driver->GetDev(), m_CheckerF16Pipeline[i], NULL);
   driver->vkDestroyPipeline(driver->GetDev(), m_CheckerPipeline, NULL);
   driver->vkDestroyPipeline(driver->GetDev(), m_CheckerMSAAPipeline, NULL);
 
