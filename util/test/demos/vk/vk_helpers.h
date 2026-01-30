@@ -1251,7 +1251,7 @@ struct ClearValue
   VkClearValue clear;
 
   operator const VkClearValue *() const { return (VkClearValue *)this; }
-  operator const VkClearValue &() const { return (VkClearValue &)*this; }
+  operator const VkClearValue &() const { return clear; }
 };
 
 struct Viewport : public VkViewport
