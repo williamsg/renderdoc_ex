@@ -3641,6 +3641,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(hostImageCopy);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
+      {
+        CHECK_PHYS_EXT_FEATURE(multiviewPerViewViewports);
+        m_MultiviewPerViewViewports |= ext->multiviewPerViewViewports != VK_FALSE;
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

@@ -999,6 +999,60 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   const VulkanCreationInfo::Pipeline &pipeInfo =
       m_pDriver->m_CreationInfo.m_Pipeline[state.graphics.pipeline];
 
+  bool viewportPerView = false;
+
+  // if we have multiview and _exactly_ as many viewports as multiview, assume a sane 1:1
+  // mapping in reality this depends on shader execution to export ViewportIndex
+  // if multiview is disabled we just use the first viewport/scissor
+  if(multiviewMask == (1U << (state.views.size())) - 1)
+    viewportPerView = true;
+
+  // if the extension is enabled to auto-select viewport per-view, check if the shader doesn't select
+  if(m_pDriver->MultiviewPerViewViewports())
+  {
+    if(!state.graphics.shaderObject)
+    {
+      uint32_t shadIdx = (uint32_t)ShaderStage::Vertex;
+      if(pipeInfo.shaders[(uint32_t)ShaderStage::Geometry].module != ResourceId())
+        shadIdx = (uint32_t)ShaderStage::Geometry;
+      else if(pipeInfo.shaders[(uint32_t)ShaderStage::Tess_Eval].module != ResourceId())
+        shadIdx = (uint32_t)ShaderStage::Tess_Eval;
+
+      const ShaderReflection *reflection = pipeInfo.shaders[shadIdx].refl;
+      bool outputsViewport = false;
+      for(const SigParameter &output : reflection->outputSignature)
+      {
+        if(output.systemValue == ShaderBuiltin::ViewportIndex)
+          outputsViewport = true;
+      }
+
+      if(!outputsViewport)
+        viewportPerView = true;
+    }
+    else
+    {
+      VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
+
+      uint32_t shadIdx = (uint32_t)ShaderStage::Vertex;
+      if(state.shaderObjects[(uint32_t)ShaderStage::Geometry] != ResourceId())
+        shadIdx = (uint32_t)ShaderStage::Geometry;
+      else if(state.shaderObjects[(uint32_t)ShaderStage::Tess_Eval] != ResourceId())
+        shadIdx = (uint32_t)ShaderStage::Tess_Eval;
+
+      const ShaderReflection *reflection =
+          createinfo.m_ShaderObject[state.shaderObjects[shadIdx]].shad.refl;
+      bool outputsViewport = false;
+      for(const SigParameter &output : reflection->outputSignature)
+      {
+        if(output.systemValue == ShaderBuiltin::ViewportIndex)
+          outputsViewport = true;
+      }
+
+      if(!outputsViewport)
+        viewportPerView = true;
+    }
+  }
+
   bool rpActive = m_pDriver->IsPartialRenderPassActiveUnsuspended();
 
   if((mainDraw && !(mainDraw->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall))) ||
@@ -1560,8 +1614,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         CHECK_VKR(m_pDriver, vkr);
       }
 
-      checkerPipe = m_Overlay.CreateTempViewportPipe(m_pDriver);
-
       // disable tests in dynamic state too
       state.depthTestEnable = VK_FALSE;
       state.depthWriteEnable = VK_FALSE;
@@ -1631,10 +1683,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       uint32_t firstView = 0;
       uint32_t lastView = 0;
 
-      // if we have multiview and _exactly_ as many viewports as multiview, assume a sane 1:1
-      // mapping in reality this depends on shader execution to export ViewportIndex
-      // if multiview is disabled we just use the first viewport/scissor
-      if(multiviewMask == (1U << (state.views.size())) - 1)
+      if(viewportPerView)
       {
         firstView = Bits::CountTrailingZeroes(multiviewMask);
         lastView = 31 - Bits::CountLeadingZeroes(multiviewMask);
@@ -1652,10 +1701,15 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       };
       vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
+      checkerPipe = m_Overlay.CreateTempViewportPipe(m_pDriver, lastView - firstView + 1);
+
       for(uint32_t viewIndex = firstView; viewIndex <= lastView; viewIndex++)
       {
         VkViewport viewport = state.views[viewIndex];
-        vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+        // set all viewports identically in case we're using the implicit-viewport extension
+        rdcarray<VkViewport> allviews;
+        allviews.fill(state.views.count(), viewport);
+        vt->CmdSetViewport(Unwrap(cmd), 0, allviews.count(), allviews.data());
 
         uint32_t uboOffs = 0;
 
@@ -1729,7 +1783,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           viewport.width = scissor.z;
           viewport.height = scissor.w;
 
-          vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+          allviews.fill(state.views.count(), viewport);
+          vt->CmdSetViewport(Unwrap(cmd), 0, allviews.count(), allviews.data());
           vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     Unwrap(m_Overlay.m_CheckerPipeLayout), 0, 1,
                                     UnwrapPtr(m_Overlay.m_CheckerDescSet), 1, &uboOffs);
@@ -3700,21 +3755,15 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           lastView = 31 - Bits::CountLeadingZeroes(multiviewMask);
         }
 
-        bool viewportPerView = false;
-
         for(uint32_t view = firstView; view <= lastView; view++)
         {
           Vec4f *ubo = (Vec4f *)m_Overlay.m_TriSizeUBO.Map(&viewOffset[view]);
           if(!ubo)
             return ResourceId();
 
-          // if we have multiview and _exactly_ as many viewports as multiview, assume a sane 1:1
-          // mapping in reality this depends on shader execution to export ViewportIndex
-          // if multiview is disabled we just use the first viewport/scissor
-          if(multiviewMask == (1U << (state.views.size())) - 1)
+          if(viewportPerView)
           {
             *ubo = Vec4f(state.views[view].width, state.views[view].height, 0.0f, 0.0f);
-            viewportPerView = true;
           }
           else
           {

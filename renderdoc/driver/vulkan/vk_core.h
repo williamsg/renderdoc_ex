@@ -590,6 +590,7 @@ private:
   bool m_Maintenance6 = false;
   bool m_Maintenance9 = false;
   bool m_DescriptorBuffers = false;
+  bool m_MultiviewPerViewViewports = false;
 
   uint32_t m_RTCaptureReplayHandleSize = 0;
 
@@ -1570,6 +1571,7 @@ public:
   bool Maintenance6() const { return m_Maintenance6; }
   bool Maintenance9() const { return m_Maintenance9; }
   bool DescriptorBuffers() const { return m_DescriptorBuffers; }
+  bool MultiviewPerViewViewports() const { return m_MultiviewPerViewViewports; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }

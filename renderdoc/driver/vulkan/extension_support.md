@@ -268,6 +268,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_NV_viewport_array2`
 * `VK_NV_win32_keyed_mutex`
 * `VK_QCOM_fragment_density_map_offset`
+* `VK_QCOM_multiview_per_view_render_areas`
 * `VK_QCOM_render_pass_shader_resolve`
 * `VK_QCOM_render_pass_store_ops`
 * `VK_VALVE_fragment_density_map_layered`
@@ -432,7 +433,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_QCOM_filter_cubic_weights`
 * `VK_QCOM_image_processing`
 * `VK_QCOM_image_processing2`
-* `VK_QCOM_multiview_per_view_render_areas`
 * `VK_QCOM_multiview_per_view_viewports`
 * `VK_QCOM_render_pass_transform`
 * `VK_QCOM_rotated_copy_commands`

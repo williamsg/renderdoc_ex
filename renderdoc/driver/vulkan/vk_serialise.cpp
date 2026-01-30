@@ -1634,6 +1634,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_PROPERTIES_KHR,            \
                VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR)                                  \
                                                                                                        \
+  /* VK_QCOM_multiview_per_view_viewports */                                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM,           \
+               VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM)                                  \
+                                                                                                       \
   /* VK_NV_dedicated_allocation */                                                                     \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV,                         \
                VkDedicatedAllocationMemoryAllocateInfoNV)                                              \
@@ -2413,8 +2417,7 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_RENDER_AREAS_FEATURES_QCOM)   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MULTIVIEW_PER_VIEW_RENDER_AREAS_RENDER_PASS_BEGIN_INFO_QCOM)     \
                                                                                                        \
-  /* VK_QCOM_multiview_per_view_viewports */                                                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM)      \
+  /* VK_QCOM_render_pass_transform */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDER_PASS_TRANSFORM_INFO_QCOM)      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM)                           \
                                                                                                        \
@@ -12926,6 +12929,22 @@ void Deserialise(const VkPhysicalDeviceCoherentMemoryFeaturesAMD &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_VIEWPORTS_FEATURES_QCOM);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(multiviewPerViewViewports);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -14858,6 +14877,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMeshShaderFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMeshShaderPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceNestedCommandBufferFeaturesEXT);

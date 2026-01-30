@@ -239,8 +239,13 @@ struct ConciseGraphicsPipeline
   uint32_t writeMask;
 };
 
+struct RareGraphicsProperties
+{
+  uint32_t viewCount = 1;
+};
+
 static void create(WrappedVulkan *driver, const char *objName, const int line, VkPipeline *pipe,
-                   const ConciseGraphicsPipeline &info)
+                   const ConciseGraphicsPipeline &info, const RareGraphicsProperties &extra = {})
 {
   // if the module didn't compile, this pipeline is not be supported. Silently don't create it, code
   // later should handle the missing pipeline as indicating lack of support
@@ -357,7 +362,7 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
 
   VkPipelineViewportStateCreateInfo viewScissor = {
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-  viewScissor.viewportCount = viewScissor.scissorCount = 1;
+  viewScissor.viewportCount = viewScissor.scissorCount = extra.viewCount;
 
   // add default scissor, if scissor is dynamic this will be ignored.
   VkRect2D scissor = {{0, 0}, {16384, 16384}};
@@ -4966,7 +4971,8 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8MSRP, NULL);
 }
 
-VkPipeline VulkanReplay::OverlayRendering::CreateTempViewportPipe(WrappedVulkan *driver)
+VkPipeline VulkanReplay::OverlayRendering::CreateTempViewportPipe(WrappedVulkan *driver,
+                                                                  uint32_t viewCount)
 {
   VulkanShaderCache *shaderCache = driver->GetShaderCache();
 
@@ -4989,8 +4995,11 @@ VkPipeline VulkanReplay::OverlayRendering::CreateTempViewportPipe(WrappedVulkan 
       0xf,    // writeMask
   };
 
+  RareGraphicsProperties extra;
+  extra.viewCount = viewCount;
+
   VkPipeline ret;
-  CREATE_OBJECT(ret, pipeInfo);
+  CREATE_OBJECT(ret, pipeInfo, extra);
 
   return ret;
 }
