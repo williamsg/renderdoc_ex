@@ -2165,6 +2165,12 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
     }
   }
 
+  if(dispatchSize[0] > 65535 || dispatchSize[1] > 65535 || dispatchSize[2] > 65535)
+  {
+    ret.ampout.status = ret.meshout.status = "Invalid dispatch size";
+    return;
+  }
+
   uint32_t totalNumMeshlets = dispatchSize[0] * dispatchSize[1] * dispatchSize[2];
 
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
