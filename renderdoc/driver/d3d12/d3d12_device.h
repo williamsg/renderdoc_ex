@@ -751,6 +751,10 @@ private:
   int m_OOMHandler = 0;
   RDResult m_FatalError = ResultCode::Succeeded;
 
+  bool m_CaptureFailure = false;
+  uint64_t m_LastCaptureFailed = 0;
+  RDResult m_LastCaptureError = ResultCode::Succeeded;
+
   uint64_t m_TimeBase = 0;
   double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile = NULL;
@@ -985,7 +989,18 @@ public:
   void CheckDeferredResult(const RDResult &res);
   void AddDeferredTime(double ms);
 
-  void ReportFatalError(RDResult error) { m_FatalError = error; }
+  void ReportFatalError(RDResult error)
+  {
+    if(IsCaptureMode(m_State))
+    {
+      m_CaptureFailure = true;
+      m_LastCaptureError = error;
+    }
+    else
+    {
+      m_FatalError = error;
+    }
+  }
   RDResult FatalErrorCheck() { return m_FatalError; }
   bool HasFatalError() { return m_FatalError != ResultCode::Succeeded; }
   ResourceDescription &GetResourceDesc(ResourceId id);
