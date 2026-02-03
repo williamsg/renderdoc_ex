@@ -8,7 +8,9 @@ class VK_Mesh_Shader(rdtest.TestCase):
 
     def build_local_taskout_reference(self):
         reference = {}
-        reference[0] = { 'tri': [0, 1, 2, 3] }
+        reference[0] = { 'padArr' : [1000,1001,1002,1003] }
+        reference[1] = { 'pad': [123] }
+        reference[2] = { 'tri': [0, 1, 2, 3] }
         return reference
 
     def build_meshout_reference(self, orgY, color):
