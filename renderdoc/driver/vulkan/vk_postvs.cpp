@@ -1507,6 +1507,7 @@ struct OutMeshletLayout
 };
 
 static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConstant> &specInfo,
+                                const bool align,
                                 rdcspv::SparseIdMap<rdcspv::Id> &outputTypeReplacements,
                                 const rdcspv::DataType &type, rdcspv::Id &structType,
                                 uint32_t &byteSize);
@@ -1522,7 +1523,8 @@ static void LayOutStorageArray(rdcspv::Editor &editor, const rdcarray<SpecConsta
   // handle arrays-of-arrays and arrays-of-struts
   if(arrayInnerType.type == rdcspv::DataType::StructType)
   {
-    LayOutStorageStruct(editor, specInfo, outputTypeReplacements, arrayInnerType, innerId, size);
+    LayOutStorageStruct(editor, specInfo, false, outputTypeReplacements, arrayInnerType, innerId,
+                        size);
   }
   else if(arrayInnerType.type == rdcspv::DataType::ArrayType)
   {
@@ -1551,6 +1553,7 @@ static void LayOutStorageArray(rdcspv::Editor &editor, const rdcarray<SpecConsta
 }
 
 static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConstant> &specInfo,
+                                const bool align,
                                 rdcspv::SparseIdMap<rdcspv::Id> &outputTypeReplacements,
                                 const rdcspv::DataType &type, rdcspv::Id &structType,
                                 uint32_t &byteSize)
@@ -1577,12 +1580,11 @@ static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConst
 
     if(childType.type == rdcspv::DataType::StructType)
     {
-      offset = AlignUp16(offset);
-      LayOutStorageStruct(editor, specInfo, outputTypeReplacements, childType, memberTypeId, size);
+      LayOutStorageStruct(editor, specInfo, false, outputTypeReplacements, childType, memberTypeId,
+                          size);
     }
     else if(childType.type == rdcspv::DataType::ArrayType)
     {
-      offset = AlignUp16(offset);
       LayOutStorageArray(editor, specInfo, outputTypeReplacements, childType, memberTypeId, size);
     }
     else
@@ -1609,7 +1611,9 @@ static void LayOutStorageStruct(rdcspv::Editor &editor, const rdcarray<SpecConst
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         structType, i, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offsets[i])));
 
-  byteSize = AlignUp16(offset);
+  if(align)
+    offset = AlignUp16(offset);
+  byteSize = offset;
 }
 
 static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
@@ -1676,7 +1680,7 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
 
         payloadBlockStructType = payloadTaskStructType = type.InnerType();
         rdcspv::SparseIdMap<rdcspv::Id> outputTypeReplacements;
-        LayOutStorageStruct(editor, specInfo, outputTypeReplacements,
+        LayOutStorageStruct(editor, specInfo, true, outputTypeReplacements,
                             editor.GetDataType(payloadBlockStructType), payloadBlockStructType,
                             payloadSize);
         break;
@@ -1961,7 +1965,7 @@ static void ConvertToFixedTaskFeeder(const rdcarray<SpecConstant> &specInfo,
 
         uint32_t byteSize = 0;
         rdcspv::SparseIdMap<rdcspv::Id> outputTypeReplacements;
-        LayOutStorageStruct(editor, specInfo, outputTypeReplacements,
+        LayOutStorageStruct(editor, specInfo, true, outputTypeReplacements,
                             editor.GetDataType(payloadBlockStructType), payloadBlockStructType,
                             byteSize);
 
@@ -2336,7 +2340,8 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
 
     if(type.type == rdcspv::DataType::StructType)
     {
-      LayOutStorageStruct(editor, specInfo, outputTypeReplacements, type, arrayInnerType, byteSize);
+      LayOutStorageStruct(editor, specInfo, true, outputTypeReplacements, type, arrayInnerType,
+                          byteSize);
 
       stride = byteSize;
 
