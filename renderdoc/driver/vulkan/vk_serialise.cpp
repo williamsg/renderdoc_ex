@@ -779,6 +779,20 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_COMPRESSION_CONTROL_SWAPCHAIN_FEATURES_EXT,     \
                VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT)                            \
                                                                                                        \
+  /* VK_EXT_image_drm_format_modifier */                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT,                              \
+               VkDrmFormatModifierPropertiesListEXT)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT,                            \
+               VkDrmFormatModifierPropertiesList2EXT)                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT,                   \
+               VkImageDrmFormatModifierExplicitCreateInfoEXT)                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT,                       \
+               VkImageDrmFormatModifierListCreateInfoEXT)                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT,                             \
+               VkImageDrmFormatModifierPropertiesEXT)                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT,                   \
+               VkPhysicalDeviceImageDrmFormatModifierInfoEXT)                                          \
+                                                                                                       \
   /* VK_EXT_image_robustness */                                                                        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES,                            \
                VkPhysicalDeviceImageRobustnessFeatures)                                                \
@@ -1857,14 +1871,6 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_image_sliced_view_of_3d */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_SLICED_VIEW_OF_3D_FEATURES_EXT)            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_VIEW_SLICED_CREATE_INFO_EXT)                               \
-                                                                                                       \
-  /* VK_EXT_image_drm_format_modifier */                                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT)                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT)                       \
                                                                                                        \
   /* VK_EXT_layer_settings */                                                                          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT)                                  \
@@ -14308,6 +14314,130 @@ void Deserialise(const VkPhysicalDeviceImageCompressionControlSwapchainFeaturesE
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDrmFormatModifierPropertiesEXT &el)
+{
+  SERIALISE_MEMBER(drmFormatModifier);
+  SERIALISE_MEMBER(drmFormatModifierPlaneCount);
+  SERIALISE_MEMBER_VKFLAGS(VkFormatFeatureFlags, drmFormatModifierTilingFeatures);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDrmFormatModifierProperties2EXT &el)
+{
+  SERIALISE_MEMBER(drmFormatModifier);
+  SERIALISE_MEMBER(drmFormatModifierPlaneCount);
+  SERIALISE_MEMBER_VKFLAGS(VkFormatFeatureFlags, drmFormatModifierTilingFeatures);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDrmFormatModifierPropertiesListEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(drmFormatModifierCount);
+  SERIALISE_MEMBER_ARRAY(pDrmFormatModifierProperties, drmFormatModifierCount);
+}
+
+template <>
+void Deserialise(const VkDrmFormatModifierPropertiesListEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pDrmFormatModifierProperties;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDrmFormatModifierPropertiesList2EXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(drmFormatModifierCount);
+  SERIALISE_MEMBER_ARRAY(pDrmFormatModifierProperties, drmFormatModifierCount);
+}
+
+template <>
+void Deserialise(const VkDrmFormatModifierPropertiesList2EXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pDrmFormatModifierProperties;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageDrmFormatModifierExplicitCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(drmFormatModifier);
+  SERIALISE_MEMBER(drmFormatModifierPlaneCount);
+  SERIALISE_MEMBER_ARRAY(pPlaneLayouts, drmFormatModifierPlaneCount);
+}
+
+template <>
+void Deserialise(const VkImageDrmFormatModifierExplicitCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pPlaneLayouts;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageDrmFormatModifierListCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(drmFormatModifierCount);
+  SERIALISE_MEMBER_ARRAY(pDrmFormatModifiers, drmFormatModifierCount);
+}
+
+template <>
+void Deserialise(const VkImageDrmFormatModifierListCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pDrmFormatModifiers;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageDrmFormatModifierPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(drmFormatModifier);
+}
+
+template <>
+void Deserialise(const VkImageDrmFormatModifierPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceImageDrmFormatModifierInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(drmFormatModifier);
+  SERIALISE_MEMBER(sharingMode);
+  SERIALISE_MEMBER(queueFamilyIndexCount);
+  SERIALISE_MEMBER_ARRAY(pQueueFamilyIndices, queueFamilyIndexCount);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceImageDrmFormatModifierInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pQueueFamilyIndices;
+}
+
 template <>
 void Deserialise(const VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT &el)
 {
@@ -14700,6 +14830,10 @@ INSTANTIATE_SERIALISE_TYPE(VkDisplayPlaneProperties2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkDisplayPowerInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDisplayPresentInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDisplayProperties2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkDrmFormatModifierPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkDrmFormatModifierProperties2EXT);
+INSTANTIATE_SERIALISE_TYPE(VkDrmFormatModifierPropertiesListEXT);
+INSTANTIATE_SERIALISE_TYPE(VkDrmFormatModifierPropertiesList2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkEventCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkExportFenceCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkExportMemoryAllocateInfo);
@@ -14733,6 +14867,9 @@ INSTANTIATE_SERIALISE_TYPE(VkImageCompressionPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkImageCopy2);
 INSTANTIATE_SERIALISE_TYPE(VkImageCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatListCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkImageDrmFormatModifierExplicitCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkImageDrmFormatModifierListCreateInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkImageDrmFormatModifierPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryBarrier);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryBarrier2);
@@ -14846,6 +14983,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImage2DViewOf3DFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageCompressionControlFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageDrmFormatModifierInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImagelessFramebufferFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageRobustnessFeatures);

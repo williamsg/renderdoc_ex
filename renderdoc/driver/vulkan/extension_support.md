@@ -70,6 +70,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_image_2d_view_of_3d`
 * `VK_EXT_image_compression_control`
 * `VK_EXT_image_compression_control_swapchain`
+* `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_image_robustness`
 * `VK_EXT_image_view_min_lod`
 * `VK_EXT_index_type_uint8`
@@ -302,7 +303,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_EXT_external_memory_acquire_unmodified`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_external_memory_metal`
-* `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_image_sliced_view_of_3d`
 * `VK_EXT_layer_settings`
 * `VK_EXT_legacy_dithering`

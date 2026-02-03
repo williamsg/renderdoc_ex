@@ -558,7 +558,8 @@
   DeclExt(EXT_descriptor_buffer);                      \
   DeclExt(KHR_map_memory2);                            \
   DeclExt(KHR_present_wait2);                          \
-  DeclExt(EXT_fragment_density_map_offset);
+  DeclExt(EXT_fragment_density_map_offset);            \
+  DeclExt(EXT_image_drm_format_modifier);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -703,7 +704,8 @@
   CheckExt(EXT_descriptor_buffer, VKXX);                      \
   CheckExt(KHR_map_memory2, VK14);                            \
   CheckExt(KHR_present_wait2, VKXX);                          \
-  CheckExt(EXT_fragment_density_map_offset, VKXX);
+  CheckExt(EXT_fragment_density_map_offset, VKXX);            \
+  CheckExt(EXT_image_drm_format_modifier, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -1107,6 +1109,7 @@
   HookInitPromotedExtension(KHR_map_memory2, MapMemory2, KHR);                                       \
   HookInitPromotedExtension(KHR_map_memory2, UnmapMemory2, KHR);                                     \
   HookInitExtension(KHR_present_wait2, WaitForPresent2KHR);                                          \
+  HookInitExtension(EXT_image_drm_format_modifier, GetImageDrmFormatModifierPropertiesEXT);          \
   HookInitExtension_Device_Win32();                                                                  \
   HookInitExtension_Device_Linux();                                                                  \
   HookInitExtension_Device_Android();                                                                \
@@ -2077,6 +2080,8 @@
   HookDefine2(void, vkCmdBindDescriptorBufferEmbeddedSamplers2EXT, VkCommandBuffer, commandBuffer,   \
               const VkBindDescriptorBufferEmbeddedSamplersInfoEXT *,                                 \
               pBindDescriptorBufferEmbeddedSamplersInfo);                                            \
+  HookDefine3(VkResult, vkGetImageDrmFormatModifierPropertiesEXT, VkDevice, device, VkImage,         \
+              image, VkImageDrmFormatModifierPropertiesEXT *, pProperties);                          \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_Android();                                                                              \

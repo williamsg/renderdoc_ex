@@ -206,6 +206,10 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
     if(ext == "VK_EXT_full_screen_exclusive")
       return true;
 
+    // we do not replay any drm features
+    if(ext == "VK_EXT_image_drm_format_modifier")
+      return true;
+
     // this is debug only, nothing to capture, so nothing to replay
     if(ext == "VK_EXT_tooling_info" || ext == "VK_EXT_private_data" ||
        ext == "VK_EXT_validation_features" || ext == "VK_EXT_validation_cache" ||

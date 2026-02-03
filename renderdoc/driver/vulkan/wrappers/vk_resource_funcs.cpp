@@ -2489,6 +2489,9 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
                         VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     CreateInfo.usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
 
+    if(CreateInfo.tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT)
+      CreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+
     // remap the queue family indices
     if(CreateInfo.sharingMode == VK_SHARING_MODE_CONCURRENT)
     {
@@ -2669,6 +2672,36 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
           if(externalResult.externalMemoryProperties.externalMemoryFeatures &
              (VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT | VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT))
             continue;
+
+          // add in special quite hacky handling for dma external types.
+          // this can fail on some drivers if we aren't using drm tiling, and although we're not
+          // actually going to import or export this image the driver is within its rights to fail
+          // at this stage. we take a narrow path here, on the assumption that drivers don't care
+          // about *which* external types we declare only that *some* are declared. If dma isn't
+          // supported, check for fd instead and switch to that if it is supported.
+          if(checkBit == VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT)
+          {
+            externalQuery.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+
+            queryResult = ObjDisp(m_PhysicalDevice)
+                              ->GetPhysicalDeviceImageFormatProperties2(Unwrap(m_PhysicalDevice),
+                                                                        &queryBase, &resultBase);
+
+            if(queryResult != VK_SUCCESS)
+            {
+              RDCERR("vkGetPhysicalDeviceImageFormatProperties2 returned %s",
+                     ToStr(queryResult).c_str());
+              externalResult.externalMemoryProperties.externalMemoryFeatures = 0;
+            }
+
+            if(externalResult.externalMemoryProperties.externalMemoryFeatures &
+               (VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT | VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT))
+            {
+              extCreateInfo->handleTypes &= ~VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
+              extCreateInfo->handleTypes |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+              continue;
+            }
+          }
 
           // otherwise we must fail because this handle type isn't supported at all
           SET_ERROR_RESULT(
@@ -2986,7 +3019,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       {
         if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV ||
            next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO ||
-           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)
+           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID ||
+           next->sType == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT ||
+           next->sType == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT)
         {
           isExternal = true;
           resInfo.imageInfo.isExternal = true;
@@ -3043,6 +3078,14 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                                       VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
           removed |=
               RemoveNextStruct(&createInfo_adjusted, VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID);
+          removed |=
+              RemoveNextStruct(&createInfo_adjusted,
+                               VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
+          removed |= RemoveNextStruct(
+              &createInfo_adjusted, VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
+
+          if(createInfo_adjusted.tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT)
+            createInfo_adjusted.tiling = VK_IMAGE_TILING_OPTIMAL;
 
           RDCASSERTMSG("Couldn't find next struct indicating external memory", removed);
 
