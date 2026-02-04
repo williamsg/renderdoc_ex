@@ -925,7 +925,7 @@ struct RootSignature
   rdcarray<StaticSampler> staticSamplers;
 };
 
-DOCUMENT("Describes the current state of predicated rendering.");
+DOCUMENT("Describes the current state of D3D12 predicated rendering.");
 struct Predication
 {
   DOCUMENT("");
