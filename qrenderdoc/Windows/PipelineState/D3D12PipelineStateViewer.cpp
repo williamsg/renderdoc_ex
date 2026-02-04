@@ -191,6 +191,9 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   for(QToolButton *b : sigButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D12PipelineStateViewer::rootSigView_clicked);
 
+  QObject::connect(ui->predicateView, &QToolButton::clicked, this,
+                   &D3D12PipelineStateViewer::predicateView_clicked);
+
   for(RDLabel *b : shaderLabels)
   {
     b->setAutoFillBackground(true);
@@ -205,6 +208,13 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     b->setBackgroundRole(QPalette::ToolTipBase);
     b->setForegroundRole(QPalette::ToolTipText);
     b->setMinimumSizeHint(QSize(100, 0));
+  }
+
+  {
+    ui->predicate->setAutoFillBackground(true);
+    ui->predicate->setBackgroundRole(QPalette::ToolTipBase);
+    ui->predicate->setForegroundRole(QPalette::ToolTipText);
+    ui->predicate->setMinimumSizeHint(QSize(250, 0));
   }
 
   QObject::connect(m_ComputeDebugSelector, &ComputeDebugSelector::beginDebug, this,
@@ -1165,6 +1175,8 @@ void D3D12PipelineStateViewer::clearState()
 
   ui->stencils->clear();
 
+  ui->predicateGroup->setVisible(false);
+
   ui->computeDebugSelector->setEnabled(false);
 }
 
@@ -2076,6 +2088,23 @@ void D3D12PipelineStateViewer::setState()
   ui->shadingRateImage->setText(ToQStr(state.rasterizer.state.shadingRateImage));
 
   ////////////////////////////////////////////////
+  // Predication
+
+  if(state.predication.resourceId == ResourceId())
+  {
+    ui->predicateGroup->setVisible(false);
+  }
+  else
+  {
+    ui->predicateGroup->setVisible(true);
+    ui->predicate->setText(
+        tr("%1 + %2 byte offset")
+            .arg(ToQStr(state.predication.resourceId))
+            .arg(Formatter::HumanFormat(state.predication.offset, Formatter::OffsetSize)));
+    ui->predicateSkipIfZero->setText(state.predication.skipIfZero ? lit("== 0") : lit("!= 0"));
+  }
+
+  ////////////////////////////////////////////////
   // Output Merger
 
   bool targets[32] = {};
@@ -2634,6 +2663,15 @@ void D3D12PipelineStateViewer::rootSigView_clicked()
   view->ViewD3D12State();
 
   m_Ctx.AddDockWindow(view->Widget(), DockReference::AddTo, this);
+}
+
+void D3D12PipelineStateViewer::predicateView_clicked()
+{
+  IBufferViewer *viewer = m_Ctx.ViewBuffer(m_Ctx.CurD3D12PipelineState()->predication.offset, ~0ULL,
+                                           m_Ctx.CurD3D12PipelineState()->predication.resourceId,
+                                           lit("ulong predicateValue"));
+
+  m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
 }
 
 void D3D12PipelineStateViewer::shaderSave_clicked()

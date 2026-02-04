@@ -925,6 +925,38 @@ struct RootSignature
   rdcarray<StaticSampler> staticSamplers;
 };
 
+DOCUMENT("Describes the current state of predicated rendering.");
+struct Predication
+{
+  DOCUMENT("");
+  Predication() = default;
+  Predication(const Predication &) = default;
+  Predication &operator=(const Predication &) = default;
+
+  DOCUMENT(R"(The :class:`ResourceId` of the buffer used for predicate data.
+
+If this is unset, predication is not enabled.
+
+:type: ResourceId
+)");
+  ResourceId resourceId;
+
+  DOCUMENT(R"(The offset in the buffer where the value is read.
+
+:type: int
+)");
+  uint64_t offset = 0;
+
+  DOCUMENT(R"(``True`` if a value of zero in the buffer would lead to draws/dispatches being skipped when
+predication is enabled.
+
+If ``False`` then a zero in the buffer would lead to them being performed as normal.
+
+:type: bool
+)");
+  bool skipIfZero = false;
+};
+
 DOCUMENT("The full current D3D12 pipeline state.");
 struct State
 {
@@ -1017,6 +1049,12 @@ struct State
 )");
   OM outputMerger;
 
+  DOCUMENT(R"(The predicated rendering state.
+
+:type: D3D12Predication
+)");
+  Predication predication;
+
   DOCUMENT(R"(The resource states for the currently live resources.
 
 :type: List[D3D12ResourceData]
@@ -1044,4 +1082,5 @@ DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootTableRange);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootParam);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::StaticSampler);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootSignature);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::Predication);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::State);

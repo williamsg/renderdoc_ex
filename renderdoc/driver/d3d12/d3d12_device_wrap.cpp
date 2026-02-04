@@ -1840,7 +1840,7 @@ bool WrappedID3D12Device::Serialise_CreateQueryHeap(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D12QueryHeap(pQueryHeap, ret, this);
+      ret = new WrappedID3D12QueryHeap(pQueryHeap, ret, Descriptor, this);
     }
 
     AddResource(pQueryHeap, ResourceType::Query, "Query Heap");
@@ -1864,7 +1864,7 @@ HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc,
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12QueryHeap *wrapped = new WrappedID3D12QueryHeap(ResourceId(), real, this);
+    WrappedID3D12QueryHeap *wrapped = new WrappedID3D12QueryHeap(ResourceId(), real, *pDesc, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -1879,6 +1879,8 @@ HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc,
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
+
+      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
     }
 
     *ppvHeap = (ID3D12QueryHeap *)wrapped;

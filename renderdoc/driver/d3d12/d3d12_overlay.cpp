@@ -1116,6 +1116,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       D3D12RenderState prev = rs;
 
+      rs.predication = {};
       rs.pipe = GetResID(pso);
       rs.rts.resize(1);
       rs.rts[0] = *GetWrapped(rtv);
@@ -1354,6 +1355,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       if(!list)
         return ResourceId();
 
+      Unwrap(list)->SetPredication(NULL, 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
+
       for(size_t i = 0; i < rts.size(); i++)
       {
         const D3D12Descriptor &desc = rts[i];
@@ -1502,6 +1505,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       rs.ApplyState(m_pDevice, list);
 
       list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
+      list->SetPredication(NULL, 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
 
       D3D12_VIEWPORT viewport = rs.views[0];
       list->RSSetViewports(1, &viewport);

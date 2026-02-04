@@ -72,6 +72,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
         for(int i = 0; i < markerCount; i++)
           D3D12MarkerRegion::End(list);
 
+        for(OutstandingQuery &q : m_OutstandingQueries)
+          Unwrap(list)->EndQuery(Unwrap(q.heap), q.Type, q.Index);
+
+        m_OutstandingQueries.clear();
+
         if(m_Cmd->m_ActionCallback)
           m_Cmd->m_ActionCallback->PreCloseCommandList(list);
 
@@ -2840,10 +2845,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(SerialiserType &ser,
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
+        // don't replay query calls if we're just doing one event, it doesn't do anything
+        if(m_Cmd->m_FirstEventID == 1)
+        {
+          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+              ->BeginQuery(Unwrap(pQueryHeap), Type, Index);
+
+          m_OutstandingQueries.push_back({pQueryHeap, Type, Index});
+        }
       }
     }
     else
     {
+      Unwrap(pCommandList)->BeginQuery(Unwrap(pQueryHeap), Type, Index);
     }
   }
 
@@ -2884,14 +2898,33 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(SerialiserType &ser,
   {
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
+    WrappedID3D12QueryHeap *queryHeap = (WrappedID3D12QueryHeap *)pQueryHeap;
+
+    // D3D12 requires queries to remain within a command buffer so we don't have to worry about not
+    // having seen the corresponding begin
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
+        // don't replay query calls if we're doing partial replays, it doesn't do anything
+        if(m_Cmd->m_FirstEventID == 1)
+        {
+          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+              ->EndQuery(Unwrap(pQueryHeap), Type, Index);
+
+          m_OutstandingQueries.removeOne({pQueryHeap, Type, Index});
+        }
       }
     }
     else
     {
+      Unwrap(pCommandList)->EndQuery(Unwrap(pQueryHeap), Type, Index);
+
+      // during replay store which queries are issued in the capture itself, so we know which ones
+      // we can do a 'real' resolve of and which ones must be faked from initial contents if they
+      // refer to queries from previous frames.
+      // see the comment in ResolveQueryData for more information
+      queryHeap->SetQueryValid(Index, Type);
     }
   }
 
@@ -2913,6 +2946,16 @@ void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
+
+    // during capture store which queries have been issued so we know which ones we can resolve for initial contents
+    WrappedID3D12QueryHeap *queryHeap = (WrappedID3D12QueryHeap *)pQueryHeap;
+    AddSubmissionASBuildCallback(
+        false,
+        [queryHeap, Index, Type]() {
+          queryHeap->SetQueryValid(Index, Type);
+          return true;
+        },
+        NULL);
   }
 }
 
@@ -2936,14 +2979,63 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
   {
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
+    WrappedID3D12QueryHeap *queryHeap = (WrappedID3D12QueryHeap *)pQueryHeap;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
+        // let the query heap decide which indices to resolve normally and which to fake from the
+        // stored buffer
+        queryHeap->ResolveValidQueryData(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID), Type,
+                                         StartIndex, NumQueries, pDestinationBuffer,
+                                         AlignedDestinationBufferOffset);
       }
     }
     else
     {
+      // don't resolve queries during load, since we can't know for certain at record time whether
+      // or not a query will be valid (it could have been queried in a previous frame so not valid
+      // to resolve right now, and without knowing the submission order ahead of time we can't
+      // always know if a re-record in this capture will happen before this resolve).
+      //
+      // there are cases we can know this is safe, but we can't detect all cases where it's unsafe, e.g:
+      //
+      // [previous frame during capture]:
+      //   EndEvent(Index)
+      //
+      // [on replay during captured frame]:
+      //   listA->EndEvent(Index)
+      //   listB->ResolveQueryData(Index)
+      //
+      // if listA is submitted first we can resolve normally on listB, but if listB were submitted first
+      // we'd need to fake or skip the resolve.
+      //
+      // What we do is skip resolving during load, then all queries that are ever resolved will have
+      // some kind of data. This case above would still return the 'wrong' data as we'd do a normal
+      // resolve, when in fact we should fake the resolve to get last frame's data, but at least we
+      // won't hit a device lost. In future we could detect this after load once we know the submission order.
+      // queryHeap->ResolveQueryData(pCommandList, Type, StartIndex, NumQueries, pDestinationBuffer,
+      //                             AlignedDestinationBufferOffset);
+
+      {
+        m_Cmd->AddEvent();
+
+        ActionDescription action;
+
+        action.copyDestination = GetResID(pDestinationBuffer);
+        action.copyDestinationSubresource = 0;
+
+        action.flags |= ActionFlags::Resolve;
+
+        m_Cmd->AddAction(action);
+
+        D3D12ActionTreeNode &actionNode = m_Cmd->GetActionStack().back()->children.back();
+
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(GetResID(pDestinationBuffer),
+                         EventUsage(actionNode.action.eventId, ResourceUsage::ResolveDst)));
+      }
     }
   }
 
@@ -2992,7 +3084,37 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPredication(SerialiserType &
   {
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    // don't replay predication at all
+    bool stateUpdate = false;
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+            ->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
+
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
+      }
+    }
+    else
+    {
+      Unwrap(pCommandList)->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
+
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
+      D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+
+      state.predication.buffer = GetResID(pBuffer);
+      state.predication.offset = AlignedBufferOffset;
+      state.predication.op = Operation;
+    }
   }
 
   return true;

@@ -1697,6 +1697,14 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     }
   }
 
+  /////////////////////////////////////////////////
+  // Predication
+  /////////////////////////////////////////////////
+
+  state.predication.resourceId = rs.predication.buffer;
+  state.predication.offset = rs.predication.offset;
+  state.predication.skipIfZero = rs.predication.op == D3D12_PREDICATION_OP_EQUAL_ZERO;
+
   // resource states
   {
     const std::map<ResourceId, SubresourceStateVector> &states = m_pDevice->GetSubresourceStates();

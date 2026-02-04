@@ -1416,6 +1416,23 @@ public:
 
 class WrappedID3D12QueryHeap : public WrappedDeviceChild12<ID3D12QueryHeap>
 {
+  D3D12_QUERY_HEAP_TYPE m_Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+
+  static const D3D12_QUERY_TYPE InvalidQueryType = (D3D12_QUERY_TYPE)~0U;
+
+  // during capture, this stores which queries have ever been issued. Any queries that have been
+  // issued can be resolved at initial contents time so we have their results for data resolves.
+  //
+  // during replay this stores which queries are issued in the capture itself, so we know which ones
+  // can use a 'real' resolve and which ones must be faked with a buffer query
+  //
+  // in both cases it's initialised as all ~0U and is set to the query type each time
+  rdcarray<D3D12_QUERY_TYPE> m_Valid;
+
+  // on replay only, this is the 'initial contents' which is owned here instead of in the usual
+  // place since we can't apply this just once
+  ID3D12Resource *m_SavedResults = NULL;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12QueryHeap);
 
@@ -1424,11 +1441,28 @@ public:
     TypeEnum = Resource_QueryHeap,
   };
 
-  WrappedID3D12QueryHeap(ResourceId id, ID3D12QueryHeap *real, WrappedID3D12Device *device)
+  WrappedID3D12QueryHeap(ResourceId id, ID3D12QueryHeap *real, const D3D12_QUERY_HEAP_DESC &desc,
+                         WrappedID3D12Device *device)
       : WrappedDeviceChild12(id, real, device)
   {
+    m_Valid.fill(desc.Count, InvalidQueryType);
+    m_Type = desc.Type;
   }
-  virtual ~WrappedID3D12QueryHeap() { Shutdown(); }
+  virtual ~WrappedID3D12QueryHeap()
+  {
+    SAFE_RELEASE(m_SavedResults);
+    Shutdown();
+  }
+
+  void SetQueryValid(UINT idx, D3D12_QUERY_TYPE type) { m_Valid[idx] = type; }
+
+  UINT64 GetResolveDataSize() const;
+  UINT64 GetResolveBufferSize() const;
+  void SaveValidQueries(ID3D12GraphicsCommandList *unwrappedList, ID3D12Resource *unwrappedDestBuf);
+
+  void SetResultBuffer(ID3D12Resource *buf) { m_SavedResults = buf; }
+  void ResolveValidQueryData(ID3D12GraphicsCommandList *list, D3D12_QUERY_TYPE Type, UINT StartIndex,
+                             UINT NumQueries, ID3D12Resource *destBuf, UINT64 destOffs);
 };
 
 class D3D12AccelerationStructure;

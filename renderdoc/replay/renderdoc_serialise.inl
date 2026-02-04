@@ -1645,6 +1645,16 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::RootSignature &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12Pipe::Predication &el)
+{
+  SERIALISE_MEMBER(resourceId);
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(skipIfZero);
+
+  SIZE_CHECK(24);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 {
   SERIALISE_MEMBER(pipelineResourceId);
@@ -1668,9 +1678,11 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(outputMerger);
 
+  SERIALISE_MEMBER(predication);
+
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(776);
+  SIZE_CHECK(800);
 }
 
 #pragma endregion D3D12 pipeline state
