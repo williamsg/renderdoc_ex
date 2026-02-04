@@ -527,6 +527,17 @@ void WrappedVulkan::FlushQ()
   }
 }
 
+void WrappedVulkan::ReloadShaderDebugInformation()
+{
+  // Reload the shader module debug information
+  for(auto it = m_CreationInfo.m_ShaderModule.begin(); it != m_CreationInfo.m_ShaderModule.end(); ++it)
+  {
+    if(ResourceIDGen::IsReplayOnlyID(it->first))
+      continue;
+    it->second.Reload(m_ResourceManager, m_CreationInfo, it->first);
+  }
+}
+
 VkCommandBuffer WrappedVulkan::GetExtQueueCmd(uint32_t queueFamilyIdx) const
 {
   if(queueFamilyIdx >= m_ExternalQueues.size())

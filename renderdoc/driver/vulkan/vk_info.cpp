@@ -2734,10 +2734,11 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
     RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
     spirv.Parse(rdcarray<uint32_t>((uint32_t *)(pCreateInfo->pCode),
                                    pCreateInfo->codeSize / sizeof(uint32_t)));
+    initialSpirv.clear();
   }
 }
 
-void VulkanCreationInfo::ShaderModule::Reinit()
+bool VulkanCreationInfo::ShaderModule::Reinit()
 {
   rdcstr loadingLog;
   bool lz4 = false;
@@ -2835,7 +2836,7 @@ void VulkanCreationInfo::ShaderModule::Reinit()
         debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
         debugInfoLoadingLog += loadingLog;
       }
-      return;
+      return false;
     }
     loadingLog += StringFormat::Fmt(
         "\nFound debug data from files embedded in the capture using nickname '%s'\n",
@@ -2887,7 +2888,7 @@ void VulkanCreationInfo::ShaderModule::Reinit()
             debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
             debugInfoLoadingLog += loadingLog;
           }
-          return;
+          return false;
         }
       }
 
@@ -2905,6 +2906,8 @@ void VulkanCreationInfo::ShaderModule::Reinit()
 
     if(!reflTest.GetSPIRV().empty())
     {
+      if(initialSpirv.isEmpty())
+        initialSpirv = spirv.GetSPIRV();
       spirv = reflTest;
       RenderDoc::Inst().AddTrackedFileReference(foundFname, foundPath);
       loadingLog += StringFormat::Fmt("Debug data parsed successfully (%u bytes)\n",
@@ -2916,7 +2919,7 @@ void VulkanCreationInfo::ShaderModule::Reinit()
         debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
         debugInfoLoadingLog += loadingLog;
       }
-      return;
+      return true;
     }
     else
     {
@@ -2932,7 +2935,36 @@ void VulkanCreationInfo::ShaderModule::Reinit()
     debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
     debugInfoLoadingLog += loadingLog;
   }
-  return;
+  return false;
+}
+
+void VulkanCreationInfo::ShaderModule::Reload(VulkanResourceManager *resourceMan,
+                                              const VulkanCreationInfo &info, ResourceId id)
+{
+  // Nothing to do if the shader does not have a separate debug info path
+  if(unstrippedPath.empty())
+    return;
+
+  rdcarray<uint32_t> currentSpirv = spirv.GetSPIRV();
+
+  // Loading debug data failed : reset the spirv to the initial spirv
+  if(!Reinit())
+  {
+    if(initialSpirv.isEmpty())
+      return;
+    if(currentSpirv == initialSpirv)
+      return;
+    rdcspv::Reflector newSpirv;
+    newSpirv.Parse(initialSpirv);
+    spirv = newSpirv;
+  }
+
+  // Nothing to do if the shader spirv did not change
+  if(spirv.GetSPIRV() == currentSpirv)
+    return;
+
+  for(auto it = m_Reflections.begin(); it != m_Reflections.end(); ++it)
+    it->second.Reload(resourceMan, info, id, spirv);
 }
 
 void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *resourceMan,
@@ -2952,6 +2984,7 @@ void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *res
 
     refl->resourceId = id;
     refl->debugInfo.debugInfoLoadingLog = info.m_ShaderModule.at(id).debugInfoLoadingLog;
+    specConstantData = specInfo;
   }
 }
 
@@ -2959,6 +2992,21 @@ void VulkanCreationInfo::ShaderModuleReflection::PopulateDisassembly(const rdcsp
 {
   if(disassembly.empty())
     disassembly = spirv.Disassemble(refl->entryPoint, instructionLines);
+}
+
+void VulkanCreationInfo::ShaderModuleReflection::Reload(VulkanResourceManager *resourceMan,
+                                                        const VulkanCreationInfo &info,
+                                                        ResourceId id, const rdcspv::Reflector &spv)
+{
+  const rdcstr entry = entryPoint;
+  entryPoint.clear();
+  disassembly.clear();
+  instructionLines.clear();
+  // refl : pointer is stored in other structures, can't delete it
+  *refl = ShaderReflection();
+  patchData = SPIRVPatchData();
+  VkShaderStageFlagBits stage = (VkShaderStageFlagBits)ShaderMaskFromIndex((size_t)(stageIndex));
+  Init(resourceMan, info, id, spv, entry, stage, specConstantData);
 }
 
 void VulkanCreationInfo::QueryPool::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

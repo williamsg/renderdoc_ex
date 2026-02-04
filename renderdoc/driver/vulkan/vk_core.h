@@ -1507,6 +1507,7 @@ public:
   VkSemaphore GetNextSemaphore();
   void SubmitSemaphores();
   void FlushQ();
+  void ReloadShaderDebugInformation();
 
   bool SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyProperties> &queueProps,
                                   VkDeviceCreateInfo &createInfo, uint32_t &queueFamilyIndex);

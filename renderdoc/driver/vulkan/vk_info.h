@@ -229,12 +229,15 @@ struct VulkanCreationInfo
     ShaderReflection *refl;
     SPIRVPatchData patchData;
     std::map<size_t, uint32_t> instructionLines;
+    rdcarray<SpecConstant> specConstantData;
 
     void Init(VulkanResourceManager *resourceMan, const VulkanCreationInfo &info, ResourceId id,
               const rdcspv::Reflector &spv, const rdcstr &entry, VkShaderStageFlagBits stage,
               const rdcarray<SpecConstant> &specInfo);
 
     void PopulateDisassembly(const rdcspv::Reflector &spirv);
+    void Reload(VulkanResourceManager *resourceMan, const VulkanCreationInfo &info, ResourceId id,
+                const rdcspv::Reflector &spv);
   };
 
   struct ShaderEntry
@@ -760,7 +763,8 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkShaderModuleCreateInfo *pCreateInfo);
 
-    void Reinit();
+    bool Reinit();
+    void Reload(VulkanResourceManager *resourceMan, const VulkanCreationInfo &info, ResourceId id);
 
     ShaderModuleReflection &GetReflection(ShaderStage stage, const rdcstr &entry, ResourceId pipe)
     {
@@ -778,6 +782,8 @@ struct VulkanCreationInfo
     }
 
     rdcspv::Reflector spirv;
+    // Only set when separate debug spirv is found
+    rdcarray<uint32_t> initialSpirv;
 
     rdcstr unstrippedPath;
     rdcstr debugInfoLoadingLog;
