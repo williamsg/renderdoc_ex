@@ -1697,6 +1697,7 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
   }
 
   rdcarray<rdcspv::Id> newGlobals;
+  rdcarray<rdcspv::Id> requiredBuiltInInputs;
 
   newGlobals.push_back(outSlotAddr);
 
@@ -1708,6 +1709,7 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
         ops, ShaderStage::Mesh, rdcspv::BuiltIn::LocalInvocationIndex, uint32Type);
     if(newGlobal != rdcspv::Id())
       newGlobals.push_back(newGlobal);
+    requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::LocalInvocationIndex));
   }
 
   // calculate base address for our task group's data
@@ -1727,6 +1729,8 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
       if(newGlobal != rdcspv::Id())
         newGlobals.push_back(newGlobal);
 
+      requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::WorkgroupId));
+      requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::NumWorkgroups));
       // x + y * xsize + z * xsize * ysize
 
       rdcspv::Id xsize = locationCalculate.add(
@@ -1799,6 +1803,12 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
     editor.Remove(it);
 
     entry.iface.append(newGlobals);
+    for(rdcspv::Id id : requiredBuiltInInputs)
+    {
+      if(entry.iface.contains(id))
+        continue;
+      entry.iface.push_back(id);
+    }
 
     editor.AddOperation(it, entry);
   }
@@ -1909,6 +1919,7 @@ static void ConvertToFixedTaskFeeder(const rdcarray<SpecConstant> &specInfo,
   editor.SetName(baseAddrId, "baseAddr");
 
   rdcarray<rdcspv::Id> newGlobals;
+  rdcarray<rdcspv::Id> requiredBuiltInInputs;
 
   rdcspv::Id entryID;
 
@@ -2037,6 +2048,9 @@ static void ConvertToFixedTaskFeeder(const rdcarray<SpecConstant> &specInfo,
     if(newGlobal != rdcspv::Id())
       newGlobals.push_back(newGlobal);
 
+    requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::WorkgroupId));
+    requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::NumWorkgroups));
+
     // x + y * xsize + z * xsize * ysize
 
     rdcspv::Id xsize =
@@ -2164,6 +2178,12 @@ static void ConvertToFixedTaskFeeder(const rdcarray<SpecConstant> &specInfo,
     editor.Remove(it);
 
     entry.iface.append(newGlobals);
+    for(rdcspv::Id id : requiredBuiltInInputs)
+    {
+      if(entry.iface.contains(id))
+        continue;
+      entry.iface.push_back(id);
+    }
 
     editor.AddOperation(it, entry);
   }
@@ -2211,6 +2231,7 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
   editor.SetName(baseAddrId, "baseAddr");
 
   rdcarray<rdcspv::Id> newGlobals;
+  rdcarray<rdcspv::Id> requiredBuiltInInputs;
 
   newGlobals.push_back(outSlotAddr);
 
@@ -2608,6 +2629,8 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
       if(newGlobal != rdcspv::Id())
         newGlobals.push_back(newGlobal);
 
+      requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::WorkgroupId));
+      requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::NumWorkgroups));
       // x + y * xsize + z * xsize * ysize
 
       rdcspv::Id xsize = locationCalculate.add(
@@ -2689,6 +2712,7 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
         ops, ShaderStage::Mesh, rdcspv::BuiltIn::LocalInvocationIndex, uint32Type);
     if(newGlobal != rdcspv::Id())
       newGlobals.push_back(newGlobal);
+    requiredBuiltInInputs.push_back(editor.GetBuiltInVariable(rdcspv::BuiltIn::LocalInvocationIndex));
   }
 
   // add the globals we registered
@@ -2702,6 +2726,12 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
     editor.Remove(it);
 
     entry.iface.append(newGlobals);
+    for(rdcspv::Id id : requiredBuiltInInputs)
+    {
+      if(entry.iface.contains(id))
+        continue;
+      entry.iface.push_back(id);
+    }
 
     editor.AddOperation(it, entry);
   }
