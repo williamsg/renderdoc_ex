@@ -111,6 +111,7 @@ public:
   void AddEntryGlobals(Id entry, const rdcarray<Id> &newGlobals);
   void ChangeEntry(Id from, Id to);
 
+  Id GetBuiltInVariable(BuiltIn builtin) { return builtinInputs[builtin].variable; }
   rdcpair<Id, Id> AddBuiltinInputLoad(OperationList &ops, ShaderStage stage, BuiltIn builtin,
                                       Id type);
   Id AddBuiltinInputLoad(OperationList &ops, rdcarray<Id> &addedGlobals, ShaderStage stage,
