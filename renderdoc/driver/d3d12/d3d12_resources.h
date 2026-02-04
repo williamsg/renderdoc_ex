@@ -945,6 +945,8 @@ public:
       return false;
     }
 
+    static void ReloadShaderDebugInformation();
+
     static void GetReflections(rdcarray<const ShaderReflection *> &refls)
     {
       refls.clear();
@@ -1010,6 +1012,7 @@ public:
 
   private:
     void BuildReflection();
+    void Reload();
 
     DXBCKey m_Key;
 
