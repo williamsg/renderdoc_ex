@@ -1169,8 +1169,8 @@ void VulkanCreationInfo::ShaderObject::Init(VulkanResourceManager *resourceMan,
 
   ShaderModuleReflection &reflData = info.m_ShaderModule[id].m_Reflections[key];
 
-  reflData.Init(resourceMan, id, info.m_ShaderModule[id].spirv, shad.entryPoint, pCreateInfo->stage,
-                shad.specialization);
+  reflData.Init(resourceMan, info, id, info.m_ShaderModule[id].spirv, shad.entryPoint,
+                pCreateInfo->stage, shad.specialization);
 
   shad.refl = reflData.refl;
   shad.patchData = &reflData.patchData;
@@ -1337,7 +1337,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
     ShaderModuleReflection &reflData = info.m_ShaderModule[shadid].m_Reflections[key];
 
-    reflData.Init(resourceMan, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
+    reflData.Init(resourceMan, info, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
                   pCreateInfo->pStages[i].stage, shad.specialization);
 
     shad.refl = reflData.refl;
@@ -2002,7 +2002,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     ShaderModuleReflection &reflData = info.m_ShaderModule[shadid].m_Reflections[key];
 
-    reflData.Init(resourceMan, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
+    reflData.Init(resourceMan, info, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
                   pCreateInfo->stage.stage, shad.specialization);
 
     shad.refl = reflData.refl;
@@ -2739,6 +2739,7 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
 
 void VulkanCreationInfo::ShaderModule::Reinit()
 {
+  rdcstr loadingLog;
   bool lz4 = false;
 
   rdcstr originalPath = unstrippedPath;
@@ -2759,6 +2760,18 @@ void VulkanCreationInfo::ShaderModule::Reinit()
   rdcstr foundFname = originalPath;
   rdcstr foundPath;
 
+  loadingLog = StringFormat::Fmt("Shader filepath '%s'\n", originalPath.c_str());
+  if(numSearchPaths > 0)
+  {
+    loadingLog += rdcstr("\nNon-Recursive Search Path(s):\n");
+    for(size_t i = 0; i < numSearchPaths; i++)
+      loadingLog += StringFormat::Fmt("'%s'\n", searchPaths[i].c_str());
+  }
+  else
+  {
+    loadingLog += rdcstr("\nNo Non-Recursive Search Paths\n");
+  }
+
   // keep searching until we've exhausted all possible path options, or we've found a file that
   // opens
   while(originalShaderFile == NULL && !originalPath.empty())
@@ -2769,8 +2782,11 @@ void VulkanCreationInfo::ShaderModule::Reinit()
     {
       if(i == 0)
       {
+        loadingLog += rdcstr("\n");
         originalShaderFile = FileIO::fopen(originalPath, FileIO::ReadBinary);
         foundPath = originalPath;
+        if(originalShaderFile == NULL)
+          loadingLog += StringFormat::Fmt("File not found using filepath '%s'\n", foundPath.c_str());
         continue;
       }
       else
@@ -2778,6 +2794,9 @@ void VulkanCreationInfo::ShaderModule::Reinit()
         const rdcstr &searchPath = searchPaths[i - 1];
         foundPath = searchPath + "/" + originalPath;
         originalShaderFile = FileIO::fopen(foundPath, FileIO::ReadBinary);
+        if(originalShaderFile == NULL)
+          loadingLog += StringFormat::Fmt(
+              "File not found in search directory using filepath '%s'\n", foundPath.c_str());
       }
     }
 
@@ -2804,7 +2823,23 @@ void VulkanCreationInfo::ShaderModule::Reinit()
   if(originalShaderFile == NULL)
   {
     if(!RenderDoc::Inst().GetTrackedFileData(foundFname, debugBytecode))
+    {
+      loadingLog += StringFormat::Fmt(
+          "\nFile not found in files embedded in the capture using nickname '%s'\n",
+          foundFname.c_str());
+      debugInfoLoadingLog =
+          StringFormat::Fmt("Did not find debug data for '%s'\n\n", foundFname.c_str());
+      if(!loadingLog.empty())
+      {
+        debugInfoLoadingLog += StringFormat::Fmt("Details\n");
+        debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
+        debugInfoLoadingLog += loadingLog;
+      }
       return;
+    }
+    loadingLog += StringFormat::Fmt(
+        "\nFound debug data from files embedded in the capture using nickname '%s'\n",
+        foundFname.c_str());
   }
   else
   {
@@ -2816,6 +2851,7 @@ void VulkanCreationInfo::ShaderModule::Reinit()
     FileIO::fread(&debugBytecode[0], sizeof(byte), (size_t)originalShaderSize, originalShaderFile);
     FileIO::fclose(originalShaderFile);
     originalShaderFile = NULL;
+    loadingLog += StringFormat::Fmt("\nFound debug data using filepath '%s'\n", foundPath.c_str());
   }
 
   {
@@ -2841,6 +2877,16 @@ void VulkanCreationInfo::ShaderModule::Reinit()
         if(ret < 0)
         {
           RDCERR("Failed to decompress LZ4 data from %s", foundPath.c_str());
+          loadingLog +=
+              StringFormat::Fmt("\nFailed to decompress LZ4 data from '%s'\n", foundPath.c_str());
+          debugInfoLoadingLog =
+              StringFormat::Fmt("Did not find debug data for '%s'\n\n", foundFname.c_str());
+          if(!loadingLog.empty())
+          {
+            debugInfoLoadingLog += StringFormat::Fmt("Details\n");
+            debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
+            debugInfoLoadingLog += loadingLog;
+          }
           return;
         }
       }
@@ -2861,12 +2907,37 @@ void VulkanCreationInfo::ShaderModule::Reinit()
     {
       spirv = reflTest;
       RenderDoc::Inst().AddTrackedFileReference(foundFname, foundPath);
+      loadingLog += StringFormat::Fmt("Debug data parsed successfully (%u bytes)\n",
+                                      (uint32_t)debugBytecode.size());
+      debugInfoLoadingLog = StringFormat::Fmt("Found debug data for '%s'\n\n", foundFname.c_str());
+      if(!loadingLog.empty())
+      {
+        debugInfoLoadingLog += StringFormat::Fmt("Details\n");
+        debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
+        debugInfoLoadingLog += loadingLog;
+      }
+      return;
+    }
+    else
+    {
+      loadingLog += StringFormat::Fmt("Debug data failed to parse (%u bytes)\n",
+                                      (uint32_t)debugBytecode.size());
+      debugInfoLoadingLog =
+          StringFormat::Fmt("Did not find debug data for '%s'\n\n", foundFname.c_str());
     }
   }
+  if(!loadingLog.empty())
+  {
+    debugInfoLoadingLog += StringFormat::Fmt("Details\n");
+    debugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
+    debugInfoLoadingLog += loadingLog;
+  }
+  return;
 }
 
 void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *resourceMan,
-                                                      ResourceId id, const rdcspv::Reflector &spv,
+                                                      const VulkanCreationInfo &info, ResourceId id,
+                                                      const rdcspv::Reflector &spv,
                                                       const rdcstr &entry,
                                                       VkShaderStageFlagBits stage,
                                                       const rdcarray<SpecConstant> &specInfo)
@@ -2880,6 +2951,7 @@ void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *res
                        patchData);
 
     refl->resourceId = id;
+    refl->debugInfo.debugInfoLoadingLog = info.m_ShaderModule.at(id).debugInfoLoadingLog;
   }
 }
 
