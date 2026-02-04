@@ -727,6 +727,10 @@ re-initialise any data, including e.g. bindless feedback, printf results or mesh
 )");
   virtual void ClearReplayCache() = 0;
 
+  DOCUMENT(R"(Reload the shader debug information for all shaders in the capture.
+)");
+  virtual void ReloadShaderDebugInformation() = 0;
+
   DOCUMENT(R"(Remove any previously specified replacement for an object.
 
 See :meth:`ReplaceResource`.

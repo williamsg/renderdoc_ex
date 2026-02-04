@@ -5203,6 +5203,12 @@ void VulkanReplay::ClearReplayCache()
   ClearFeedbackCache();
 }
 
+void VulkanReplay::ReloadShaderDebugInformation()
+{
+  m_pDriver->ReloadShaderDebugInformation();
+  ClearReplayCache();
+}
+
 void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
   // remove existing shader replacement
