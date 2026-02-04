@@ -560,7 +560,7 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
   SAFE_DELETE(m_FrameReader);
 
-  SAFE_RELEASE(m_RayFence);
+  SAFE_RELEASE(m_CallbackFence);
 
   for(SDObject *o : m_Cmd.m_EventAnnotations)
     delete o;
@@ -682,8 +682,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
 void WrappedID3D12CommandQueue::CheckAndFreeRayDispatches()
 {
   UINT64 signalled = 0;
-  if(m_RayFence)
-    signalled = m_RayFence->GetCompletedValue();
+  if(m_CallbackFence)
+    signalled = m_CallbackFence->GetCompletedValue();
 
   for(PatchedRayDispatch::Resources &ray : m_RayDispatchesPending)
   {

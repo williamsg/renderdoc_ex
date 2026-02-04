@@ -796,18 +796,18 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
   return true;
 }
 
-ID3D12Fence *WrappedID3D12CommandQueue::GetRayFence()
+ID3D12Fence *WrappedID3D12CommandQueue::GetCallbackFence()
 {
   // if we don't have a fence for this queue tracking, create it now
-  if(!m_RayFence)
+  if(!m_CallbackFence)
   {
     // create this unwrapped so that it doesn't get recorded into captures
     m_pDevice->GetReal()->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
-                                      (void **)&m_RayFence);
-    m_RayFence->SetName(L"Queue Ray Fence");
+                                      (void **)&m_CallbackFence);
+    m_CallbackFence->SetName(L"Queue Callback Fence");
   }
 
-  return m_RayFence;
+  return m_CallbackFence;
 }
 
 void WrappedID3D12CommandQueue::ExecuteCommandLists(UINT NumCommandLists,
@@ -840,7 +840,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
   {
     SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
 
-    rdcarray<std::function<bool()>> pendingASBuildCallbacks;
+    rdcarray<std::function<bool()>> pendingCallbacks;
 
     for(UINT i = 0; i < NumCommandLists; i++)
     {
@@ -852,24 +852,24 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         RDCLOG("Submit-callbacks for %s", ToStr(wrapped->GetResourceID()).c_str());
       }
 
-      if(!wrapped->ExecuteImmediateASBuildCallbacks())
+      if(!wrapped->ExecuteImmediateCallbacks())
       {
-        RDCERR("Unable to execute post build for acc struct");
+        RDCERR("Unable to execute list submission callback");
       }
 
-      wrapped->TakeWaitingASBuildCallbacks(pendingASBuildCallbacks);
+      wrapped->TakeWaitingCallbacks(pendingCallbacks);
     }
 
-    if(!pendingASBuildCallbacks.empty())
+    if(!pendingCallbacks.empty())
     {
-      ID3D12Fence *fence = GetRayFence();
+      ID3D12Fence *fence = GetCallbackFence();
 
       // these callbacks need to be synchronised at every submission to process them as soon as the
       // results are available, since we could submit a build on one queue and then a dependent
       // build on another queue later once it's finished without any intermediate submissions on the
       // first queue. For that reason we pass these to the RT handler to hold onto, and tick it
-      GetResourceManager()->GetRTManager()->AddPendingASBuilds(fence, m_RayFenceValue,
-                                                               pendingASBuildCallbacks);
+      GetResourceManager()->GetRTManager()->AddPendingCallbacks(fence, m_RayFenceValue,
+                                                                pendingCallbacks);
 
       // add the signal for those callbacks to wait on
       HRESULT hr = m_pReal->Signal(fence, m_RayFenceValue++);
@@ -1030,7 +1030,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
       m_RayDispatchesPending.append(rayDispatches);
 
-      HRESULT hr = m_pReal->Signal(GetRayFence(), m_RayFenceValue++);
+      HRESULT hr = m_pReal->Signal(GetCallbackFence(), m_RayFenceValue++);
       CHECK_HR(m_pDevice, hr);
       RDCASSERTEQUAL(hr, S_OK);
     }

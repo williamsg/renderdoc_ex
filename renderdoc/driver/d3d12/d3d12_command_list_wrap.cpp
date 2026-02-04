@@ -409,8 +409,8 @@ HRESULT WrappedID3D12GraphicsCommandList::ResetInternal(ID3D12CommandAllocator *
     }
     m_RayDispatches.clear();
 
-    m_ImmediateASCallbacks.clear();
-    m_PendingASCallbacks.clear();
+    m_ImmediateCallbacks.clear();
+    m_PendingCallbacks.clear();
 
     for(std::function<void()> &func : m_UnusedCleanupCallbacks)
       func();
