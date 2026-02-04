@@ -1009,8 +1009,6 @@ public:
     }
 
   private:
-    void TryReplaceOriginalByteCode();
-
     void BuildReflection();
 
     DXBCKey m_Key;

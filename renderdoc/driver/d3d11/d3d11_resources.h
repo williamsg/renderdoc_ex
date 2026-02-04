@@ -1024,8 +1024,6 @@ public:
     }
 
   private:
-    void TryReplaceOriginalByteCode();
-
     void BuildReflection();
 
     ResourceId m_ID;
