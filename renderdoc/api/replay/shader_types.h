@@ -1977,7 +1977,7 @@ shader is not supported for debugging
 )");
   rdcstr debugStatus;
 
-  DOCUMENT(R"(Contains a log of the debug infomation i.e. PDB loading process for the shader.
+  DOCUMENT(R"(Contains a log of the debug shader loading process i.e. searching for shader PDB.
 
 :type: str
 )");
