@@ -203,6 +203,7 @@ public:
     uint32_t Major = 0, Minor = 0;
   } m_Version;
 
+  const bytebuf &GetInitialShaderBob() const { return m_InitialShaderBlob; }
   const bytebuf &GetShaderBlob() const { return m_ShaderBlob; }
   const IDebugInfo *GetDebugInfo() const { return m_DebugInfo; }
   const Reflection *GetReflection() const { return m_Reflection; }
@@ -284,6 +285,8 @@ private:
 
   bytebuf m_DebugShaderBlob;
   bytebuf m_ShaderBlob;
+  // Only set when separate debug data is found
+  bytebuf m_InitialShaderBlob;
 
   rdcstr m_Disassembly;
   rdcstr m_DebugInfoLoadingLog;

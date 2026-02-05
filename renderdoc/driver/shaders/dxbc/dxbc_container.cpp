@@ -1731,6 +1731,8 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
       }
       else if(CheckForDebugInfo(found.contents.data(), found.contents.size()))
       {
+        if(m_InitialShaderBlob.isEmpty())
+          m_InitialShaderBlob = byteCode;
         byteCode.swap(found.contents);
       }
       m_DebugInfoLoadingLog =
