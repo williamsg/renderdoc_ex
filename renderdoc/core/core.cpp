@@ -2455,8 +2455,9 @@ bool RenderDoc::GetTrackedFileData(const rdcstr &nickname, bytebuf &data) const
   {
     if(f.nickname == nickname)
     {
-      data = f.data;
-      return true;
+      if(f.hasData)
+        data = f.data;
+      return f.hasData;
     }
   }
   return false;
@@ -2595,6 +2596,7 @@ RDResult RenderDoc::ReadExternalFiles(RDCFile *rdc)
       {
         file.data = f.data;
         file.filepath.clear();
+        file.hasData = true;
         break;
       }
     }
