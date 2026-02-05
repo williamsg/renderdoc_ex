@@ -209,6 +209,7 @@ public:
   void CacheOutputTopology();
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology() const { return m_OutputTopology; }
   ThreadScope GetThreadScope() const { return m_Threadscope; }
+  const rdcstr &GetDebugInfoLoadingLog() const { return m_DebugInfoLoadingLog; }
 
   CBufferVariableType GetRayPayload(const ShaderEntryPoint &entry)
   {
@@ -285,6 +286,7 @@ private:
   bytebuf m_ShaderBlob;
 
   rdcstr m_Disassembly;
+  rdcstr m_DebugInfoLoadingLog;
   bool m_DXCStyle = false;
 
   D3D_PRIMITIVE_TOPOLOGY m_OutputTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
