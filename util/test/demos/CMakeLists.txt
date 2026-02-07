@@ -314,7 +314,7 @@ if(APPLE)
     find_library(QUARTZCORE_LIBRARY QuartzCore)
     find_library(METAL_LIBRARY Metal)
     target_compile_definitions(demos PRIVATE
-        -DVK_USE_PLATFORM_MACOS_MVK=1)
+        -DVK_USE_PLATFORM_METAL_EXT=1)
     set(LIBS ${COCOA_LIBRARY} ${QUARTZCORE_LIBRARY} ${METAL_LIBRARY})
 elseif(BUILD_ANDROID)
     target_compile_definitions(demos PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR=1)
