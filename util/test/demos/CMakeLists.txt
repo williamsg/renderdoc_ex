@@ -1,4 +1,8 @@
-cmake_minimum_required(VERSION 2.8.12)
+if (NOT CMAKE_VERSION VERSION_LESS "4.0")
+  cmake_minimum_required(VERSION 3.5)
+else()
+  cmake_minimum_required(VERSION 2.8.12)
+endif()
 
 if(APPLE)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../bin")
