@@ -176,7 +176,12 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
       X11Window::Init();
 #elif defined(__APPLE__)
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+      enabledInstExts.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+#endif
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
       enabledInstExts.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+#endif
 
       AppleWindow::Init();
 #else
@@ -1506,6 +1511,15 @@ VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win)
 
     vkCreateXcbSurfaceKHR(m_Test->instance, &createInfo, NULL, &surface);
 #elif defined(__APPLE__)
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+    VkMetalSurfaceCreateInfoEXT mtlCreateInfo;
+    mtlCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+    mtlCreateInfo.pNext = NULL;
+    mtlCreateInfo.flags = 0;
+    mtlCreateInfo.pLayer = ((AppleWindow *)win)->layer;
+    vkCreateMetalSurfaceEXT(m_Test->instance, &mtlCreateInfo, NULL, &surface);
+#endif
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
     VkMacOSSurfaceCreateInfoMVK createInfo;
 
     createInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
@@ -1513,6 +1527,7 @@ VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win)
     createInfo.flags = 0;
     createInfo.pView = ((AppleWindow *)win)->view;
     vkCreateMacOSSurfaceMVK(m_Test->instance, &createInfo, NULL, &surface);
+#endif
 #else
 #error UNKNOWN PLATFORM
 #endif
