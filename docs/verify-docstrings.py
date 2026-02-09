@@ -133,6 +133,7 @@ def make_c_type(ret: str, pattern: bool, typelist: List[str]):
 RTYPE_PATTERN = re.compile(r":rtype: (.*)")
 PARAM_PATTERN = re.compile(r":param ([^:]*) ([^: ]*):")
 TYPE_PATTERN = re.compile(r":type: (.*)")
+DATA_PATTERN = re.compile(r"\.\. data:: (.*)")
 
 count = 0
 
@@ -296,6 +297,14 @@ for mod_name in ['renderdoc', 'qrenderdoc']:
             except TypeError:
                 pass
 
+            # a couple of manual cases that need parameters
+            if qualname == 'renderdoc.SDObject' and instance is None:
+                instance = obj("", "")
+            if qualname == 'renderdoc.SDChunk' and instance is None:
+                instance = obj("")
+
+            instance_warned = False
+
             for member_name in obj.__dict__.keys():
                 if '__' in member_name or member_name in ['this', 'thisown']:
                     continue
@@ -371,6 +380,17 @@ for mod_name in ['renderdoc', 'qrenderdoc']:
                         if type_decl != type_name:
                             count += 1
                             print("Error {:3}: {}.{} has wrong :type: declaration {}, should be {}".format(count, qualname, member_name, type_decl, type_name))
+                elif instance is None and '__get__' in dir(member):
+                    if not instance_warned:
+                        print(f"WARNING: Couldn't create a {qualname} to check some members")
+                        instance_warned = True
+                elif type(member) == int:
+                    datas = DATA_PATTERN.findall(docstring)
+
+                    if member_name not in datas:
+                        count += 1
+                        print("Error {:3}: {}.{} is missing a .. data: declaration in object docstring".format(count, qualname, member_name))
+
         elif callable(obj):
             used_types = []
 
