@@ -628,7 +628,7 @@ struct SDObject
 
   DOCUMENT(R"(The name of this object.
 
-:type: name
+:type: str
 )");
   rdcinflexiblestr name;
 
