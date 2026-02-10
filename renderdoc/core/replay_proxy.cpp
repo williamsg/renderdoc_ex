@@ -1376,6 +1376,11 @@ void ReplayProxy::Proxied_ReloadShaderDebugInformation(ParamSerialiser &paramser
   const ReplayProxyPacket expectedPacket = eReplayProxy_ReloadShaderDebugInformation;
   ReplayProxyPacket packet = eReplayProxy_ReloadShaderDebugInformation;
 
+  // Clear the shader refleciton cache
+  for(auto it = m_ShaderReflectionCache.begin(); it != m_ShaderReflectionCache.end(); ++it)
+    delete it->second;
+  m_ShaderReflectionCache.clear();
+
   {
     BEGIN_PARAMS();
     END_PARAMS();
