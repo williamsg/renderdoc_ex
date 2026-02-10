@@ -694,7 +694,7 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
 
     RENDERDOC_SaveConfigSettings();
 
-    if(m_Ctx.IsCaptureLoaded())
+    if(m_Ctx.IsCaptureLoaded() && !m_Ctx.Replay().CurrentRemote().IsConnected())
     {
       QMessageBox::StandardButton ask = RDDialog::question(
           this, tr("Shader Search Paths Saved"),
