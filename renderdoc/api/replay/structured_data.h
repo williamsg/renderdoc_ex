@@ -451,7 +451,7 @@ struct SDObjectData
 
   DOCUMENT(R"(The plain-old data contents of the object, in a :class:`SDObjectPODData`.
 
-:type: basic
+:type: SDObjectPODData
 )");
   SDObjectPODData basic;
 
