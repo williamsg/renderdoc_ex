@@ -3999,7 +3999,7 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
 
         QueueSampleGather(Op::ImageFetch, texType, img.GetBindIndex(), ShaderBindIndex(), coord,
                           ShaderVariable(), ShaderVariable(), ShaderVariable(), GatherChannel::Red,
-                          ImageOperandsAndParamDatas(), result);
+                          read.imageOperands, result);
       }
       else
       {
