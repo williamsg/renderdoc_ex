@@ -42,6 +42,7 @@ struct RenderingInfoStructs
   VkRenderingFragmentDensityMapAttachmentInfoEXT fragmentDensity;
   VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate;
   VkMultisampledRenderToSingleSampledInfoEXT tileOnlyMSAA;
+  VkCustomResolveCreateInfoEXT customResolveCreateInfo;
 };
 
 void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRendering,
@@ -132,6 +133,22 @@ void setupRenderingInfo(const VulkanRenderState::DynamicRendering &dynamicRender
   {
     structs->tileOnlyMSAA.pNext = info->pNext;
     info->pNext = &structs->tileOnlyMSAA;
+  }
+
+  structs->customResolveCreateInfo = {
+      VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT,
+      NULL,
+      dynamicRendering.customResolveCreateInfo.customResolve,
+      (uint32_t)dynamicRendering.customResolveCreateInfo.colorAttachmentFormats.size(),
+      dynamicRendering.customResolveCreateInfo.colorAttachmentFormats.data(),
+      dynamicRendering.customResolveCreateInfo.depthAttachmentFormat,
+      dynamicRendering.customResolveCreateInfo.stencilAttachmentFormat,
+  };
+
+  if(dynamicRendering.hasCustomResolveCreateInfo)
+  {
+    structs->customResolveCreateInfo.pNext = info->pNext;
+    info->pNext = &structs->customResolveCreateInfo;
   }
 }
 }    // namespace
@@ -266,6 +283,14 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
   if(dynamicRendering.localRead.AreInputIndicesNonDefault())
   {
     dynamicRendering.localRead.SetInputIndices(cmd);
+  }
+
+  if(dynamicRendering.beginCustomResolve)
+  {
+    VkBeginCustomResolveInfoEXT beginInfo;
+    beginInfo.sType = VK_STRUCTURE_TYPE_BEGIN_CUSTOM_RESOLVE_INFO_EXT;
+    beginInfo.pNext = VK_NULL_HANDLE;
+    ObjDisp(cmd)->CmdBeginCustomResolveEXT(Unwrap(cmd), &beginInfo);
   }
 }
 

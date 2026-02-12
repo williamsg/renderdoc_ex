@@ -1331,6 +1331,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       // don't use dynamic rendering
       RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+      // don't use custom resolve
+      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
 
       if(!state.graphics.shaderObject)
       {
@@ -1377,6 +1379,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
       state.subpass = 0;
       state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.dynamicRendering.beginCustomResolve = false;
 
       state.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
       state.dynamicRendering.flags &= ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
@@ -1573,6 +1576,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         // don't use dynamic rendering
         RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+        // don't use custom resolve
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
 
         VkPipelineShaderStageCreateInfo *fragShader = NULL;
         for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
@@ -1640,6 +1645,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
       state.subpass = 0;
       state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.dynamicRendering.beginCustomResolve = false;
 
       state.graphics.pipeline = GetResID(pipe[0]);
       state.scissors = prevstate.scissors;
@@ -1929,6 +1935,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         // don't use dynamic rendering
         RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+        // don't use custom resolve
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
 
         VkPipelineShaderStageCreateInfo *fragShader = NULL;
 
@@ -1998,6 +2006,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
       state.subpass = 0;
       state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.dynamicRendering.beginCustomResolve = false;
 
       state.graphics.pipeline = GetResID(pipe[0]);
 
@@ -2580,6 +2589,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         // don't use dynamic rendering
         RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+        // don't use custom resolve
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &passpipe);
@@ -2642,6 +2653,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
       state.subpass = 0;
       state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.dynamicRendering.beginCustomResolve = false;
 
       state.graphics.pipeline = GetResID(failpipe);
 
@@ -3621,6 +3633,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         // don't use dynamic rendering
         RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+        // don't use custom resolve
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
 
         if(pipeCreateInfo.pDynamicState)
         {

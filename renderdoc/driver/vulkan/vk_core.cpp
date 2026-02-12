@@ -1119,6 +1119,12 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME,
         VK_EXT_CUSTOM_BORDER_COLOR_SPEC_VERSION,
     },
+#ifdef VK_EXT_custom_resolve
+    {
+        VK_EXT_CUSTOM_RESOLVE_EXTENSION_NAME,
+        VK_EXT_CUSTOM_RESOLVE_SPEC_VERSION,
+    },
+#endif
     {
         VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
         VK_EXT_DEBUG_MARKER_SPEC_VERSION,
@@ -4921,6 +4927,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdPushDescriptorSet2(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdPushDescriptorSetWithTemplate2:
       return Serialise_vkCmdPushDescriptorSetWithTemplate2(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdBeginCustomResolveEXT:
+      return Serialise_vkCmdBeginCustomResolveEXT(ser, VK_NULL_HANDLE, NULL);
 
     case VulkanChunk::SetQueueAnnotation:
       return Serialise_SetQueueAnnotation(ser, VK_NULL_HANDLE, rdcstr(), eRENDERDOC_AnnotationMax,
@@ -6561,9 +6569,10 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
         uint32_t att = sub.colorAttachments[i];
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
-        actionNode.resourceUsage.push_back(
-            make_rdcpair(c.m_ImageView[fbattachments[att]].image,
-                         EventUsage(e, ResourceUsage::ColorTarget, fbattachments[att])));
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[fbattachments[att]].image,
+            EventUsage(e, sub.customResolve ? ResourceUsage::ResolveDst : ResourceUsage::ColorTarget,
+                       fbattachments[att])));
       }
 
       if(sub.depthstencilAttachment >= 0)
@@ -6584,23 +6593,66 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
       if(dyn.color[i].imageView == VK_NULL_HANDLE)
         continue;
 
-      actionNode.resourceUsage.push_back(make_rdcpair(
-          c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
-          EventUsage(e, ResourceUsage::ColorTarget, GetResID(dyn.color[i].imageView))));
+      bool isCustomResolve = renderState.dynamicRendering.beginCustomResolve &&
+                             (dyn.color[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT);
+      if(!isCustomResolve)
+      {
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
+            EventUsage(e, ResourceUsage::ColorTarget, GetResID(dyn.color[i].imageView))));
+      }
+      else
+      {
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
+            EventUsage(e, ResourceUsage::InputTarget, GetResID(dyn.color[i].imageView))));
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.color[i].resolveImageView)].image,
+            EventUsage(e, ResourceUsage::ResolveDst, GetResID(dyn.color[i].resolveImageView))));
+      }
     }
 
     if(dyn.depth.imageView != VK_NULL_HANDLE)
     {
-      actionNode.resourceUsage.push_back(make_rdcpair(
-          c.m_ImageView[GetResID(dyn.depth.imageView)].image,
-          EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.depth.imageView))));
+      bool isCustomResolve = renderState.dynamicRendering.beginCustomResolve &&
+                             (dyn.depth.resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT);
+      if(!isCustomResolve)
+      {
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.depth.imageView)].image,
+            EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.depth.imageView))));
+      }
+      else
+      {
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.depth.imageView)].image,
+                         EventUsage(e, ResourceUsage::InputTarget, GetResID(dyn.depth.imageView))));
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.depth.resolveImageView)].image,
+            EventUsage(e, ResourceUsage::ResolveDst, GetResID(dyn.depth.resolveImageView))));
+      }
     }
 
     if(dyn.stencil.imageView != VK_NULL_HANDLE && dyn.depth.imageView != dyn.stencil.imageView)
     {
-      actionNode.resourceUsage.push_back(make_rdcpair(
-          c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
-          EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.stencil.imageView))));
+      bool isCustomResolve = renderState.dynamicRendering.beginCustomResolve &&
+                             (dyn.stencil.resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT);
+      if(!isCustomResolve)
+
+      {
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+            EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.stencil.imageView))));
+      }
+      else
+      {
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+            EventUsage(e, ResourceUsage::InputTarget, GetResID(dyn.stencil.imageView))));
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            c.m_ImageView[GetResID(dyn.stencil.resolveImageView)].image,
+            EventUsage(e, ResourceUsage::ResolveDst, GetResID(dyn.stencil.resolveImageView))));
+      }
     }
   }
 }
@@ -6753,10 +6805,10 @@ bool WrappedVulkan::EraseImageState(ResourceId id)
 
 void WrappedVulkan::UpdateImageStates(const rdcflatmap<ResourceId, ImageState> &dstStates)
 {
-  // this function expects the number of updates to be orders of magnitude fewer than the number of
-  // existing images. If there are a small number of images in total then it doesn't matter much,
-  // and if there are a large number of images then it's better to do repeated map lookups rather
-  // than spend time iterating linearly across the map for a sparse set of updates.
+  // this function expects the number of updates to be orders of magnitude fewer than the number
+  // of existing images. If there are a small number of images in total then it doesn't matter
+  // much, and if there are a large number of images then it's better to do repeated map lookups
+  // rather than spend time iterating linearly across the map for a sparse set of updates.
   SCOPED_LOCK(m_ImageStatesLock);
   auto dstIt = dstStates.begin();
   ImageTransitionInfo info = GetImageTransitionInfo();
@@ -6800,8 +6852,8 @@ void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const ActionDescription &act
   }
   else
   {
-    // otherwise it's a bit more complex, we need to set up a multidraw with the first N draws nop'd
-    // out and the parameters added into the last one
+    // otherwise it's a bit more complex, we need to set up a multidraw with the first N draws
+    // nop'd out and the parameters added into the last one
 
     VkMarkerRegion::Begin(StringFormat::Fmt("ReplayDraw(drawIndex=%u)", action.drawIndex), cmd);
 

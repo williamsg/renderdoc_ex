@@ -1167,6 +1167,15 @@ void VulkanCreationInfo::ShaderObject::Init(VulkanResourceManager *resourceMan,
     }
   }
 
+  const VkCustomResolveCreateInfoEXT *customResInfo =
+      (const VkCustomResolveCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
+  if(customResInfo)
+  {
+    hasCustomResCreateInfo = true;
+    customResolve = (customResInfo->customResolve == VK_TRUE);
+  }
+
   ShaderModuleReflection &reflData = info.m_ShaderModule[id].m_Reflections[key];
 
   reflData.Init(resourceMan, info, id, info.m_ShaderModule[id].spirv, shad.entryPoint,
@@ -1229,6 +1238,18 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     colorFormats.clear();
     depthFormat = VK_FORMAT_UNDEFINED;
     stencilFormat = VK_FORMAT_UNDEFINED;
+  }
+  const VkCustomResolveCreateInfoEXT *customResInfo =
+      (const VkCustomResolveCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
+  if(customResInfo)
+  {
+    hasCustomResCreateInfo = true;
+    customResCreateInfo.customResolve = (customResInfo->customResolve == VK_TRUE);
+    customResCreateInfo.colorFormats.assign(customResInfo->pColorAttachmentFormats,
+                                            customResInfo->colorAttachmentCount);
+    customResCreateInfo.depthFormat = customResInfo->depthAttachmentFormat;
+    customResCreateInfo.stencilFormat = customResInfo->stencilAttachmentFormat;
   }
 
   dynamicRenderingLocalRead.Init((const VkBaseInStructure *)pCreateInfo);
@@ -2249,6 +2270,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
           dst.multiviews.push_back(i);
       }
     }
+    dst.customResolve = (src.flags & VK_SUBPASS_DESCRIPTION_CUSTOM_RESOLVE_BIT_EXT) != 0;
   }
 
   for(uint32_t i = 0; i < pCreateInfo->dependencyCount; i++)
@@ -2415,6 +2437,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
       if(src.viewMask & (1 << i))
         dst.multiviews.push_back(i);
     }
+    dst.customResolve = (src.flags & VK_SUBPASS_DESCRIPTION_CUSTOM_RESOLVE_BIT_EXT) != 0;
   }
 }
 

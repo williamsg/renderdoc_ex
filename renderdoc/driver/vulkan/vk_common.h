@@ -1404,6 +1404,7 @@ enum class VulkanChunk : uint32_t
   vkCmdEndRendering2EXT,
   SetQueueAnnotation,
   SetCommandAnnotation,
+  vkCmdBeginCustomResolveEXT,
   Max,
 };
 
