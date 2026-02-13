@@ -5142,7 +5142,7 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::FragmentMaskFetchAMD:
     case Op::FragmentFetchAMD:
     case Op::ImageSampleFootprintNV:
-    case Op::GroupNonUniformPartitionNV:
+    case Op::GroupNonUniformPartitionEXT:
     case Op::WritePackedPrimitiveIndices4x8NV:
     case Op::ReportIntersectionKHR:
     case Op::IgnoreIntersectionNV:
@@ -5346,6 +5346,44 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::CompositeExtractCoopMatQCOM:
     case Op::ExtractSubArrayQCOM:
     case Op::FmaKHR:
+    case Op::BufferPointerEXT:
+    case Op::UntypedImageTexelPointerEXT:
+    case Op::ConstantSizeOfEXT:
+    case Op::HitObjectRecordFromQueryEXT:
+    case Op::HitObjectRecordMissMotionEXT:
+    case Op::HitObjectGetIntersectionTriangleVertexPositionsEXT:
+    case Op::HitObjectGetRayFlagsEXT:
+    case Op::HitObjectSetShaderBindingTableRecordIndexEXT:
+    case Op::HitObjectReorderExecuteShaderEXT:
+    case Op::HitObjectTraceMotionReorderExecuteEXT:
+    case Op::ReorderThreadWithHintEXT:
+    case Op::ReorderThreadWithHitObjectEXT:
+    case Op::HitObjectTraceRayEXT:
+    case Op::HitObjectTraceRayMotionEXT:
+    case Op::HitObjectRecordEmptyEXT:
+    case Op::HitObjectExecuteShaderEXT:
+    case Op::HitObjectGetCurrentTimeEXT:
+    case Op::HitObjectRecordMissEXT:
+    case Op::HitObjectTraceReorderExecuteEXT:
+    case Op::HitObjectGetAttributesEXT:
+    case Op::HitObjectGetPrimitiveIndexEXT:
+    case Op::HitObjectGetGeometryIndexEXT:
+    case Op::HitObjectGetInstanceIdEXT:
+    case Op::HitObjectGetInstanceCustomIndexEXT:
+    case Op::HitObjectGetHitKindEXT:
+    case Op::HitObjectGetObjectRayOriginEXT:
+    case Op::HitObjectGetObjectRayDirectionEXT:
+    case Op::HitObjectGetWorldRayDirectionEXT:
+    case Op::HitObjectGetWorldRayOriginEXT:
+    case Op::HitObjectGetObjectToWorldEXT:
+    case Op::HitObjectGetWorldToObjectEXT:
+    case Op::HitObjectGetRayTMaxEXT:
+    case Op::HitObjectGetRayTMinEXT:
+    case Op::HitObjectGetShaderBindingTableRecordIndexEXT:
+    case Op::HitObjectGetShaderRecordBufferHandleEXT:
+    case Op::HitObjectIsEmptyEXT:
+    case Op::HitObjectIsHitEXT:
+    case Op::HitObjectIsMissEXT:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 
@@ -5415,12 +5453,15 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::TypeNodePayloadArrayAMDX:
     case Op::ConstantStringAMDX:
     case Op::SpecConstantStringAMDX:
-    case Op::TypeCooperativeVectorNV:
+    case Op::TypeVectorIdEXT:
     case Op::TypeTensorLayoutNV:
     case Op::TypeTensorViewNV:
     case Op::TypeGraphARM:
     case Op::TypeHitObjectNV:
     case Op::TypeCooperativeMatrixKHR:
+    case Op::TypeBufferEXT:
+    case Op::MemberDecorateIdEXT:
+    case Op::TypeHitObjectEXT:
     {
       RDCERR("Encountered unexpected global SPIR-V operation %s", ToStr(opdata.op).c_str());
       break;
