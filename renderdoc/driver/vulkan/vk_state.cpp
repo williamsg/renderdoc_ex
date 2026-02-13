@@ -288,8 +288,8 @@ void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
       }
       else
       {
-        VkRenderingEndInfoEXT endInfo = {
-            VK_STRUCTURE_TYPE_RENDERING_END_INFO_EXT,
+        VkRenderingEndInfoKHR endInfo = {
+            VK_STRUCTURE_TYPE_RENDERING_END_INFO_KHR,
             &fragmentDensityOffsetStruct,
         };
 

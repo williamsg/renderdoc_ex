@@ -3029,7 +3029,7 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRendering, VkCommandBuffer commandBuffer);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRendering2EXT, VkCommandBuffer commandBuffer,
-                                const VkRenderingEndInfoEXT *pRenderingEndInfo);
+                                const VkRenderingEndInfoKHR *pRenderingEndInfo);
 
   // VK_KHR_dynamic_rendering_local_read
 

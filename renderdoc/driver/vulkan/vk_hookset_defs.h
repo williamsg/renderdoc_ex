@@ -1830,7 +1830,7 @@
               pRenderingInfo);                                                                       \
   HookDefine1(void, vkCmdEndRendering, VkCommandBuffer, commandBuffer);                              \
   HookDefine2(void, vkCmdEndRendering2EXT, VkCommandBuffer, commandBuffer,                           \
-              const VkRenderingEndInfoEXT *, pRenderingEndInfo);                                     \
+              const VkRenderingEndInfoKHR *, pRenderingEndInfo);                                     \
   HookDefine2(void, vkCmdSetRenderingAttachmentLocations, VkCommandBuffer, commandBuffer,            \
               const VkRenderingAttachmentLocationInfo *, pLocationInfo);                             \
   HookDefine2(void, vkCmdSetRenderingInputAttachmentIndices, VkCommandBuffer, commandBuffer,         \

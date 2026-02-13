@@ -8285,7 +8285,7 @@ void WrappedVulkan::vkCmdEndRendering(VkCommandBuffer commandBuffer)
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
                                                     VkCommandBuffer commandBuffer,
-                                                    const VkRenderingEndInfoEXT *pRenderingEndInfo)
+                                                    const VkRenderingEndInfoKHR *pRenderingEndInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(RenderingEndInfo, *pRenderingEndInfo).Named("pRenderingEndInfo"_lit).Important();
@@ -8297,7 +8297,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
   if(IsReplayingAndReading())
   {
     byte *tempMem = GetTempMemory(GetNextPatchSize(pRenderingEndInfo));
-    VkRenderingEndInfoEXT *unwrappedEndInfo =
+    VkRenderingEndInfoKHR *unwrappedEndInfo =
         UnwrapStructAndChain(m_State, tempMem, pRenderingEndInfo);
     m_LastCmdBufferID = GetResID(commandBuffer);
 
@@ -8551,12 +8551,12 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
 }
 
 void WrappedVulkan::vkCmdEndRendering2EXT(VkCommandBuffer commandBuffer,
-                                          const VkRenderingEndInfoEXT *pRenderingEndInfo)
+                                          const VkRenderingEndInfoKHR *pRenderingEndInfo)
 {
   SCOPED_DBG_SINK();
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(pRenderingEndInfo));
-  VkRenderingEndInfoEXT *unwrappedEndInfo = UnwrapStructAndChain(m_State, tempMem, pRenderingEndInfo);
+  VkRenderingEndInfoKHR *unwrappedEndInfo = UnwrapStructAndChain(m_State, tempMem, pRenderingEndInfo);
 
   SERIALISE_TIME_CALL(
       ObjDisp(commandBuffer)->CmdEndRendering2EXT(Unwrap(commandBuffer), unwrappedEndInfo));
@@ -10490,7 +10490,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginRendering, VkCommandBuffer comma
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndRendering, VkCommandBuffer commandBuffer);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndRendering2EXT, VkCommandBuffer commandBuffer,
-                                const VkRenderingEndInfoEXT *pRenderingEndInfo);
+                                const VkRenderingEndInfoKHR *pRenderingEndInfo);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBuildAccelerationStructuresIndirectKHR,
                                 VkCommandBuffer commandBuffer, uint32_t infoCount,
