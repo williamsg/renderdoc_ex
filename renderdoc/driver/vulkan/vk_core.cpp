@@ -5063,6 +5063,16 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   {
     startEventID = 1;
     partial = false;
+
+    AddPendingObjectCleanup([this]() {
+      for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
+      {
+        m_commandQueueFamilies.erase(GetResID(rerecord.second));
+        vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
+      }
+
+      m_RerecordCmdList.clear();
+    });
   }
 
   if(!partial)
@@ -5252,14 +5262,6 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
         ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
 
       m_CleanupEvents.clear();
-
-      for(const rdcpair<VkCommandPool, VkCommandBuffer> &rerecord : m_RerecordCmdList)
-      {
-        m_commandQueueFamilies.erase(GetResID(rerecord.second));
-        vkFreeCommandBuffers(GetDev(), rerecord.first, 1, &rerecord.second);
-      }
-
-      m_RerecordCmdList.clear();
     });
   }
 
