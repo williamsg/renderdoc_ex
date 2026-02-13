@@ -568,7 +568,7 @@ void WrappedVulkan::FreeAllMemory(MemoryScope scope)
     GetResourceManager()->ReleaseWrappedResource(alloc.mem);
   }
 
-  m_MemoryFreeThread = Threading::CreateThread([this, d, mems]() {
+  m_MemoryFreeThread = Threading::CreateThread([d, mems]() {
     for(VkDeviceMemory mem : mems)
       ObjDisp(d)->FreeMemory(Unwrap(d), mem, NULL);
   });
