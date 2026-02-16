@@ -25,6 +25,7 @@
 #include "../vk_core.h"
 #include "../vk_replay.h"
 #include "core/settings.h"
+#include "driver/ihv/nv/nv_aftermath.h"
 #include "driver/shaders/spirv/spirv_reflect.h"
 
 RDOC_EXTERN_CONFIG(bool, Replay_Debug_SingleThreadedCompilation);
@@ -401,6 +402,8 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
 
     VkShaderModuleCreateInfo patched = CreateInfo;
 
+    NVAftermath_Shader(ShaderEncoding::SPIRV, CreateInfo.pCode, CreateInfo.codeSize);
+
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
 
     UnwrapNextChain(m_State, "VkShaderModuleCreateInfo", tempMem, (VkBaseInStructure *)&patched);
@@ -697,6 +700,8 @@ VkShaderModule WrappedVulkan::CreateFakeInlineShaderModule(ResourceId id, VkDevi
                                                            const VkShaderModuleCreateInfo *pCreateInfo)
 {
   RDCASSERT(IsLoading(m_State));
+
+  NVAftermath_Shader(ShaderEncoding::SPIRV, pCreateInfo->pCode, pCreateInfo->codeSize);
 
   VkShaderModule module = VK_NULL_HANDLE;
   VkResult ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), pCreateInfo, NULL, &module);
