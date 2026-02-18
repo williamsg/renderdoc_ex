@@ -700,6 +700,7 @@ VkShaderModule WrappedVulkan::CreateFakeInlineShaderModule(ResourceId id, VkDevi
                                                            const VkShaderModuleCreateInfo *pCreateInfo)
 {
   RDCASSERT(IsLoading(m_State));
+  RDCASSERT(id != ResourceId());
 
   NVAftermath_Shader(ShaderEncoding::SPIRV, pCreateInfo->pCode, pCreateInfo->codeSize);
 
@@ -759,6 +760,8 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
   else
   {
     InlineShaderIDs.resize(CreateInfo.stageCount);
+    for(ResourceId &id : InlineShaderIDs)
+      id = ResourceIDGen::GetNewUniqueID();
   }
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1126,6 +1129,10 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
   if(ser.VersionAtLeast(0x18))
   {
     SERIALISE_ELEMENT(InlineShaderID).Hidden();
+  }
+  else
+  {
+    InlineShaderID = ResourceIDGen::GetNewUniqueID();
   }
 
   SERIALISE_CHECK_READ_ERRORS();
