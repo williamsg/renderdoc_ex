@@ -488,7 +488,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
       if(ser.IsReading() && IsLoading(m_State))
       {
         m_Annotations[id] = annotation;
-        m_Replay->GetResourceDesc(id).annotations = annotation;
+        m_pDevice->GetReplay()->GetResourceDesc(id).annotations = annotation;
       }
     }
 
