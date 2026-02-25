@@ -6639,6 +6639,7 @@ void ShaderViewer::on_toggleLog_clicked()
   {
     ui->docking->removeToolWindow(debugInfoLog);
     debugInfoLog = NULL;
+    ui->toggleLog->setChecked(false);
     return;
   }
 
@@ -6660,6 +6661,8 @@ void ShaderViewer::on_toggleLog_clicked()
                                                      ui->docking->areaOf(m_Scintillas.back())));
   ui->docking->setToolWindowProperties(
       debugInfoLog, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+
+  ui->toggleLog->setChecked(true);
 }
 
 void ShaderViewer::on_resources_sortByStep_clicked()
