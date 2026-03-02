@@ -3767,7 +3767,7 @@ static rdcspv::Id AddQuadSwizzleHelper(rdcspv::Editor &editor, uint32_t count)
   return func;
 }
 
-static void CreateInputFetcher(rdcarray<uint32_t> &spv,
+static void CreateInputFetcher(rdcarray<uint32_t> &spv, const rdcarray<SpecConstant> &userSpec,
                                VulkanCreationInfo::ShaderModuleReflection &shadRefl,
                                BufferStorageMode storageMode, bool usePrimitiveID, bool useSampleID,
                                bool useViewIndex, SubgroupCapability subgroupCapability,
@@ -3814,6 +3814,8 @@ static void CreateInputFetcher(rdcarray<uint32_t> &spv,
 
   editor.Prepare();
   editor.SetBufferStorageMode(storageMode);
+
+  editor.FlattenSpecConstants(userSpec);
 
   // remove any OpSource
   {
@@ -5471,7 +5473,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
     VkSpecializationInfo patchedSpecInfo = MakeSpecInfo(specData, specMaps);
 
-    auto patchCallback = [this, &shadRefl, &patchedSpecInfo, useViewIndex, subgroupCapability,
+    auto patchCallback = [this, &spec, &shadRefl, &patchedSpecInfo, useViewIndex, subgroupCapability,
                           maxSubgroupSize](const AddedDescriptorData &patchedBufferdata,
                                            VkShaderStageFlagBits stage, const char *entryName,
                                            const rdcarray<uint32_t> &origSpirv,
@@ -5485,14 +5487,13 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_vsinput_before.spv", modSpirv);
 
-      CreateInputFetcher(modSpirv, shadRefl, m_StorageMode, false, false, useViewIndex,
+      CreateInputFetcher(modSpirv, spec, shadRefl, m_StorageMode, false, false, useViewIndex,
                          subgroupCapability, maxSubgroupSize);
 
       if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_vsinput_after.spv", modSpirv);
 
-      // overwrite user's specialisation info, assuming that the old specialisation info is not
-      // relevant for codegen (the only thing it would be used for)
+      // overwrite user's specialisation info. We flattened the user's spec constants when patching the SPIR-V above.
       specInfo = &patchedSpecInfo;
 
       return true;
@@ -6039,7 +6040,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   VkSpecializationInfo patchedSpecInfo = MakeSpecInfo(specData, specMaps);
 
-  auto patchCallback = [this, &shadRefl, &patchedSpecInfo, usePrimitiveID, useSampleID,
+  auto patchCallback = [this, &spec, &shadRefl, &patchedSpecInfo, usePrimitiveID, useSampleID,
                         useViewIndex, subgroupCapability, maxSubgroupSize](
                            const AddedDescriptorData &patchedBufferdata, VkShaderStageFlagBits stage,
                            const char *entryName, const rdcarray<uint32_t> &origSpirv,
@@ -6052,14 +6053,13 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_psinput_before.spv", modSpirv);
 
-    CreateInputFetcher(modSpirv, shadRefl, m_StorageMode, usePrimitiveID, useSampleID, useViewIndex,
-                       subgroupCapability, maxSubgroupSize);
+    CreateInputFetcher(modSpirv, spec, shadRefl, m_StorageMode, usePrimitiveID, useSampleID,
+                       useViewIndex, subgroupCapability, maxSubgroupSize);
 
     if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_psinput_after.spv", modSpirv);
 
-    // overwrite user's specialisation info, assuming that the old specialisation info is not
-    // relevant for codegen (the only thing it would be used for)
+    // overwrite user's specialisation info. We flattened the user's spec constants when patching the SPIR-V above.
     specInfo = &patchedSpecInfo;
 
     return true;
@@ -6575,7 +6575,7 @@ ShaderDebugTrace *VulkanReplay::DebugComputeCommon(ShaderStage stage, uint32_t e
 
     VkSpecializationInfo patchedSpecInfo = MakeSpecInfo(specData, specMaps);
 
-    auto patchCallback = [this, stageBit, &shadRefl, &patchedSpecInfo, subgroupCapability,
+    auto patchCallback = [this, stageBit, &spec, &shadRefl, &patchedSpecInfo, subgroupCapability,
                           maxSubgroupSize](const AddedDescriptorData &patchedBufferdata,
                                            VkShaderStageFlagBits stage, const char *entryName,
                                            const rdcarray<uint32_t> &origSpirv,
@@ -6597,14 +6597,13 @@ ShaderDebugTrace *VulkanReplay::DebugComputeCommon(ShaderStage stage, uint32_t e
       if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/before_" + filename[idx], modSpirv);
 
-      CreateInputFetcher(modSpirv, shadRefl, m_StorageMode, false, false, false, subgroupCapability,
-                         maxSubgroupSize);
+      CreateInputFetcher(modSpirv, spec, shadRefl, m_StorageMode, false, false, false,
+                         subgroupCapability, maxSubgroupSize);
 
       if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/after_" + filename[idx], modSpirv);
 
-      // overwrite user's specialisation info, assuming that the old specialisation info is not
-      // relevant for codegen (the only thing it would be used for)
+      // overwrite user's specialisation info. We flattened the user's spec constants when patching the SPIR-V above.
       specInfo = &patchedSpecInfo;
 
       return true;
