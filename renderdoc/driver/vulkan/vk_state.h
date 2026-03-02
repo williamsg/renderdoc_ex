@@ -354,8 +354,6 @@ struct VulkanRenderState
       localRead = o.localRead;
 
       beginCustomResolve = o.beginCustomResolve;
-      hasCustomResolveCreateInfo = o.hasCustomResolveCreateInfo;
-      customResolveCreateInfo = o.customResolveCreateInfo;
 
       // this will deep copy from the incoming object
       CopyAttachmentNexts();
@@ -391,15 +389,6 @@ struct VulkanRenderState
 
     // VK_EXT_custom_resolve
     bool beginCustomResolve = false;
-
-    bool hasCustomResolveCreateInfo = false;
-    struct CustomResolveCreateInfoEXT
-    {
-      bool customResolve = false;
-      rdcarray<VkFormat> colorAttachmentFormats;
-      VkFormat depthAttachmentFormat;
-      VkFormat stencilAttachmentFormat;
-    } customResolveCreateInfo;
 
   private:
     // VK_KHR_unified_image_layouts

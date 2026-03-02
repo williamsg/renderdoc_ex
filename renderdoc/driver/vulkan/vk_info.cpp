@@ -1251,6 +1251,14 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     customResCreateInfo.depthFormat = customResInfo->depthAttachmentFormat;
     customResCreateInfo.stencilFormat = customResInfo->stencilAttachmentFormat;
   }
+  else
+  {
+    hasCustomResCreateInfo = false;
+    customResCreateInfo.customResolve = false;
+    customResCreateInfo.colorFormats.clear();
+    customResCreateInfo.depthFormat = VK_FORMAT_UNDEFINED;
+    customResCreateInfo.stencilFormat = VK_FORMAT_UNDEFINED;
+  }
 
   dynamicRenderingLocalRead.Init((const VkBaseInStructure *)pCreateInfo);
 

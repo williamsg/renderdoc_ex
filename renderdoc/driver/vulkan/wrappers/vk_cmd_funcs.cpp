@@ -7686,34 +7686,6 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
           }
 
           renderstate.dynamicRendering.beginCustomResolve = false;
-          const VkCustomResolveCreateInfoEXT *customResolveCreateInfo =
-              (const VkCustomResolveCreateInfoEXT *)FindNextStruct(
-                  &RenderingInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
-          if(customResolveCreateInfo)
-          {
-            renderstate.dynamicRendering.hasCustomResolveCreateInfo = true;
-            renderstate.dynamicRendering.customResolveCreateInfo.customResolve =
-                (customResolveCreateInfo->customResolve == VK_TRUE);
-            for(uint32_t i = 0; i < customResolveCreateInfo->colorAttachmentCount; ++i)
-            {
-              renderstate.dynamicRendering.customResolveCreateInfo.colorAttachmentFormats.push_back(
-                  customResolveCreateInfo->pColorAttachmentFormats[i]);
-            }
-            renderstate.dynamicRendering.customResolveCreateInfo.depthAttachmentFormat =
-                customResolveCreateInfo->depthAttachmentFormat;
-            renderstate.dynamicRendering.customResolveCreateInfo.stencilAttachmentFormat =
-                customResolveCreateInfo->stencilAttachmentFormat;
-          }
-          else
-          {
-            renderstate.dynamicRendering.hasCustomResolveCreateInfo = false;
-            renderstate.dynamicRendering.customResolveCreateInfo.customResolve = false;
-            renderstate.dynamicRendering.customResolveCreateInfo.colorAttachmentFormats.clear();
-            renderstate.dynamicRendering.customResolveCreateInfo.depthAttachmentFormat =
-                VK_FORMAT_UNDEFINED;
-            renderstate.dynamicRendering.customResolveCreateInfo.stencilAttachmentFormat =
-                VK_FORMAT_UNDEFINED;
-          }
 
           rdcarray<ResourceId> attachments;
 
@@ -7767,26 +7739,38 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
 
           for(size_t i = 0; i < dynAtts.size(); i++)
           {
-            if(dynAtts[i].imageView == VK_NULL_HANDLE)
-              continue;
-
-            const VulkanCreationInfo::ImageView &viewInfo =
-                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
-
-            if(dynAtts[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+            // Color target
+            if(dynAtts[i].imageView != VK_NULL_HANDLE)
             {
+              const VulkanCreationInfo::ImageView &viewInfo =
+                  m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
+              VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
+
+              if(dynAtts[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+              {
+                VkImageSubresourceRange range = viewInfo.range;
+
+                if(i == depthIdx)
+                  range.aspectMask = depthAspects;
+
+                // if this is a stencil-only attachment this will override depthAspects
+                if(i == stencilIdx)
+                  range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+                GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
+                                                          image, dynAtts[i].imageLayout, range,
+                                                          renderstate.renderArea);
+              }
+            }
+            // Custom Resolve target
+            if(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)
+            {
+              const VulkanCreationInfo::ImageView &viewInfo =
+                  m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)];
+              VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
               VkImageSubresourceRange range = viewInfo.range;
-
-              if(i == depthIdx)
-                range.aspectMask = depthAspects;
-
-              // if this is a stencil-only attachment this will override depthAspects
-              if(i == stencilIdx)
-                range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
               GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
-                                                        image, dynAtts[i].imageLayout, range,
+                                                        image, dynAtts[i].resolveImageLayout, range,
                                                         renderstate.renderArea);
             }
           }
@@ -7906,34 +7890,6 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
         }
 
         renderstate.dynamicRendering.beginCustomResolve = false;
-        const VkCustomResolveCreateInfoEXT *customResolveCreateInfo =
-            (const VkCustomResolveCreateInfoEXT *)FindNextStruct(
-                &RenderingInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
-        if(customResolveCreateInfo)
-        {
-          renderstate.dynamicRendering.hasCustomResolveCreateInfo = true;
-          renderstate.dynamicRendering.customResolveCreateInfo.customResolve =
-              (customResolveCreateInfo->customResolve == VK_TRUE);
-          for(uint32_t i = 0; i < customResolveCreateInfo->colorAttachmentCount; ++i)
-          {
-            renderstate.dynamicRendering.customResolveCreateInfo.colorAttachmentFormats.push_back(
-                customResolveCreateInfo->pColorAttachmentFormats[i]);
-          }
-          renderstate.dynamicRendering.customResolveCreateInfo.depthAttachmentFormat =
-              customResolveCreateInfo->depthAttachmentFormat;
-          renderstate.dynamicRendering.customResolveCreateInfo.stencilAttachmentFormat =
-              customResolveCreateInfo->stencilAttachmentFormat;
-        }
-        else
-        {
-          renderstate.dynamicRendering.hasCustomResolveCreateInfo = false;
-          renderstate.dynamicRendering.customResolveCreateInfo.customResolve = false;
-          renderstate.dynamicRendering.customResolveCreateInfo.colorAttachmentFormats.clear();
-          renderstate.dynamicRendering.customResolveCreateInfo.depthAttachmentFormat =
-              VK_FORMAT_UNDEFINED;
-          renderstate.dynamicRendering.customResolveCreateInfo.stencilAttachmentFormat =
-              VK_FORMAT_UNDEFINED;
-        }
 
         rdcarray<ResourceId> attachments;
 
@@ -10413,27 +10369,16 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
         for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
         {
           VkRenderingAttachmentInfo &attInfo = renderstate.dynamicRendering.color[i];
-          ResourceId resolveImageView = GetResID(attInfo.resolveImageView);
-
-          attachments.push_back(resolveImageView);
-
-          // The resolve images data is undefined and has an implicit store
-          renderstate.dynamicRendering.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-          renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-          const VulkanCreationInfo::ImageView &viewInfo =
-              m_CreationInfo.m_ImageView[resolveImageView];
-          ResourceId imageId = viewInfo.image;
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(
-              make_rdcpair(imageId, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
-                                               ResourceUsage::Discard, resolveImageView)));
-
-          if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+          if(attInfo.resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)
           {
-            VkImage image = GetResourceManager()->GetHandle<VkImage>(imageId);
-            GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
-                                                      image, attInfo.resolveImageLayout,
-                                                      viewInfo.range, renderstate.renderArea);
+            attachments.push_back(GetResID(attInfo.resolveImageView));
+            // The resolve images data is undefined and has an implicit store
+            renderstate.dynamicRendering.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+          }
+          else
+          {
+            attachments.push_back(GetResID(attInfo.imageView));
           }
         }
 
@@ -10455,18 +10400,24 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
 
       for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
       {
-        ResourceId resolveImageView =
-            GetResID(renderstate.dynamicRendering.color[i].resolveImageView);
-        attachments.push_back(resolveImageView);
+        VkRenderingAttachmentInfo &attInfo = renderstate.dynamicRendering.color[i];
+        if(attInfo.resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)
+        {
+          ResourceId resolveImageView = GetResID(attInfo.resolveImageView);
+          attachments.push_back(resolveImageView);
+          // The resolve images data is undefined and has an implicit store
+          renderstate.dynamicRendering.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+          renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-        // The resolve images data is undefined and has an implicit store
-        renderstate.dynamicRendering.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-        ResourceId image = m_CreationInfo.m_ImageView[resolveImageView].image;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(
-            make_rdcpair(image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
-                                           ResourceUsage::Discard, resolveImageView)));
+          ResourceId image = m_CreationInfo.m_ImageView[resolveImageView].image;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(
+              make_rdcpair(image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                             ResourceUsage::Discard, resolveImageView)));
+        }
+        else
+        {
+          attachments.push_back(GetResID(attInfo.imageView));
+        }
       }
 
       attachments.push_back(GetResID(renderstate.dynamicRendering.depth.resolveImageView));
