@@ -132,9 +132,8 @@ RD_TEST(VK_Custom_Resolve, VulkanGraphicsTest)
         VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_NONE, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT));
     renderPassCreateInfo.dependencies.push_back(vkh::SubpassDependency(
-        0, 1, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT));
+        0, 1, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_INPUT_ATTACHMENT_READ_BIT));
 
     VkRenderPass msaaRP = createRenderPass(renderPassCreateInfo);
 
@@ -303,7 +302,8 @@ RD_TEST(VK_Custom_Resolve, VulkanGraphicsTest)
       pushMarker(cmd, "Clear");
       vkh::cmdPipelineBarrier(
           cmd, {
-                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                   vkh::ImageMemoryBarrier(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                            VK_IMAGE_LAYOUT_GENERAL, resImg.image),
                });
 
@@ -320,7 +320,8 @@ RD_TEST(VK_Custom_Resolve, VulkanGraphicsTest)
 
       vkh::cmdPipelineBarrier(
           cmd, {
-                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                   vkh::ImageMemoryBarrier(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                            VK_IMAGE_LAYOUT_GENERAL, msaaImg.image),
                });
 
@@ -359,7 +360,8 @@ RD_TEST(VK_Custom_Resolve, VulkanGraphicsTest)
       pushMarker(cmd, "Clear");
       vkh::cmdPipelineBarrier(
           cmd, {
-                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                   vkh::ImageMemoryBarrier(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                            VK_IMAGE_LAYOUT_GENERAL, resImg.image),
                });
 
@@ -375,7 +377,8 @@ RD_TEST(VK_Custom_Resolve, VulkanGraphicsTest)
 
       vkh::cmdPipelineBarrier(
           cmd, {
-                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                   vkh::ImageMemoryBarrier(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                            VK_IMAGE_LAYOUT_GENERAL, msaaImg.image),
                });
 
@@ -401,7 +404,7 @@ RD_TEST(VK_Custom_Resolve, VulkanGraphicsTest)
           cmd,
           {
               vkh::ImageMemoryBarrier(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                      VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL,
+                                      VK_ACCESS_INPUT_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_GENERAL,
                                       VK_IMAGE_LAYOUT_GENERAL, msaaImg.image),
           },
           {}, {}, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
