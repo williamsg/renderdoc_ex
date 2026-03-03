@@ -38,7 +38,7 @@ class VK_Custom_Resolve(rdtest.TestCase):
                 raise rdtest.TestFailureException(f"EID:{u.eventId} Incorrect resource usage expected:{expectedUsages[i].name} actual:{u.usage.name}")
 
 # add shader out values to check also
-    def check_pixel_history(self, passed, shaderOut, preMod, postMod):
+    def check_pixel_history(self, passed, preModValid, preMod, postModValid, postMod):
         pipe: rd.PipeState = self.controller.GetPipelineState()
         rt = pipe.GetOutputTargets()[0]
         tex = rt.resource
@@ -51,11 +51,14 @@ class VK_Custom_Resolve(rdtest.TestCase):
         for i, m in enumerate(modifs):
             if m.Passed() != passed[i]:
                 raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect passed expected:{passed[i]} actual:{m.Passed()}")
-            if m.shaderOut.IsValid() != shaderOut[i]:
-                raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect shader output expected:{shaderOut[i]} actual:{m.shaderOut.IsValid()}")
-            if m.shaderOut.IsValid():
+            if m.preMod.IsValid() != preModValid[i]:
+                raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect pre mod valid expected:{preModValid[i]} actual:{m.preMod.IsValid()}")
+            if m.preMod.IsValid():
                 if not rdtest.util.value_compare(m.preMod.col.floatValue, preMod[i], eps=1.0/255.0):
                     raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect pre mod expected:{preMod[i]} actual:{m.preMod.col.floatValue}")
+            if m.postMod.IsValid() != postModValid[i]:
+                raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect post mod valid expected:{postModValid[i]} actual:{m.postMod.IsValid()}")
+            if m.postMod.IsValid():
                 if not rdtest.util.value_compare(m.postMod.col.floatValue, postMod[i], eps=1.0/255.0):
                     raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect post mod expected:{postMod[i]} actual:{m.postMod.col.floatValue}")
         rdtest.log.success(f"Pixel History Worked {len(modifs)} modifications found")
@@ -139,6 +142,8 @@ class VK_Custom_Resolve(rdtest.TestCase):
                     # clear: 0.2,0.5,0.2,1
                     # draw: unknown
                     passed = [True, True]
+                    preModValid = [True, False]
+                    postModValid = [True, False]
                     shaderOut = [True, False]
                     preMod = [(0.0,0.0,0.0,0.0), (0,0,0,0)]
                     postMod = [(0.2,0.5,0.2,1), (0,0,0,0)]
@@ -149,10 +154,11 @@ class VK_Custom_Resolve(rdtest.TestCase):
                         # begin: rendering 0.6,0.2,0.2,1
                         # draw: 0,1,0.1
                         passed += [True, True, True]
-                        shaderOut += [True, True, True]
+                        preModValid += [True, True, True]
+                        postModValid += [True, True, True]
                         preMod += [(0.0,0.0,0.0,0.0), (0.2,0.2,0.5,1), (0.6,0.2,0.2,1)]
                         postMod += [(0.2,0.2,0.5,1), (0.6,0.2,0.2,1), (0,1,0,1)]
-                    self.check_pixel_history(passed, shaderOut, preMod, postMod)
+                    self.check_pixel_history(passed, preModValid, preMod, postModValid, postMod)
 
                 with rdtest.log.auto_section("MSAA Resolve"):
                     action = self.find_action(sectionName) 
@@ -168,7 +174,8 @@ class VK_Custom_Resolve(rdtest.TestCase):
                     # clear 0.5,0,0,1
                     # draw unknown
                     passed = [True, True]
-                    shaderOut = [True, False]
+                    preModValid = [True, False]
+                    postModValid = [True, False]
                     preMod = [(0.0,0.0,0.0,0.0), (0,0,0,0)]
                     postMod = [(0.5,0.0,0.0,1), (0,0,0,0)]
                     if sectionName == "Dynamic":
@@ -177,7 +184,8 @@ class VK_Custom_Resolve(rdtest.TestCase):
                         # clear 0.0,0.0,0.5,1
                         # draw: 0,0.25,0.1
                         passed += [True, True]
-                        shaderOut += [True, True]
+                        preModValid += [True, False]
+                        postModValid += [True, True]
                         preMod += [(0.0,0.0,0.0,0), (0.0,0.0,0.0,0)]
                         postMod += [(0.0,0.0,0.5,1), (0,0.25,0,1)]
-                    self.check_pixel_history(passed, shaderOut, preMod, postMod)
+                    self.check_pixel_history(passed, preModValid, preMod, postModValid, postMod)
