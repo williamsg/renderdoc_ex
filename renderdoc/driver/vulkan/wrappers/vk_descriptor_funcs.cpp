@@ -3149,6 +3149,29 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
       byte *dst = memory + entry.offset;
       const byte *src = (const byte *)pData + entry.offset;
 
+      bool hasImmutable = false;
+
+      if(IsCaptureMode(m_State))
+      {
+        VkResourceRecord *record = GetRecord(descriptorSet);
+        RDCASSERT(record->descInfo && record->descInfo->layout);
+        const DescSetLayout &layout = *record->descInfo->layout;
+
+        RDCASSERT(entry.dstBinding < record->descInfo->data.binds.size());
+        const DescSetLayout::Binding *layoutBinding = &layout.bindings[entry.dstBinding];
+
+        hasImmutable = layoutBinding->immutableSampler != NULL;
+      }
+      else
+      {
+        const DescSetLayout &layout =
+            m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[GetResID(descriptorSet)].layout];
+
+        const DescSetLayout::Binding *layoutBinding = &layout.bindings[entry.dstBinding];
+
+        hasImmutable = layoutBinding->immutableSampler != NULL;
+      }
+
       if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
          entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
       {
@@ -3171,7 +3194,8 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
               entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
       {
         bool hasSampler = (entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-                           entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                           entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+                          !hasImmutable;
         bool hasImage = (entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
                          entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
                          entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
