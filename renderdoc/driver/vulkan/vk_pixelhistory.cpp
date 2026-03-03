@@ -1179,6 +1179,8 @@ protected:
       dyn.depth.imageLayout = dyn.stencil.imageLayout =
           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+      // Remove custom resolve extension
+      dyn.flags &= ~VK_RENDERING_CUSTOM_RESOLVE_BIT_EXT;
       return VK_NULL_HANDLE;
     }
 
@@ -1903,9 +1905,11 @@ private:
 struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
 {
   VulkanColorAndStencilCallback(WrappedVulkan *vk, PixelHistoryShaderCache *shaderCache,
+                                rdcarray<uint32_t> &noPreModData,
                                 const PixelHistoryCallbackInfo &callbackInfo,
                                 const rdcarray<uint32_t> &events)
       : VulkanPixelHistoryCallback(vk, shaderCache, callbackInfo, VK_NULL_HANDLE),
+        m_NoPreModData(noPreModData),
         m_Events(events),
         multipleSubpassWarningPrinted(false)
   {
@@ -1946,8 +1950,16 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     // Get pre-modification values
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
 
+    bool replayDraw = true;
+    if(prevState.dynamicRendering.beginCustomResolve)
+    {
+      m_NoPreModData.push_back(eid);
+      replayDraw = false;
+    }
+
     CopyPixel(eid, cmd, storeOffset);
 
+    if(replayDraw)
     {
       bool multiview = false;
       VkRenderPass newRp = PatchRenderPass(pipestate, multiview);
@@ -2417,6 +2429,7 @@ private:
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     MakeIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages, false, true);
+    RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
     // No need to change depth stencil state, it is already
     // set to always pass, and increment.
     pipeCreateInfo.renderPass = rp;
@@ -2449,6 +2462,8 @@ private:
 
   std::map<ResourceId, PipelineReplacements> m_PipeCache;
   rdcarray<uint32_t> m_Events;
+  // If need more data like this then could make this into custsom flags per event
+  rdcarray<uint32_t> &m_NoPreModData;
   // Key is event ID, and value is an index of where the event data is stored.
   std::map<uint32_t, size_t> m_EventIndices;
   bool multipleSubpassWarningPrinted;
@@ -3566,6 +3581,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
+    RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_CUSTOM_RESOLVE_CREATE_INFO_EXT);
 
     SetupDynamicStates(pipeCreateInfo);
 
@@ -4622,7 +4638,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     }
   }
 
-  VulkanColorAndStencilCallback cb(m_pDriver, shaderCache, callbackInfo, modEvents);
+  rdcarray<uint32_t> noPreModData;
+
+  VulkanColorAndStencilCallback cb(m_pDriver, shaderCache, noPreModData, callbackInfo, modEvents);
   {
     VkMarkerRegion colorStencilRegion("VulkanColorAndStencilCallback");
     m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
@@ -4733,6 +4751,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       FillInColor(fmt, ei.premod, mod.preMod);
       FillInColor(fmt, ei.postmod, mod.postMod);
     }
+    if(noPreModData.contains(eid))
+      mod.preMod.SetInvalid();
+
     VkFormat depthFormat = cb.GetDepthFormat(mod.eventId);
     if(depthFormat != VK_FORMAT_UNDEFINED)
     {
