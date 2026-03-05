@@ -3109,6 +3109,10 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSetWithTemplate(
   {
     // decode while capturing.
     GetRecord(descriptorUpdateTemplate)->descTemplateInfo->Apply(pData, apply);
+
+    // set the descriptor set now so serialisation can tell what parameters are valid
+    for(VkWriteDescriptorSet &writeDesc : apply.writes)
+      writeDesc.dstSet = descriptorSet;
   }
 
   SERIALISE_ELEMENT(apply.writes).Named("Decoded Writes"_lit);
