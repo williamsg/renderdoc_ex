@@ -37,7 +37,6 @@ class VK_Custom_Resolve(rdtest.TestCase):
             if u.usage != expectedUsages[i]:
                 raise rdtest.TestFailureException(f"EID:{u.eventId} Incorrect resource usage expected:{expectedUsages[i].name} actual:{u.usage.name}")
 
-# add shader out values to check also
     def check_pixel_history(self, passed, preModValid, preMod, postModValid, postMod):
         pipe: rd.PipeState = self.controller.GetPipelineState()
         rt = pipe.GetOutputTargets()[0]
@@ -144,7 +143,6 @@ class VK_Custom_Resolve(rdtest.TestCase):
                     passed = [True, True]
                     preModValid = [True, False]
                     postModValid = [True, False]
-                    shaderOut = [True, False]
                     preMod = [(0.0,0.0,0.0,0.0), (0,0,0,0)]
                     postMod = [(0.2,0.5,0.2,1), (0,0,0,0)]
                     if sectionName == "Dynamic":
