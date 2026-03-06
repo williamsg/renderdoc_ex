@@ -6560,9 +6560,8 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
         uint32_t att = sub.inputAttachments[i];
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
-        actionNode.resourceUsage.push_back(
-            make_rdcpair(c.m_ImageView[fbattachments[att]].image,
-                         EventUsage(e, ResourceUsage::InputTarget, fbattachments[att])));
+        actionNode.resourceUsage.push_back(make_rdcpair(c.m_ImageView[fbattachments[att]].image,
+                                                        EventUsage(e, ResourceUsage::InputTarget)));
       }
 
       for(size_t i = 0; i < sub.colorAttachments.size(); i++)
@@ -6570,10 +6569,10 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
         uint32_t att = sub.colorAttachments[i];
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[fbattachments[att]].image,
-            EventUsage(e, sub.customResolve ? ResourceUsage::ResolveDst : ResourceUsage::ColorTarget,
-                       fbattachments[att])));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[fbattachments[att]].image,
+                         EventUsage(e, sub.customResolve ? ResourceUsage::ResolveDst
+                                                         : ResourceUsage::ColorTarget)));
       }
 
       if(sub.depthstencilAttachment >= 0)
@@ -6581,7 +6580,7 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
         int32_t att = sub.depthstencilAttachment;
         actionNode.resourceUsage.push_back(
             make_rdcpair(c.m_ImageView[fbattachments[att]].image,
-                         EventUsage(e, ResourceUsage::DepthStencilTarget, fbattachments[att])));
+                         EventUsage(e, ResourceUsage::DepthStencilTarget)));
       }
     }
   }
@@ -6598,18 +6597,18 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
                              (dyn.color[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT);
       if(!isCustomResolve)
       {
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
-            EventUsage(e, ResourceUsage::ColorTarget, GetResID(dyn.color[i].imageView))));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
+                         EventUsage(e, ResourceUsage::ColorTarget)));
       }
       else
       {
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
-            EventUsage(e, ResourceUsage::InputTarget, GetResID(dyn.color[i].imageView))));
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.color[i].resolveImageView)].image,
-            EventUsage(e, ResourceUsage::ResolveDst, GetResID(dyn.color[i].resolveImageView))));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
+                         EventUsage(e, ResourceUsage::InputTarget)));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.color[i].resolveImageView)].image,
+                         EventUsage(e, ResourceUsage::ResolveDst)));
       }
     }
 
@@ -6619,18 +6618,18 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
                              (dyn.depth.resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT);
       if(!isCustomResolve)
       {
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.depth.imageView)].image,
-            EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.depth.imageView))));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.depth.imageView)].image,
+                         EventUsage(e, ResourceUsage::DepthStencilTarget)));
       }
       else
       {
         actionNode.resourceUsage.push_back(
             make_rdcpair(c.m_ImageView[GetResID(dyn.depth.imageView)].image,
-                         EventUsage(e, ResourceUsage::InputTarget, GetResID(dyn.depth.imageView))));
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.depth.resolveImageView)].image,
-            EventUsage(e, ResourceUsage::ResolveDst, GetResID(dyn.depth.resolveImageView))));
+                         EventUsage(e, ResourceUsage::InputTarget)));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.depth.resolveImageView)].image,
+                         EventUsage(e, ResourceUsage::ResolveDst)));
       }
     }
 
@@ -6641,18 +6640,18 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
       if(!isCustomResolve)
 
       {
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
-            EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.stencil.imageView))));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+                         EventUsage(e, ResourceUsage::DepthStencilTarget)));
       }
       else
       {
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
-            EventUsage(e, ResourceUsage::InputTarget, GetResID(dyn.stencil.imageView))));
-        actionNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.stencil.resolveImageView)].image,
-            EventUsage(e, ResourceUsage::ResolveDst, GetResID(dyn.stencil.resolveImageView))));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+                         EventUsage(e, ResourceUsage::InputTarget)));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(c.m_ImageView[GetResID(dyn.stencil.resolveImageView)].image,
+                         EventUsage(e, ResourceUsage::ResolveDst)));
       }
     }
   }

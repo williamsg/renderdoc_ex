@@ -2334,8 +2334,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
               image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
                                 rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
                                     ? ResourceUsage::Clear
-                                    : ResourceUsage::Discard,
-                                fbattachments[i])));
+                                    : ResourceUsage::Discard)));
         }
       }
 
@@ -2956,8 +2955,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
               image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
                                 rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
                                     ? ResourceUsage::Clear
-                                    : ResourceUsage::Discard,
-                                fbattachments[i])));
+                                    : ResourceUsage::Discard)));
         }
       }
 
@@ -7945,8 +7943,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
           m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
               image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
                                 att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? ResourceUsage::Clear
-                                                                           : ResourceUsage::Discard,
-                                GetResID(att->imageView))));
+                                                                           : ResourceUsage::Discard)));
         }
       }
 
@@ -10432,7 +10429,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
           ResourceId image = m_CreationInfo.m_ImageView[resolveImageView].image;
           m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(
               make_rdcpair(image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
-                                             ResourceUsage::Discard, resolveImageView)));
+                                             ResourceUsage::Discard)));
         }
         else
         {
