@@ -4636,21 +4636,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     bool clear = (events[ev].usage == ResourceUsage::Clear);
     bool directWrite = IsDirectWrite(events[ev].usage);
 
-    if(events[ev].view != ResourceId())
-    {
-      VulkanCreationInfo::ImageView viewInfo =
-          m_pDriver->GetDebugManager()->GetImageViewInfo(events[ev].view);
-      uint32_t layerEnd = viewInfo.range.baseArrayLayer + viewInfo.range.layerCount;
-      uint32_t levelEnd = viewInfo.range.baseMipLevel + viewInfo.range.levelCount;
-      if(sub.slice < viewInfo.range.baseArrayLayer || sub.slice >= layerEnd ||
-         sub.mip < viewInfo.range.baseMipLevel || sub.mip >= levelEnd)
-      {
-        RDCDEBUG("Usage %d at %u didn't refer to the matching mip/slice (%u/%u)", events[ev].usage,
-                 events[ev].eventId, sub.mip, sub.slice);
-        continue;
-      }
-    }
-
     if(directWrite || clear)
     {
       modEvents.push_back(events[ev].eventId);
