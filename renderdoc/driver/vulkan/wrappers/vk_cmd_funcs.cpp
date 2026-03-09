@@ -1671,7 +1671,17 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         // (even if it's baked to several command buffers in the frame)
         // there's no issue with clashes here.
         m_RerecordCmds[BakedCommandBuffer] = cmd;
-        m_RerecordCmds[CommandBuffer] = cmd;
+        // we don't mark CommandBuffer as a rerecord command. The reason for this is in case
+        // applications do bad things and re-record and submit the same command buffer multiple
+        // times in a capture. In that event we could create a problem - when selecting a
+        // vkBeginCommandBuffer in a second submission of the same command buffer (baked twice) the
+        // command buffer ID that will come back will be the non-baked command buffer ID. If that is
+        // considered a re-record command buffer then we could submit events to that command buffer
+        // without having begun it.
+        //
+        // This only happens with an application that records and submits the same command buffer multiple
+        // times. If an application does the proper thing and records multiple command buffers then
+        // they will have a unique base command buffer ID and there is no risk of false-aliasing.
         InsertCommandQueueFamily(BakedCommandBuffer, FindCommandQueueFamily(CommandBuffer));
 
         m_RerecordCmdList.push_back({AllocateInfo.commandPool, cmd});
