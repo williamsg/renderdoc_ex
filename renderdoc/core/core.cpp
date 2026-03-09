@@ -159,7 +159,7 @@ void WriteAnnotation(SDObject *obj, RENDERDOC_AnnotationType valueType, uint32_t
       return;
     }
 
-    const rdcinflexiblestr comps[] = {"x"_lit, "y"_lit, "z"_lit, "w"_lit};
+    const rdcinflexiblestr comps[] = {"1"_lit, "2"_lit, "3"_lit, "4"_lit};
 
     obj->type.basetype = SDBasic::Struct;
     obj->type.name = types[valueType][valueVectorWidth - 1];
