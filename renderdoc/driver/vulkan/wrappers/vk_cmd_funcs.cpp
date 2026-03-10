@@ -1702,6 +1702,16 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
           m_BakedCmdBufferInfo[BakedCommandBuffer].state.dynamicRendering.localRead.Init(
               (const VkBaseInStructure *)BeginInfo.pInheritanceInfo);
+
+          VkCommandBufferInheritanceRenderingInfo *dynRenderingInherit =
+              (VkCommandBufferInheritanceRenderingInfo *)FindNextStruct(
+                  BeginInfo.pInheritanceInfo,
+                  VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO);
+
+          if(dynRenderingInherit)
+          {
+            m_BakedCmdBufferInfo[BakedCommandBuffer].state.dynamicRendering.active = VK_TRUE;
+          }
         }
 
         ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
