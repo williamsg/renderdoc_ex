@@ -1347,7 +1347,7 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
       }
 
       if(!message.empty())
-        RENDERDOC_LogMessage(redirector->isStdError ? LogType::Error : LogType::Comment, "EXTN",
+        RENDERDOC_LogMessage(redirector->isStdError ? LogType::Warning : LogType::Comment, "EXTN",
                              filename, line, message);
     }
   }
