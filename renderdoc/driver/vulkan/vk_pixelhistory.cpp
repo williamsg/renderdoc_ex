@@ -135,6 +135,12 @@ enum : uint32_t
   TestMustFail_StencilTesting = 1 << 14,
   TestMustFail_SampleMask = 1 << 15,
 
+  NoPremod_Available = 1 << 16,
+
+  Secondary_FirstDraw = 1 << 17,
+  Secondary_MidDraw = 1 << 18,
+  Secondary_LastDraw = 1 << 19,
+
   DepthTest_Shift = 29,
   DepthTest_Mask = 0x7U << DepthTest_Shift,
   DepthTest_Always = uint32_t(CompareFunction::AlwaysTrue) << DepthTest_Shift,
@@ -145,6 +151,26 @@ enum : uint32_t
   DepthTest_LessEqual = uint32_t(CompareFunction::LessEqual) << DepthTest_Shift,
   DepthTest_Greater = uint32_t(CompareFunction::Greater) << DepthTest_Shift,
   DepthTest_GreaterEqual = uint32_t(CompareFunction::GreaterEqual) << DepthTest_Shift,
+};
+
+struct HistoryEventFlags
+{
+  uint32_t &Set(uint32_t eid) { return flags[eid]; }
+
+  bool Has(uint32_t eid) { return flags.find(eid) != flags.end(); }
+  uint32_t Get(uint32_t eid)
+  {
+    auto it = flags.find(eid);
+    if(it == flags.end())
+    {
+      RDCERR("Unexpected fetch of EID %u with no flags", eid);
+      return 0;
+    }
+    return it->second;
+  }
+
+private:
+  std::map<uint32_t, uint32_t> flags;
 };
 
 struct VkCopyPixelParams
@@ -1905,12 +1931,12 @@ private:
 struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
 {
   VulkanColorAndStencilCallback(WrappedVulkan *vk, PixelHistoryShaderCache *shaderCache,
-                                rdcarray<uint32_t> &noPreModData,
+                                HistoryEventFlags &eventFlags,
                                 const PixelHistoryCallbackInfo &callbackInfo,
                                 const rdcarray<uint32_t> &events)
       : VulkanPixelHistoryCallback(vk, shaderCache, callbackInfo, VK_NULL_HANDLE),
-        m_NoPreModData(noPreModData),
         m_Events(events),
+        m_EventFlags(eventFlags),
         multipleSubpassWarningPrinted(false)
   {
   }
@@ -1926,8 +1952,14 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
 
   void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
   {
-    if(!m_Events.contains(eid) || !m_pDriver->IsCmdPrimary())
+    if(!m_Events.contains(eid))
       return;
+
+    if(!m_pDriver->IsCmdPrimary())
+    {
+      m_EventFlags.Set(eid) |= Secondary_MidDraw;
+      return;
+    }
 
     if(HasMultipleSubpasses())
     {
@@ -1953,7 +1985,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     bool replayDraw = true;
     if(prevState.dynamicRendering.beginCustomResolve)
     {
-      m_NoPreModData.push_back(eid);
+      m_EventFlags.Set(eid) |= NoPremod_Available;
       replayDraw = false;
     }
 
@@ -2126,6 +2158,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     CopyPixel(eventId, cmd, storeOffset);
     m_EventIndices.insert(std::make_pair(eventId, m_EventIndices.size()));
 
+    m_EventFlags.Set(eventId) |= Secondary_FirstDraw;
+
     if(m_pDriver->GetCmdRenderState().ActiveRenderPass())
       m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
           m_pDriver, cmd,
@@ -2185,6 +2219,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       m_EventIndices.insert(std::make_pair(eventId, m_EventIndices.size()));
     }
     CopyPixel(eventId, cmd, storeOffset + offsetof(struct EventInfo, postmod));
+
+    m_EventFlags.Set(eventId) |= Secondary_LastDraw;
 
     if(m_pDriver->GetCmdRenderState().ActiveRenderPass())
       m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
@@ -2462,8 +2498,7 @@ private:
 
   std::map<ResourceId, PipelineReplacements> m_PipeCache;
   rdcarray<uint32_t> m_Events;
-  // If need more data like this then could make this into custsom flags per event
-  rdcarray<uint32_t> &m_NoPreModData;
+  HistoryEventFlags &m_EventFlags;
   // Key is event ID, and value is an index of where the event data is stored.
   std::map<uint32_t, size_t> m_EventIndices;
   bool multipleSubpassWarningPrinted;
@@ -2476,8 +2511,10 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
 {
   TestsFailedCallback(WrappedVulkan *vk, PixelHistoryShaderCache *shaderCache,
                       const PixelHistoryCallbackInfo &callbackInfo, VkQueryPool occlusionPool,
-                      rdcarray<uint32_t> events)
-      : VulkanPixelHistoryCallback(vk, shaderCache, callbackInfo, occlusionPool), m_Events(events)
+                      rdcarray<uint32_t> events, HistoryEventFlags &eventFlags)
+      : VulkanPixelHistoryCallback(vk, shaderCache, callbackInfo, occlusionPool),
+        m_Events(events),
+        m_EventFlags(eventFlags)
   {
   }
 
@@ -2489,6 +2526,7 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
 
     VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
+
     ResourceId curPipeline = pipestate.graphics.pipeline;
     ResourceId fragShader = pipestate.graphics.shaderObject
                                 ? pipestate.shaderObjects[(uint32_t)ShaderStage::Fragment]
@@ -2497,7 +2535,7 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
                                       .shaders[StageIndex(VK_SHADER_STAGE_FRAGMENT_BIT)]
                                       .module;
     uint32_t eventFlags = CalculateEventFlags(fragShader, pipestate);
-    m_EventFlags[eid] = eventFlags;
+    m_EventFlags.Set(eid) |= eventFlags;
     if(pipestate.depthBoundsTestEnable)
       m_EventDepthBounds[eid] = {pipestate.mindepth, pipestate.maxdepth};
     else
@@ -2545,14 +2583,6 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   {
   }
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
-  bool HasEventFlags(uint32_t eventId) { return m_EventFlags.find(eventId) != m_EventFlags.end(); }
-  uint32_t GetEventFlags(uint32_t eventId)
-  {
-    auto it = m_EventFlags.find(eventId);
-    if(it == m_EventFlags.end())
-      RDCERR("Can't find event flags for event %u", eventId);
-    return it->second;
-  }
   rdcpair<float, float> GetEventDepthBounds(uint32_t eventId)
   {
     auto it = m_EventDepthBounds.find(eventId);
@@ -3105,8 +3135,7 @@ private:
   }
 
   rdcarray<uint32_t> m_Events;
-  // Key is event ID, value is the flags for that event.
-  std::map<uint32_t, uint32_t> m_EventFlags;
+  HistoryEventFlags &m_EventFlags;
   std::map<uint32_t, rdcpair<float, float>> m_EventDepthBounds;
   // Key is a pair <Base pipeline, pipeline flags>
   std::map<rdcpair<ResourceId, uint32_t>, VkPipeline> m_PipeCache;
@@ -4638,9 +4667,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     }
   }
 
-  rdcarray<uint32_t> noPreModData;
+  HistoryEventFlags eventFlags;
 
-  VulkanColorAndStencilCallback cb(m_pDriver, shaderCache, noPreModData, callbackInfo, modEvents);
+  VulkanColorAndStencilCallback cb(m_pDriver, shaderCache, eventFlags, callbackInfo, modEvents);
   {
     VkMarkerRegion colorStencilRegion("VulkanColorAndStencilCallback");
     m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
@@ -4657,7 +4686,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     VkQueryPool tfOcclusionPool;
     CreateOcclusionPool(m_pDriver, (uint32_t)drawEvents.size() * 6, &tfOcclusionPool);
 
-    tfCb = new TestsFailedCallback(m_pDriver, shaderCache, callbackInfo, tfOcclusionPool, drawEvents);
+    tfCb = new TestsFailedCallback(m_pDriver, shaderCache, callbackInfo, tfOcclusionPool,
+                                   drawEvents, eventFlags);
     m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
@@ -4684,7 +4714,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       if(!clear && !directWrite)
       {
         RDCASSERT(tfCb != NULL);
-        uint32_t flags = tfCb->GetEventFlags(eventId);
+        uint32_t flags = eventFlags.Get(eventId);
         VkMarkerRegion::Set(StringFormat::Fmt("%u has flags %x", eventId, flags));
         if(flags & TestMustFail_Culling)
           mod.backfaceCulled = true;
@@ -4736,6 +4766,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       mod.preMod.SetInvalid();
       mod.postMod.SetInvalid();
       mod.shaderOut.SetInvalid();
+      mod.primitiveID = ~0U;
       h++;
       continue;
     }
@@ -4751,8 +4782,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       FillInColor(fmt, ei.premod, mod.preMod);
       FillInColor(fmt, ei.postmod, mod.postMod);
     }
-    if(noPreModData.contains(eid))
-      mod.preMod.SetInvalid();
 
     VkFormat depthFormat = cb.GetDepthFormat(mod.eventId);
     if(depthFormat != VK_FORMAT_UNDEFINED)
@@ -4791,6 +4820,25 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     {
       eventsWithFrags[mod.eventId] = frags;
       eventPremods[mod.eventId] = mod.preMod;
+    }
+
+    if(eventFlags.Has(eid))
+    {
+      if(eventFlags.Get(eid) & NoPremod_Available)
+        mod.preMod.SetInvalid();
+
+      if(eventFlags.Get(eid) & Secondary_FirstDraw)
+      {
+        mod.postMod.SetInvalid();
+        mod.shaderOut.SetInvalid();
+      }
+      if(eventFlags.Get(eid) & Secondary_LastDraw)
+      {
+        mod.preMod.SetInvalid();
+        mod.shaderOut.SetInvalid();
+      }
+      if(eventFlags.Get(eid) & Secondary_MidDraw)
+        mod.primitiveID = ~0U;
     }
 
     if(frags > 1)
@@ -4982,9 +5030,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       // check the depth value between premod/shaderout against the known test if we have valid
       // depth values, as we don't have per-fragment depth test information.
       if(history[h].preMod.depth >= 0.0f && history[h].shaderOut.depth >= 0.0f && tfCb &&
-         tfCb->HasEventFlags(history[h].eventId))
+         eventFlags.Has(history[h].eventId))
       {
-        const uint32_t flags = tfCb->GetEventFlags(history[h].eventId);
+        const uint32_t flags = eventFlags.Get(history[h].eventId);
 
         const VkFormat dfmt = cb.GetDepthFormat(eid);
         uint32_t depthBits = 32;
