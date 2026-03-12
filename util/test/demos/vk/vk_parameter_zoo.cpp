@@ -2059,8 +2059,8 @@ void main()
 
       {
         std::vector<VkCommandBuffer> cmds = {};
-        VkSubmitInfo submit = vkh::SubmitInfo(cmds);
-        CHECK_VKR(vkQueueSubmit(queue, 1, &submit, VK_NULL_HANDLE));
+        VkSubmitInfo submit[2] = {vkh::SubmitInfo(cmds), vkh::SubmitInfo(cmds)};
+        CHECK_VKR(vkQueueSubmit(queue, 2, submit, VK_NULL_HANDLE));
       }
       if(hasExt(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME))
       {
