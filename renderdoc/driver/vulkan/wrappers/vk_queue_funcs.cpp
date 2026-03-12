@@ -285,7 +285,8 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
     // we're adding multiple events, need to increment ourselves
     m_RootEventID++;
 
-    if(submitInfo.commandBufferInfoCount == 0)
+    uint32_t numCmds = submitInfo.commandBufferInfoCount;
+    if(numCmds == 0)
     {
       DoSubmit(queue, submitInfo);
 
@@ -304,7 +305,6 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
     }
 
     // submit command buffers one by one
-    uint32_t numCmds = submitInfo.commandBufferInfoCount;
     submitInfo.commandBufferInfoCount = 1;
     for(uint32_t c = 0; c < numCmds; c++)
     {
@@ -393,10 +393,6 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
         m_RootEventID++;
       }
     }
-
-    // account for the outer loop thinking we've added one event and incrementing,
-    // since we've done all the handling ourselves this will be off by one.
-    m_RootEventID--;
   }
   else
   {
@@ -426,9 +422,6 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
         m_RootActionID += 2;
       }
     }
-
-    // same accounting for the outer loop as above
-    m_RootEventID--;
 
     if(submitInfo.commandBufferInfoCount == 0)
     {
@@ -1484,6 +1477,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
       ReplayQueueSubmit(queue, submitInfo, basename);
     }
+    // account for the outer loop thinking we've added one event and incrementing,
+    // since we've done all the handling ourselves this will be off by one.
+    m_RootEventID--;
   }
 
   return true;
@@ -1652,6 +1648,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2(SerialiserType &ser, VkQueue queue,
 
       ReplayQueueSubmit(queue, pSubmits[sub], basename);
     }
+    // account for the outer loop thinking we've added one event and incrementing,
+    // since we've done all the handling ourselves this will be off by one.
+    m_RootEventID--;
   }
 
   return true;
