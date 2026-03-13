@@ -829,7 +829,7 @@ void TParseVersions::profileRequires(const TSourceLoc& loc, int profileMask, int
         for (int i = 0; i < numExtensions; ++i) {
             switch (getExtensionBehavior(extensions[i])) {
             case EBhWarn:
-                infoSink.info.message(EPrefixWarning, ("extension " + TString(extensions[i]) + " is being used for " + featureDesc).c_str(), loc, messages & EShMsgAbsolutePath, messages & EShMsgDisplayErrorColumn);
+                infoSink.info.message(EPrefixWarning, ("extension " + TString(extensions[i]) + " is being used for " + featureDesc).c_str(), loc, (messages & EShMsgAbsolutePath) != 0, (messages & EShMsgDisplayErrorColumn) != 0);
                 [[fallthrough]];
             case EBhRequire:
             case EBhEnable:
@@ -868,7 +868,7 @@ void TParseVersions::checkDeprecated(const TSourceLoc& loc, int profileMask, int
             else if (! suppressWarnings())
                 infoSink.info.message(EPrefixWarning, (TString(featureDesc) + " deprecated in version " +
                                                        String(depVersion) + "; may be removed in future release").c_str(), 
-                                                       loc, messages & EShMsgAbsolutePath, messages & EShMsgDisplayErrorColumn);
+                                                       loc, (messages & EShMsgAbsolutePath) != 0, (messages & EShMsgDisplayErrorColumn) != 0);
         }
     }
 }
@@ -906,13 +906,13 @@ bool TParseVersions::checkExtensionsRequested(const TSourceLoc& loc, int numExte
         TExtensionBehavior behavior = getExtensionBehavior(extensions[i]);
         if (behavior == EBhDisable && relaxedErrors()) {
             infoSink.info.message(EPrefixWarning, "The following extension must be enabled to use this feature:", loc,
-                                  messages & EShMsgAbsolutePath, messages & EShMsgDisplayErrorColumn);
+                                  (messages & EShMsgAbsolutePath) != 0, (messages & EShMsgDisplayErrorColumn) != 0);
             behavior = EBhWarn;
         }
         if (behavior == EBhWarn) {
             infoSink.info.message(EPrefixWarning,
                                   ("extension " + TString(extensions[i]) + " is being used for " + featureDesc).c_str(),
-                                  loc, messages & EShMsgAbsolutePath, messages & EShMsgDisplayErrorColumn);
+                                  loc, (messages & EShMsgAbsolutePath) != 0, (messages & EShMsgDisplayErrorColumn) != 0);
             warned = true;
         }
     }

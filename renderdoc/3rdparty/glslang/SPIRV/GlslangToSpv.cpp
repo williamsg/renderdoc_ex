@@ -6366,7 +6366,7 @@ spv::Id TGlslangToSpvTraverser::makeArraySizeId(const glslang::TArraySizes& arra
         assert(size > 0);
 
     if (boolType) {
-        return builder.makeBoolConstant(size);
+        return builder.makeBoolConstant(size ? true : false);
     } else {
         return builder.makeUintConstant(size);
     }

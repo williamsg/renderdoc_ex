@@ -1560,7 +1560,7 @@ public:
     bool isCoopmatOrvec() const { return isCoopmat() || isCoopvecNV() || isLongVector(); }
     bool isLongVector() const { return longVector; }
     bool isCoopvecOrLongVector() const { return isCoopvecNV() || isLongVector(); }
-    bool isTensorARM() const { return tensorRankARM; }
+    bool isTensorARM() const { return tensorRankARM > 0; }
     bool hasTypeParameter() const { return isCoopmat() || isCoopvecNV() || isLongVector() || isTensorARM(); }
 
     bool isTensorLayoutNV() const { return basicType == EbtTensorLayoutNV; }
@@ -2002,7 +2002,7 @@ public:
     bool isLongVector() const { return longVector; }
     bool isCoopVecOrLongVector() const { return isCoopVecNV() || isLongVector(); }
     bool isTileAttachmentQCOM() const { return tileAttachmentQCOM; }
-    bool isTensorARM() const { return tensorRankARM; }
+    bool isTensorARM() const { return tensorRankARM > 0; }
     bool hasTypeParameter() const { return isCoopMat() || isCoopVecNV() || isLongVector() || isTensorARM(); }
     int getTensorRankARM() const { return static_cast<int>(tensorRankARM); }
     bool isReference() const { return getBasicType() == EbtReference; }

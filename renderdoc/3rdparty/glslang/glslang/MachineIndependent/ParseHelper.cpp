@@ -588,7 +588,7 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
     if (base->getType().getQualifier().isFrontEndConstant() && index->getQualifier().isFrontEndConstant()) {
         // both base and index are front-end constants
         checkIndex(loc, base->getType(), indexValue);
-        return intermediate.foldDereference(base, indexValue, loc);
+        return intermediate.foldDereference(base, int(indexValue), loc);
     }
 
     // at least one of base and index is not a front-end constant variable...
@@ -618,7 +618,7 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
 
     if (index->getQualifier().isFrontEndConstant()) {
         if (base->getType().isUnsizedArray()) {
-            base->getWritableType().updateImplicitArraySize(indexValue + 1);
+            base->getWritableType().updateImplicitArraySize(int(indexValue + 1));
             base->getWritableType().setImplicitlySized(true);
             if (base->getQualifier().builtIn == EbvClipDistance &&
                 indexValue >= resources.maxClipDistances) {

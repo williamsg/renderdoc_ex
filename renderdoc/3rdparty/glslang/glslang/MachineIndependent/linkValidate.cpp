@@ -62,7 +62,7 @@ void TIntermediate::error(TInfoSink& infoSink, const TSourceLoc* loc, EShMessage
 {
     infoSink.info.prefix(EPrefixError);
     if (loc)
-        infoSink.info.location(*loc, messages & EShMsgAbsolutePath, messages & EShMsgDisplayErrorColumn);
+        infoSink.info.location(*loc, (messages & EShMsgAbsolutePath) != 0, (messages & EShMsgDisplayErrorColumn) != 0);
     if (unitStage == EShLangCount)
         infoSink.info << "Linking " << StageName(language) << " stage: " << message << "\n";
     else if (language == EShLangCount)
@@ -79,7 +79,7 @@ void TIntermediate::warn(TInfoSink& infoSink, const TSourceLoc* loc, EShMessages
 {
     infoSink.info.prefix(EPrefixWarning);
     if (loc)
-        infoSink.info.location(*loc, messages & EShMsgAbsolutePath, messages & EShMsgDisplayErrorColumn);
+        infoSink.info.location(*loc, (messages & EShMsgAbsolutePath) != 0, (messages & EShMsgDisplayErrorColumn) != 0);
     if (unitStage == EShLangCount)
         infoSink.info << "Linking " << StageName(language) << " stage: " << message << "\n";
     else if (language == EShLangCount)
