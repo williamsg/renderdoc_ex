@@ -1498,7 +1498,7 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
         infoSink.debug << "max_vertices = " << vertices << "\n";
         infoSink.debug << "max_primitives = " << primitives << "\n";
         infoSink.debug << "output primitive = " << TQualifier::getGeometryString(outputPrimitive) << "\n";
-        [[fallthrough]];
+        DELIBERATE_FALLTHROUGH;
     case EShLangTask:
         // Fall through
     case EShLangCompute:

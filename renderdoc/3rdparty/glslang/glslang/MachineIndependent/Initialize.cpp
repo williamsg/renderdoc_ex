@@ -9096,7 +9096,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("texture2DArrayLod", 1, &E_GL_EXT_texture_array);
             symbolTable.setFunctionExtensions("shadow1DArrayLod", 1, &E_GL_EXT_texture_array);
         }
-        [[fallthrough]];
+        DELIBERATE_FALLTHROUGH;
 
     case EShLangTessControl:
         if (profile == EEsProfile && version >= 310) {
@@ -9111,7 +9111,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
                 BuiltInVariable("gl_BoundingBox", EbvBoundingBox, symbolTable);
             }
         }
-        [[fallthrough]];
+        DELIBERATE_FALLTHROUGH;
 
     case EShLangTessEvaluation:
     case EShLangGeometry:
@@ -11532,7 +11532,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("fetchMicroTriangleVertexPositionNV", EOpFetchMicroTriangleVertexPositionNV);
             symbolTable.relateToOperator("fetchMicroTriangleVertexBarycentricNV", EOpFetchMicroTriangleVertexBarycentricNV);
         }
-        [[fallthrough]];
+        DELIBERATE_FALLTHROUGH;
     case EShLangClosestHit:
     case EShLangMiss:
         if (profile != EEsProfile && version >= 460) {

@@ -2698,7 +2698,7 @@ void Builder::setupFunctionDebugInfo(Function* function, const char* name, const
         currentDebugScopeId.pop();
 }
 
-Id Builder::makeDebugFunction([[maybe_unused]] Function* function, Id nameId, Id funcTypeId)
+Id Builder::makeDebugFunction(MAYBE_UNUSED Function* function, Id nameId, Id funcTypeId)
 {
     assert(function != nullptr);
     assert(nameId != 0);
