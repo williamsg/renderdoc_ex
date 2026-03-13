@@ -1120,21 +1120,23 @@ protected:
         // 64/32 bit mix function from MurmurHash3
         inline std::size_t hash_mix(std::size_t h) const {
             // RD Modification - remove if constexpr
-            if (sizeof(std::size_t) == 8) {
+#if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) ||        \
+    defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(__powerpc64__) || \
+    (defined(__riscv64) && __riscv_xlen == 64)
                 h ^= h >> 33;
                 h *= UINT64_C(0xff51afd7ed558ccd);
                 h ^= h >> 33;
                 h *= UINT64_C(0xc4ceb9fe1a85ec53);
                 h ^= h >> 33;
                 return h;
-            } else {
+#else
                 h ^= h >> 16;
                 h *= UINT32_C(0x85ebca6b);
                 h ^= h >> 13;
                 h *= UINT32_C(0xc2b2ae35);
                 h ^= h >> 16;
                 return h;
-            }
+#endif
         }
 
         // Hash combine from boost
