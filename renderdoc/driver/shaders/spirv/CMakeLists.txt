@@ -13,7 +13,6 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/NonSemanticShaderDebugInfo100.h
     ${glslang_dir}/SPIRV/hex_float.h
     ${glslang_dir}/SPIRV/InReadableOrder.cpp
-    ${glslang_dir}/SPIRV/spirv.hpp11
     ${glslang_dir}/SPIRV/Logger.cpp
     ${glslang_dir}/SPIRV/Logger.h
     ${glslang_dir}/SPIRV/SpvBuilder.cpp
