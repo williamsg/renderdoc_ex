@@ -61,6 +61,8 @@
 // class as the allocator (second) template argument.
 //
 
+#include "visibility.h"
+
 #include <cstddef>
 #include <cstring>
 #include <vector>
@@ -118,15 +120,14 @@ private:
     unsigned char* mem;           // beginning of our allocation (pts to header)
     TAllocation* prevAlloc;       // prior allocation in the chain
 
-    // RD Modification - static constexpr implies inline
-    static constexpr unsigned char guardBlockBeginVal = 0xfb;
-    static constexpr unsigned char guardBlockEndVal = 0xfe;
-    static constexpr unsigned char userDataFill = 0xcd;
+    static inline constexpr unsigned char guardBlockBeginVal = 0xfb;
+    static inline constexpr unsigned char guardBlockEndVal = 0xfe;
+    static inline constexpr unsigned char userDataFill = 0xcd;
 
 #   ifdef GUARD_BLOCKS
-    static constexpr size_t guardBlockSize = 16;
+    static inline constexpr size_t guardBlockSize = 16;
 #   else
-    static constexpr size_t guardBlockSize = 0;
+    static inline constexpr size_t guardBlockSize = 0;
 #   endif
 
 #   ifdef GUARD_BLOCKS
@@ -180,6 +181,7 @@ public:
     // Call allocate() to actually acquire memory.  Returns nullptr if no memory
     // available, otherwise a properly aligned pointer to 'numBytes' of memory.
     //
+    GLSLANG_EXPORT_FOR_TESTS
     void* allocate(size_t numBytes);
 
     //
@@ -256,6 +258,7 @@ private:
 // different times.  But a simple use is to have a global pop
 // with everyone using the same global allocator.
 //
+GLSLANG_EXPORT_FOR_TESTS
 extern TPoolAllocator& GetThreadPoolAllocator();
 void SetThreadPoolAllocator(TPoolAllocator* poolAllocator);
 
@@ -289,7 +292,7 @@ public:
 
     template<class Other>
         pool_allocator(const pool_allocator<Other>& p) : allocator(p.getAllocator()) { }
-
+    
     pointer allocate(size_type n) {
         return reinterpret_cast<pointer>(getAllocator().allocate(n * sizeof(T))); }
     pointer allocate(size_type n, const void*) {
@@ -314,11 +317,8 @@ public:
 
     pool_allocator select_on_container_copy_construction() const { return pool_allocator{}; }
 
-    // RD Modification - work around seeming old libstdc++ bug, string move assignment
-    // invokes std::swap() which swaps allocators via assignment
-    // newer compilers do not invoke this function
-    pool_allocator& operator=(const pool_allocator&) { return *this; }
 protected:
+    pool_allocator& operator=(const pool_allocator&) { return *this; }
     TPoolAllocator& allocator;
 };
 

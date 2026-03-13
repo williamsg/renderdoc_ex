@@ -39,8 +39,7 @@
 // GL_EXT_spirv_intrinsics
 //
 #include "Common.h"
-// RD Modification - remove std::variant use
-//#include <variant>
+#include <variant>
 
 namespace glslang {
 
@@ -98,19 +97,19 @@ struct TSpirvInstruction {
 struct TSpirvTypeParameter {
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
 
-    TSpirvTypeParameter(const TIntermConstantUnion* arg) { value.constant = arg; valueIndex = 0; }
-    TSpirvTypeParameter(const TType* arg) { value.type = arg; valueIndex = 1; }
+    TSpirvTypeParameter(const TIntermConstantUnion* arg) { value = arg; }
+    TSpirvTypeParameter(const TType* arg) { value = arg; }
 
     const TIntermConstantUnion* getAsConstant() const
     {
-        if (valueIndex == 0)
-            return value.constant;
+        if (value.index() == 0)
+            return std::get<const TIntermConstantUnion*>(value);
         return nullptr;
     }
     const TType* getAsType() const
     {
-        if (valueIndex == 1)
-            return value.type;
+        if (value.index() == 1)
+            return std::get<const TType*>(value);
         return nullptr;
     }
 
@@ -118,14 +117,7 @@ struct TSpirvTypeParameter {
     bool operator!=(const TSpirvTypeParameter& rhs) const { return !operator==(rhs); }
 
     // Parameter value: constant expression or type specifier
-    // RD Modification - remove std::variant use
-    //std::variant<const TIntermConstantUnion*, const TType*> value;
-    union
-    {
-        const TIntermConstantUnion* constant;
-        const TType* type;
-    } value;
-    int valueIndex = 0;
+    std::variant<const TIntermConstantUnion*, const TType*> value;
 };
 
 typedef TVector<TSpirvTypeParameter> TSpirvTypeParameters;
