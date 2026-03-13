@@ -13,6 +13,7 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/NonSemanticShaderDebugInfo100.h
     ${glslang_dir}/SPIRV/hex_float.h
     ${glslang_dir}/SPIRV/InReadableOrder.cpp
+    ${glslang_dir}/SPIRV/spirv.hpp11
     ${glslang_dir}/SPIRV/Logger.cpp
     ${glslang_dir}/SPIRV/Logger.h
     ${glslang_dir}/SPIRV/SpvBuilder.cpp
@@ -21,6 +22,7 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/SpvTools.h
     ${glslang_dir}/SPIRV/SpvPostProcess.cpp
     ${glslang_dir}/SPIRV/spvIR.h
+    ${glslang_dir}/SPIRV/spvUtil.h
     ${glslang_dir}/glslang/GenericCodeGen/CodeGen.cpp
     ${glslang_dir}/glslang/GenericCodeGen/Link.cpp
     ${glslang_dir}/glslang/Include/arrays.h
@@ -33,7 +35,6 @@ set(glslang_sources
     ${glslang_dir}/glslang/Include/PoolAlloc.h
     ${glslang_dir}/glslang/Include/ResourceLimits.h
     ${glslang_dir}/glslang/Include/SpirvIntrinsics.h
-    ${glslang_dir}/glslang/Include/revision.h
     ${glslang_dir}/glslang/Include/ShHandle.h
     ${glslang_dir}/glslang/Include/Types.h
     ${glslang_dir}/glslang/Include/visibility.h
