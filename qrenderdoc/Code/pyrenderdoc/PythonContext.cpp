@@ -654,9 +654,9 @@ QString PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extensi
 
   PyObject *ext = NULL;
 
-  current_global_handle = PyObject_SafeGetAttrString(main_dict, "_renderdoc_internal");
+  current_global_handle = PyObject_SafeGetAttrString(sysobj, "_renderdoc_internal");
 
-  if(!syspath)
+  if(!current_global_handle)
     qCritical() << "couldn't get _renderdoc_internal";
 
   QString typeStr;
