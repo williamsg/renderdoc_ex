@@ -1903,7 +1903,8 @@ HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc,
 
       record->AddChunk(scope.Get());
 
-      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
+      if(pDesc->Type == D3D12_QUERY_HEAP_TYPE_OCCLUSION)
+        GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
     }
 
     *ppvHeap = (ID3D12QueryHeap *)wrapped;
