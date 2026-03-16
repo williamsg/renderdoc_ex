@@ -1210,26 +1210,30 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
     }
     else
     {
+      // we deduplicated during capture but this could alias one of ours in theory
       if(GetResourceManager()->HasWrapper(ret))
       {
         ret->Release();
         ret = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(ret);
-        ret->AddRef();
+
+        GetResourceManager()->ReplaceResource(pRootSignature, GetResID(ret));
       }
       else
       {
         ret = new WrappedID3D12RootSignature(pRootSignature, ret, this);
+
+        WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
+
+        wrapped->sig = DecodeRootSig(pBlobWithRootSignature, (size_t)blobLengthInBytes);
+
+        if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
+          wrapped->localRootSigIdx =
+              GetResourceManager()->GetRTManager()->RegisterLocalRootSig(wrapped->sig);
       }
 
-      WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
-
-      wrapped->sig = DecodeRootSig(pBlobWithRootSignature, (size_t)blobLengthInBytes);
-
-      if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
-        wrapped->localRootSigIdx =
-            GetResourceManager()->GetRTManager()->RegisterLocalRootSig(wrapped->sig);
-
       {
+        WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
+
         StructuredSerialiser structuriser(ser.GetStructuredFile().chunks.back(), &GetChunkName);
         structuriser.SetUserData(GetResourceManager());
 
