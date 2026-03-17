@@ -988,6 +988,11 @@ enum class BufferDescriptorFormat
   //    top_19 = byteSize256>>4
   Packed_4519_Aligned256_8,
 
+  // 8 bytes:
+  //    bottom 51 = pointer>>4
+  //    top_13 = byteSize16>>4
+  Packed_5113_Aligned16_8,
+
   // 16 bytes:
   //    uint64[0] = pointer
   //    uint64[1] = elemSize
