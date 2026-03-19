@@ -354,15 +354,12 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
         m_DebugMessages.back().eventId += m_RootEventID;
       }
 
-      m_RootEventID += cmdBufInfo.eventCount;
-      m_RootActionID += cmdBufInfo.actionCount;
-
       {
         // pull in any remaining events on the command buffer that weren't added to an action
         uint32_t i = 0;
         for(APIEvent &apievent : cmdBufInfo.curEvents)
         {
-          apievent.eventId = m_RootEventID - cmdBufInfo.curEvents.count() + i;
+          apievent.eventId += m_RootEventID;
 
           m_RootEvents.push_back(apievent);
           m_Events.resize(apievent.eventId + 1);
@@ -374,10 +371,13 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
         for(auto it = cmdBufInfo.resourceUsage.begin(); it != cmdBufInfo.resourceUsage.end(); ++it)
         {
           EventUsage u = it->second;
-          u.eventId += m_RootEventID - cmdBufInfo.curEvents.count();
+          u.eventId += m_RootEventID;
           m_ResourceUses[it->first].push_back(u);
           m_EventFlags[u.eventId] |= PipeRWUsageEventFlags(u.usage);
         }
+
+        m_RootEventID += cmdBufInfo.eventCount;
+        m_RootActionID += cmdBufInfo.actionCount;
 
         name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
                                  ToStr(cmd).c_str());
