@@ -312,6 +312,7 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
       FlushQ();
 
       ResourceId cmd = GetResID(submitInfo.pCommandBufferInfos[0].commandBuffer);
+      RDCASSERTNOTEQUAL(cmd, ResourceId());
 
       submitInfo.pCommandBufferInfos++;
 
@@ -407,19 +408,22 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
     }
 
     uint32_t startEID = m_RootEventID;
-
-    // advance m_CurEventID to match the events added when reading
-    for(uint32_t c = 0; c < submitInfo.commandBufferInfoCount; c++)
+    if(m_LastEventID > startEID)
     {
-      ResourceId cmd = GetResID(submitInfo.pCommandBufferInfos[c].commandBuffer);
-
-      m_RootEventID += m_BakedCmdBufferInfo[cmd].eventCount;
-      m_RootActionID += m_BakedCmdBufferInfo[cmd].actionCount;
-
-      // 2 extra for the virtual labels around the command buffer
+      // advance m_CurEventID to match the events added when reading
+      for(uint32_t c = 0; c < submitInfo.commandBufferInfoCount; c++)
       {
-        m_RootEventID += 2;
-        m_RootActionID += 2;
+        ResourceId cmd = GetResID(submitInfo.pCommandBufferInfos[c].commandBuffer);
+        RDCASSERTNOTEQUAL(cmd, ResourceId());
+
+        m_RootEventID += m_BakedCmdBufferInfo[cmd].eventCount;
+        m_RootActionID += m_BakedCmdBufferInfo[cmd].actionCount;
+
+        // 2 extra for the virtual labels around the command buffer
+        {
+          m_RootEventID += 2;
+          m_RootActionID += 2;
+        }
       }
     }
 
@@ -448,6 +452,7 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
       {
         VkCommandBufferSubmitInfo info = submitInfo.pCommandBufferInfos[c];
         ResourceId cmdId = GetResID(info.commandBuffer);
+        RDCASSERTNOTEQUAL(cmdId, ResourceId());
 
         // account for the virtual vkBeginCommandBuffer label at the start of the events here
         // so it matches up to baseEvent
