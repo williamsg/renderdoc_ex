@@ -408,14 +408,13 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
     }
 
     uint32_t startEID = m_RootEventID;
-    if(m_LastEventID > startEID)
+    // advance m_CurEventID to match the events added when reading
+    for(uint32_t c = 0; c < submitInfo.commandBufferInfoCount; c++)
     {
-      // advance m_CurEventID to match the events added when reading
-      for(uint32_t c = 0; c < submitInfo.commandBufferInfoCount; c++)
+      ResourceId cmd = GetResID(submitInfo.pCommandBufferInfos[c].commandBuffer);
+      // cmd is not valid when selecting a vkQueueSubmit event
+      if(cmd != ResourceId())
       {
-        ResourceId cmd = GetResID(submitInfo.pCommandBufferInfos[c].commandBuffer);
-        RDCASSERTNOTEQUAL(cmd, ResourceId());
-
         m_RootEventID += m_BakedCmdBufferInfo[cmd].eventCount;
         m_RootActionID += m_BakedCmdBufferInfo[cmd].actionCount;
 
