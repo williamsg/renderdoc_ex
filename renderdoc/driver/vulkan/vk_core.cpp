@@ -4099,7 +4099,11 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
     AddFrameTerminator(AMDRGPControl::GetEndTag());
 
   // Save the current render state in the partial command buffer.
-  m_RenderState = m_BakedCmdBufferInfo[GetPartialCommandBuffer()].state;
+  ResourceId cmdBuf = GetPartialCommandBuffer();
+  if(cmdBuf != ResourceId())
+    m_RenderState = m_BakedCmdBufferInfo[cmdBuf].state;
+  else
+    m_RenderState = VulkanRenderState();
 
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
@@ -5112,7 +5116,9 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     else
     {
       // Copy the state in case m_RenderState was modified externally for the partial replay.
-      m_BakedCmdBufferInfo[GetPartialCommandBuffer()].state = m_RenderState;
+      ResourceId cmdBuf = GetPartialCommandBuffer();
+      if(cmdBuf != ResourceId())
+        m_BakedCmdBufferInfo[cmdBuf].state = m_RenderState;
     }
 
     VkResult vkr = VK_SUCCESS;
@@ -5225,7 +5231,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
     if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
     {
-      if(replayType == eReplay_OnlyDraw)
+      if((replayType == eReplay_OnlyDraw) && (m_LastCmdBufferID != ResourceId()))
         UpdateImageStates(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates);
 
       VkCommandBuffer cmd = m_OutsideCmdBuffer;
@@ -6080,10 +6086,11 @@ void WrappedVulkan::AddAction(const ActionDescription &a)
   {
     VulkanActionTreeNode node(action);
 
-    node.resourceUsage.swap(m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage);
-
     if(m_LastCmdBufferID != ResourceId())
+    {
+      node.resourceUsage.swap(m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage);
       AddUsage(node, m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages);
+    }
 
     node.children.reserve(action.children.size());
     for(const ActionDescription &child : action.children)
