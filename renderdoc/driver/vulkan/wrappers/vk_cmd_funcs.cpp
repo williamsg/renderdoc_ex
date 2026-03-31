@@ -5482,8 +5482,12 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
       parentCmdBufInfo.curEventID++;
 
+      bool parentActiveRenderPass = parentCmdBufInfo.state.ActiveRenderPass();
+      parentActiveRenderPass |=
+          ((parentCmdBufInfo.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT) != 0);
+
       // should we add framebuffer usage to the child draws.
-      bool framebufferUsage = parentCmdBufInfo.state.ActiveRenderPass();
+      bool framebufferUsage = parentActiveRenderPass;
 
       for(uint32_t c = 0; c < commandBufferCount; c++)
       {
@@ -5504,8 +5508,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         AddAction(marker);
         parentCmdBufInfo.curEventID++;
 
-        if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetRenderPass() == ResourceId() &&
-           !m_BakedCmdBufferInfo[m_LastCmdBufferID].state.dynamicRendering.active &&
+        if(!parentActiveRenderPass &&
            (cmdBufInfo.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT))
         {
           AddDebugMessage(
