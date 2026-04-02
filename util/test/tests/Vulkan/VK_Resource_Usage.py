@@ -50,22 +50,36 @@ class VK_Resource_Usage(rdtest.TestCase):
                                      (6,rd.ResourceUsage.Discard), 
                                      (7,rd.ResourceUsage.Clear), 
                                      (8,rd.ResourceUsage.Barrier), 
-                                     (22,rd.ResourceUsage.ColorTarget), 
-                                     (25,rd.ResourceUsage.ColorTarget), 
                                      (32,rd.ResourceUsage.ColorTarget), 
                                      (35,rd.ResourceUsage.ColorTarget), 
-                                     (49,rd.ResourceUsage.ColorTarget), 
-                                     (52,rd.ResourceUsage.ColorTarget)] 
+                                     (42,rd.ResourceUsage.ColorTarget), 
+                                     (45,rd.ResourceUsage.ColorTarget), 
+                                     (59,rd.ResourceUsage.ColorTarget), 
+                                     (62,rd.ResourceUsage.ColorTarget), 
+                                     (104,rd.ResourceUsage.ColorTarget), 
+                                     (105,rd.ResourceUsage.ColorTarget), 
+                                     (106,rd.ResourceUsage.ColorTarget), 
+                                     (107,rd.ResourceUsage.ColorTarget), 
+                                     (112,rd.ResourceUsage.ColorTarget), 
+                                     (113,rd.ResourceUsage.ColorTarget), 
+                                     (114,rd.ResourceUsage.ColorTarget), 
+                                     (145,rd.ResourceUsage.ColorTarget), 
+                                     (146,rd.ResourceUsage.ColorTarget), 
+                                     (147,rd.ResourceUsage.ColorTarget), 
+                                     (148,rd.ResourceUsage.ColorTarget), 
+                                     (153,rd.ResourceUsage.ColorTarget), 
+                                     (154,rd.ResourceUsage.ColorTarget), 
+                                     (155,rd.ResourceUsage.ColorTarget)] 
                     if nestedSecondaries:
                         expectedUsage += [
-                                     (88,rd.ResourceUsage.ColorTarget), 
-                                     (91,rd.ResourceUsage.ColorTarget)] 
+                                     (175,rd.ResourceUsage.ColorTarget), 
+                                     (178,rd.ResourceUsage.ColorTarget)] 
                     if descBuffer:
                         expectedUsage += [
-                                     (83+countNested,rd.ResourceUsage.ColorTarget), 
-                                     (86+countNested,rd.ResourceUsage.ColorTarget)] 
+                                     (170+countNested,rd.ResourceUsage.ColorTarget), 
+                                     (173+countNested,rd.ResourceUsage.ColorTarget)] 
 
-                    expectedUsage += [(75+countNested+countDescBuffer,rd.ResourceUsage.Barrier)]
+                    expectedUsage += [(162+countNested+countDescBuffer,rd.ResourceUsage.Barrier)]
                 else:
                     expectedUsage = []
             elif res.type == rd.ResourceType.RenderPass:
@@ -84,44 +98,84 @@ class VK_Resource_Usage(rdtest.TestCase):
                 expectedUsage = [(0,rd.ResourceUsage.Unused)]
             elif res.type == rd.ResourceType.Buffer:
                 if (res.name == "Vertex Buffer"):
-                    expectedUsage = [(22,rd.ResourceUsage.VertexBuffer), 
-                                     (25,rd.ResourceUsage.VertexBuffer),
-                                     (32,rd.ResourceUsage.VertexBuffer),
+                    expectedUsage = [(32,rd.ResourceUsage.VertexBuffer), 
                                      (35,rd.ResourceUsage.VertexBuffer),
-                                     (49,rd.ResourceUsage.VertexBuffer), 
-                                     (52,rd.ResourceUsage.VertexBuffer)]
+                                     (42,rd.ResourceUsage.VertexBuffer),
+                                     (45,rd.ResourceUsage.VertexBuffer),
+                                     (59,rd.ResourceUsage.VertexBuffer), 
+                                     (62,rd.ResourceUsage.VertexBuffer), 
+                                     (104,rd.ResourceUsage.VertexBuffer), 
+                                     (105,rd.ResourceUsage.VertexBuffer), 
+                                     (106,rd.ResourceUsage.VertexBuffer), 
+                                     (107,rd.ResourceUsage.VertexBuffer), 
+                                     (112,rd.ResourceUsage.VertexBuffer), 
+                                     (113,rd.ResourceUsage.VertexBuffer), 
+                                     (114,rd.ResourceUsage.VertexBuffer), 
+                                     (145,rd.ResourceUsage.VertexBuffer), 
+                                     (146,rd.ResourceUsage.VertexBuffer), 
+                                     (147,rd.ResourceUsage.VertexBuffer), 
+                                     (148,rd.ResourceUsage.VertexBuffer), 
+                                     (153,rd.ResourceUsage.VertexBuffer), 
+                                     (154,rd.ResourceUsage.VertexBuffer), 
+                                     (155,rd.ResourceUsage.VertexBuffer)] 
                     if nestedSecondaries:
                         expectedUsage += [
-                                     (88,rd.ResourceUsage.VertexBuffer), 
-                                     (91,rd.ResourceUsage.VertexBuffer)]
+                                     (175,rd.ResourceUsage.VertexBuffer), 
+                                     (178,rd.ResourceUsage.VertexBuffer)]
                     if descBuffer:
                         expectedUsage += [
-                                     (83+countNested,rd.ResourceUsage.VertexBuffer), 
-                                     (86+countNested,rd.ResourceUsage.VertexBuffer)]
+                                     (170+countNested,rd.ResourceUsage.VertexBuffer), 
+                                     (173+countNested,rd.ResourceUsage.VertexBuffer)]
                 if (res.name == "Index Buffer"):
-                    expectedUsage = [(25,rd.ResourceUsage.IndexBuffer),
-                                     (35,rd.ResourceUsage.IndexBuffer),
-                                     (52,rd.ResourceUsage.IndexBuffer)]
+                    expectedUsage = [(35,rd.ResourceUsage.IndexBuffer),
+                                     (45,rd.ResourceUsage.IndexBuffer),
+                                     (62,rd.ResourceUsage.IndexBuffer),
+                                     (112,rd.ResourceUsage.IndexBuffer),
+                                     (113,rd.ResourceUsage.IndexBuffer),
+                                     (114,rd.ResourceUsage.IndexBuffer),
+                                     (153,rd.ResourceUsage.IndexBuffer),
+                                     (154,rd.ResourceUsage.IndexBuffer),
+                                     (155,rd.ResourceUsage.IndexBuffer)]
                     if nestedSecondaries:
                         expectedUsage += [
-                                     (91,rd.ResourceUsage.IndexBuffer)]
+                                     (178,rd.ResourceUsage.IndexBuffer)]
                     if descBuffer:
                         expectedUsage += [
-                                     (86+countNested,rd.ResourceUsage.IndexBuffer)]
+                                     (173+countNested,rd.ResourceUsage.IndexBuffer)]
                 if (res.name == "Compute Buffer In"):
-                    expectedUsage += [(63,rd.ResourceUsage.CS_Constants),
-                                     (70,rd.ResourceUsage.CS_Constants)]
+                    expectedUsage += [(73,rd.ResourceUsage.CS_Constants),
+                                     (80,rd.ResourceUsage.CS_Constants)]
                     if nestedSecondaries:
-                        expectedUsage += [(104,rd.ResourceUsage.CS_Constants)]
+                        expectedUsage += [(191,rd.ResourceUsage.CS_Constants)]
                     if descBuffer:
-                        expectedUsage += [(91+countNested,rd.ResourceUsage.CS_Constants)]
+                        expectedUsage += [(178+countNested,rd.ResourceUsage.CS_Constants)]
                 if (res.name == "Compute Buffer Out"):
-                    expectedUsage += [(63,rd.ResourceUsage.CS_RWResource),
-                                     (70,rd.ResourceUsage.CS_RWResource)]
+                    expectedUsage += [(73,rd.ResourceUsage.CS_RWResource),
+                                     (80,rd.ResourceUsage.CS_RWResource)]
                     if nestedSecondaries:
-                        expectedUsage += [(104,rd.ResourceUsage.CS_RWResource)]
+                        expectedUsage += [(191,rd.ResourceUsage.CS_RWResource)]
                     if descBuffer:
-                        expectedUsage += [(91+countNested,rd.ResourceUsage.CS_RWResource)]
+                        expectedUsage += [(178+countNested,rd.ResourceUsage.CS_RWResource)]
+                if (res.name == "Indirect Data"):
+                    expectedUsage += [(14,rd.ResourceUsage.Barrier),
+                                     (15,rd.ResourceUsage.Clear),
+                                     (16,rd.ResourceUsage.Barrier),
+                                     (20,rd.ResourceUsage.CS_RWResource),
+                                     (21,rd.ResourceUsage.Barrier),
+                                     (91,rd.ResourceUsage.CS_RWResource),
+                                     (91,rd.ResourceUsage.Indirect),
+                                     (92,rd.ResourceUsage.Barrier),
+                                     (103,rd.ResourceUsage.Indirect),
+                                     (111,rd.ResourceUsage.Indirect),
+                                     (121,rd.ResourceUsage.Barrier),
+                                     (122,rd.ResourceUsage.Clear),
+                                     (123,rd.ResourceUsage.Barrier),
+                                     (127,rd.ResourceUsage.CS_RWResource),
+                                     (130,rd.ResourceUsage.CS_RWResource),
+                                     (130,rd.ResourceUsage.Indirect),
+                                     (131,rd.ResourceUsage.Barrier),
+                                     (144,rd.ResourceUsage.Indirect),
+                                     (152,rd.ResourceUsage.Indirect)]
             elif res.type == rd.ResourceType.Texture:
                 if (res.name == "Offscreen MSAA Image"):
                     expectedUsage = [(11,rd.ResourceUsage.Barrier), 
@@ -131,12 +185,26 @@ class VK_Resource_Usage(rdtest.TestCase):
                     expectedUsage = [(9,rd.ResourceUsage.Barrier), 
                                      (9,rd.ResourceUsage.Discard), 
                                      (10,rd.ResourceUsage.Clear), 
-                                     (32,rd.ResourceUsage.PS_Resource), 
-                                     (35,rd.ResourceUsage.PS_Resource)]
+                                     (42,rd.ResourceUsage.PS_Resource), 
+                                     (45,rd.ResourceUsage.PS_Resource), 
+                                     (104,rd.ResourceUsage.PS_Resource), 
+                                     (105,rd.ResourceUsage.PS_Resource), 
+                                     (106,rd.ResourceUsage.PS_Resource), 
+                                     (107,rd.ResourceUsage.PS_Resource), 
+                                     (112,rd.ResourceUsage.PS_Resource), 
+                                     (113,rd.ResourceUsage.PS_Resource), 
+                                     (114,rd.ResourceUsage.PS_Resource), 
+                                     (145,rd.ResourceUsage.PS_Resource), 
+                                     (146,rd.ResourceUsage.PS_Resource), 
+                                     (147,rd.ResourceUsage.PS_Resource), 
+                                     (148,rd.ResourceUsage.PS_Resource), 
+                                     (153,rd.ResourceUsage.PS_Resource), 
+                                     (154,rd.ResourceUsage.PS_Resource), 
+                                     (155,rd.ResourceUsage.PS_Resource)]
                     if descBuffer:
                         expectedUsage += [
-                                     (83+countNested,rd.ResourceUsage.PS_Resource), 
-                                     (86+countNested,rd.ResourceUsage.PS_Resource)]
+                                     (170+countNested,rd.ResourceUsage.PS_Resource), 
+                                     (173+countNested,rd.ResourceUsage.PS_Resource)]
             elif res.type == rd.ResourceType.CommandBuffer:
                 expectedUsage = [(0,rd.ResourceUsage.Unused)]
             elif res.type == rd.ResourceType.DescriptorStore:

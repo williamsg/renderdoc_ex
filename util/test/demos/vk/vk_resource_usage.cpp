@@ -51,6 +51,8 @@ const std::string compute = R"EOSHADER(
 
 #version 450 core
 
+#extension GL_ARB_compute_shader : require
+
 layout(binding = 0) uniform inbuftype {
   uvec4 data[];
 } inbuf;
@@ -64,6 +66,60 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
   outbuf.data[0] += inbuf.data[0];
+}
+
+)EOSHADER";
+
+const std::string computeWriteData = R"EOSHADER(
+
+#version 430 core
+
+#extension GL_ARB_compute_shader : require
+
+layout(push_constant) uniform PushConstants {
+	uint mode;
+} push;
+
+layout(binding = 0, std140) buffer general_buffer
+{
+	uvec4 data[];
+} indirectData;
+
+layout (local_size_x = 2, local_size_y = 2, local_size_z = 1) in;
+
+void main()
+{
+  if(push.mode == 0)
+  {
+    // see below, here we write the indirect dispatch parameters
+    indirectData.data[0] = uvec4(3, 4, 5, 999999);
+  }
+  else if(push.mode == 1)
+  {
+    // see below, in the indirect dispatch we write data in for each thread
+    uint idx = gl_GlobalInvocationID.z * (3 * 2) * (4 * 2) +
+               gl_GlobalInvocationID.y * (3 * 2) +
+               gl_GlobalInvocationID.x;
+
+    indirectData.data[100+idx] = uvec4(gl_GlobalInvocationID, 12345);
+
+    // we also write the draw parameters for non-indexed and indexed draws.
+    // The indices point just after the vertices, so we have all unique draws
+
+    // vkCmdDrawIndirect() (4 draws)
+    indirectData.data[1] = uvec4(3, 1, 3, 0); // draw verts 3..5
+    indirectData.data[2] = uvec4(3, 1, 6, 0); // draw verts 6..8
+    indirectData.data[3] = uvec4(3, 1, 9, 0); // draw verts 9..11
+    indirectData.data[4] = uvec4(3, 1, 12, 0); // draw verts 12..14
+
+    // vkCmdDrawIndexedIndirect() (3 draws)
+    indirectData.data[5] = uvec4(3, 1, 3, 0); // draw indices 3..5
+    indirectData.data[6].x = 0;
+    indirectData.data[7] = uvec4(3, 1, 6, 0); // draw indices 6..8
+    indirectData.data[8].x = 0;
+    indirectData.data[9] = uvec4(3, 1, 9, 0); // draw indices 9..11
+    indirectData.data[10].x = 0;
+  }
 }
 
 )EOSHADER";
@@ -105,6 +161,8 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
   void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+
+    features.multiDrawIndirect = VK_TRUE;
 
     optDevExts.push_back(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
     optDevExts.push_back(VK_EXT_NESTED_COMMAND_BUFFER_EXTENSION_NAME);
@@ -198,6 +256,26 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
     void *dst = descMem + bindOffset;
 
     vkGetDescriptorEXT(device, &get, DescSize(type), dst);
+  }
+
+  void BufferUpload(AllocatedBuffer & buffer, void *data, size_t countBytes)
+  {
+    VmaAllocationInfo alloc_info;
+    vmaGetAllocationInfo(buffer.allocator, buffer.alloc, &alloc_info);
+    uint16_t *dst = NULL;
+    vkMapMemory(device, alloc_info.deviceMemory, alloc_info.offset, VK_WHOLE_SIZE, 0, (void **)&dst);
+    memcpy(dst, data, countBytes);
+    vkUnmapMemory(device, alloc_info.deviceMemory);
+  }
+
+  void BufferFill(AllocatedBuffer & buffer, byte data, size_t countBytes)
+  {
+    VmaAllocationInfo alloc_info;
+    vmaGetAllocationInfo(buffer.allocator, buffer.alloc, &alloc_info);
+    uint16_t *dst = NULL;
+    vkMapMemory(device, alloc_info.deviceMemory, alloc_info.offset, VK_WHOLE_SIZE, 0, (void **)&dst);
+    memset(dst, data, countBytes);
+    vkUnmapMemory(device, alloc_info.deviceMemory);
   }
 
   int main()
@@ -326,12 +404,27 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         CompileShaderModule(compute, ShaderLang::glsl, ShaderStage::comp, "main")));
     setName(compDescSetPipe, "Compute Descriptor Set Pipeline");
 
+    VkDescriptorSetLayout compWriteDataSetLayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT},
+        }));
+    setName(compWriteDataSetLayout, "Compute WriteData Descriptor Set Layout");
+
+    VkPipelineLayout compWriteDataPipeLayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
+        {compWriteDataSetLayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, 4)}));
+    setName(compWriteDataPipeLayout, "Compute WriteData Pipeline Layout");
+
+    VkPipeline compWriteDataPipe = createComputePipeline(vkh::ComputePipelineCreateInfo(
+        compWriteDataPipeLayout,
+        CompileShaderModule(computeWriteData, ShaderLang::glsl, ShaderStage::comp, "main")));
+    setName(compWriteDataPipe, "Compute WriteData Pipeline");
+
     VkPipelineLayout compDescBuffPipeLayout = VK_NULL_HANDLE;
     VkPipeline compDescBuffPipe = VK_NULL_HANDLE;
     if(descBuffer)
     {
       compDescBuffPipeLayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({descBuffLayout}));
-      setName(compDescSetPipeLayout, "Compute Descriptor Buffeer Pipeline Layout");
+      setName(compDescSetPipeLayout, "Compute Descriptor Buffer Pipeline Layout");
 
       compDescBuffPipe = createComputePipeline(vkh::ComputePipelineCreateInfo(
           compDescBuffPipeLayout,
@@ -340,39 +433,58 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
       setName(compDescBuffPipe, "Compute Descriptor Buffer Pipeline");
     }
 
-    AllocatedBuffer vb(
-        this,
-        vkh::BufferCreateInfo(sizeof(DefaultTri),
-                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    const DefaultA2V vbData[15] = {
+        // Direct Draw Triangle
+        {Vec3f(-0.5f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // InDirect Draw Triangle draw 1
+        // InDirect Draw Indexed draw 1
+        {Vec3f(-0.25, -0.25, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 0.25f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.25f, -0.25f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // InDirect Draw Triangle draw 2
+        // InDirect Draw Indexed draw 2
+        {Vec3f(0.25, -0.25f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.5f, 0.25f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.75, -0.25f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // InDirect Draw Triangle draw 3
+        // InDirect Draw Indexed draw 3
+        {Vec3f(-0.25, 0.25, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 0.75f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.25f, 0.25f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // InDirect Draw Triangle draw 4
+        {Vec3f(0.25, 0.25f, 0.0f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.5f, 0.75f, 0.0f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.75, 0.25f, 0.0f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+    };
+    AllocatedBuffer vb(this,
+                       vkh::BufferCreateInfo(sizeof(vbData), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     setName(vb.buffer, "Vertex Buffer");
+    BufferUpload(vb, (void *)vbData, sizeof(vbData));
 
-    vb.upload(DefaultTri);
-
-    AllocatedBuffer ib(
-        this,
-        vkh::BufferCreateInfo(sizeof(uint16_t) * 3,
-                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    uint32_t indices[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    AllocatedBuffer ib(this,
+                       vkh::BufferCreateInfo(sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     setName(ib.buffer, "Index Buffer");
-    {
-      uint16_t *dst = NULL;
-      VmaAllocationInfo alloc_info;
-      vmaGetAllocationInfo(ib.allocator, ib.alloc, &alloc_info);
-      vkMapMemory(device, alloc_info.deviceMemory, alloc_info.offset, VK_WHOLE_SIZE, 0,
-                  (void **)&dst);
-      memset(dst, 0, sizeof(uint16_t) * 3);
-      dst[0] = 0;
-      dst[1] = 1;
-      dst[2] = 2;
-      vkUnmapMemory(device, alloc_info.deviceMemory);
-    }
+    BufferUpload(ib, (void *)indices, sizeof(indices));
 
     VkDescriptorSet descSet = allocateDescriptorSet(descSetLayout);
     setName(descSet, "Descriptor Set");
 
     VkDescriptorSet compDescSet = allocateDescriptorSet(compDescSetLayout);
     setName(compDescSet, "Compute Descriptor Set");
+
+    VkDescriptorSet compWriteDataDescSet = allocateDescriptorSet(compWriteDataSetLayout);
+    setName(compWriteDataDescSet, "Compute WriteData Descriptor Set");
 
     AllocatedImage offimg(
         this,
@@ -408,15 +520,7 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
                                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
     setName(compBufIn.buffer, "Compute Buffer In");
-    {
-      VmaAllocationInfo alloc_info;
-      vmaGetAllocationInfo(compBufIn.allocator, compBufIn.alloc, &alloc_info);
-      byte *dst = NULL;
-      vkMapMemory(device, alloc_info.deviceMemory, alloc_info.offset, VK_WHOLE_SIZE, 0,
-                  (void **)&dst);
-      memset(dst, 0xDE, 1024);
-      vkUnmapMemory(device, alloc_info.deviceMemory);
-    }
+    BufferFill(compBufIn, 0xDE, 1024);
 
     AllocatedBuffer compBufOut(
         this,
@@ -425,6 +529,22 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     setName(compBufOut.buffer, "Compute Buffer Out");
+
+    VkDeviceSize indirectDataSize = 16 * 1024;
+
+    AllocatedBuffer indirectData(
+        this,
+        vkh::BufferCreateInfo(indirectDataSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                    VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    setName(indirectData.buffer, "Indirect Data");
+
+    vkh::updateDescriptorSets(
+        device, {
+                    vkh::WriteDescriptorSet(compWriteDataDescSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                            {vkh::DescriptorBufferInfo(indirectData.buffer)}),
+                });
 
     VkDescriptorBufferBindingInfoEXT descBuffBind = {};
     AllocatedBuffer descBuf;
@@ -475,6 +595,8 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
 
     sqSize = float(screenHeight) / 4.0f;
 
+    using uvec4 = uint32_t[4];
+
     while(Running())
     {
       viewPort = {0.0f, 0.0f, sqSize, sqSize, 0.0f, 1.0f};
@@ -489,7 +611,7 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
       {
         vkCmdSetScissor(secCmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindVertexBuffers(secCmd, 0, {vb.buffer}, {0});
-        vkCmdBindIndexBuffer(secCmd, ib.buffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(secCmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindPipeline(secCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, noDescSetPipe);
 
         // Vertex draw
@@ -517,7 +639,7 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
                                                vkh::CommandBufferInheritanceInfo(renderPass, 0)));
         vkCmdSetScissor(nestedSecCmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindVertexBuffers(nestedSecCmd, 0, {vb.buffer}, {0});
-        vkCmdBindIndexBuffer(nestedSecCmd, ib.buffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(nestedSecCmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindPipeline(nestedSecCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, noDescSetPipe);
 
         // Vertex draw
@@ -599,6 +721,35 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
+      pushMarker(cmd, "Indirect Write IndirectDispatch Data");
+      {
+        vkh::cmdPipelineBarrier(
+            cmd, {},
+            {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      indirectData.buffer)});
+        vkCmdFillBuffer(cmd, indirectData.buffer, 0, indirectDataSize, 0);
+        vkh::cmdPipelineBarrier(
+            cmd, {},
+            {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      indirectData.buffer)});
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, compWriteDataPipe);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, compWriteDataPipeLayout, 0,
+                                   {compWriteDataDescSet}, {});
+
+        uint32_t mode = 0;
+        vkCmdPushConstants(cmd, compWriteDataPipeLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+        // Fill in draw and indirect dispatch parameters
+        vkCmdDispatch(cmd, 1, 1, 1);
+
+        vkh::cmdPipelineBarrier(cmd, {},
+                                {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                                          VK_ACCESS_INDIRECT_COMMAND_READ_BIT |
+                                                              VK_ACCESS_SHADER_WRITE_BIT,
+                                                          indirectData.buffer)});
+      }
+      popMarker(cmd);
+
       // Graphics
       pushMarker(cmd, "Graphics");
       {
@@ -611,7 +762,7 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         {
           vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
           vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
-          vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT16);
+          vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
           vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, noDescSetPipe);
 
           // Vertex draw
@@ -646,7 +797,6 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
           NextTest();
         }
         popMarker(cmd);
-
         vkCmdEndRenderPass(cmd);
 
         // Secondary Command Buffer
@@ -679,6 +829,150 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         pushMarker(cmd, "Secondary Command Buffer");
         {
           vkCmdExecuteCommands(cmd, 1, &compSecCmd);
+        }
+        popMarker(cmd);
+      }
+      popMarker(cmd);
+
+      pushMarker(cmd, "Indirect");
+      {
+        pushMarker(cmd, "Indirect Dispatch Write IndirectDraw Data");
+        {
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, compWriteDataPipe);
+          vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, compWriteDataPipeLayout,
+                                     0, {compWriteDataDescSet}, {});
+
+          uint32_t mode = 1;
+          vkCmdPushConstants(cmd, compWriteDataPipeLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+          setMarker(cmd, "DispatchIndirect");
+          vkCmdDispatchIndirect(cmd, indirectData.buffer, 0);
+
+          vkh::cmdPipelineBarrier(
+              cmd, {},
+              {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                        VK_ACCESS_INDIRECT_COMMAND_READ_BIT, indirectData.buffer)});
+        }
+        popMarker(cmd);
+
+        pushMarker(cmd, "Indirect Draws");
+        {
+          size_t offset = sizeof(uvec4);
+          uint32_t countDraws = 4;
+          uint32_t strideDraw = sizeof(uvec4);
+
+          vkCmdBeginRenderPass(
+              cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
+              VK_SUBPASS_CONTENTS_INLINE);
+
+          vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+          vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, descSetPipeLayout, 0,
+                                     {descSet}, {});
+          vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+          vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, descSetPipe);
+
+          setMarker(cmd, "DrawIndirect");
+          vkCmdSetViewport(cmd, 0, 1, &viewPort);
+          vkCmdDrawIndirect(cmd, indirectData.buffer, offset, countDraws, strideDraw);
+          NextTest();
+          offset += countDraws * strideDraw;
+
+          uint32_t countDrawIndexed = 3;
+          uint32_t strideDrawIndexed = 2 * sizeof(uvec4);
+          setMarker(cmd, "DrawIndexedIndirect");
+          vkCmdSetViewport(cmd, 0, 1, &viewPort);
+          vkCmdDrawIndexedIndirect(cmd, indirectData.buffer, offset, countDrawIndexed,
+                                   strideDrawIndexed);
+          NextTest();
+          vkCmdEndRenderPass(cmd);
+        }
+        popMarker(cmd);
+
+        // Secondary Command Buffer
+        pushMarker(cmd, "Secondary Command Buffer");
+        {
+          VkCommandBuffer indirectCompSecCmd = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+          {
+            vkBeginCommandBuffer(indirectCompSecCmd,
+                                 vkh::CommandBufferBeginInfo(
+                                     0, vkh::CommandBufferInheritanceInfo(VK_NULL_HANDLE, 0)));
+            vkh::cmdPipelineBarrier(
+                indirectCompSecCmd, {},
+                {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                          VK_ACCESS_TRANSFER_WRITE_BIT, indirectData.buffer)});
+            vkCmdFillBuffer(indirectCompSecCmd, indirectData.buffer, 0, indirectDataSize, 0);
+            vkh::cmdPipelineBarrier(
+                indirectCompSecCmd, {},
+                {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                          VK_ACCESS_TRANSFER_WRITE_BIT, indirectData.buffer)});
+
+            vkCmdBindPipeline(indirectCompSecCmd, VK_PIPELINE_BIND_POINT_COMPUTE, compWriteDataPipe);
+            vkh::cmdBindDescriptorSets(indirectCompSecCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                       compWriteDataPipeLayout, 0, {compWriteDataDescSet}, {});
+
+            uint32_t mode = 0;
+            vkCmdPushConstants(indirectCompSecCmd, compWriteDataPipeLayout,
+                               VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+            // Fill in draw and indirect dispatch parameters
+            vkCmdDispatch(indirectCompSecCmd, 1, 1, 1);
+
+            mode = 1;
+            vkCmdPushConstants(indirectCompSecCmd, compWriteDataPipeLayout,
+                               VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
+            setMarker(indirectCompSecCmd, "DispatchIndirect");
+            vkCmdDispatchIndirect(indirectCompSecCmd, indirectData.buffer, 0);
+
+            vkh::cmdPipelineBarrier(indirectCompSecCmd, {},
+                                    {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
+                                                              VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                                                              indirectData.buffer)});
+
+            vkEndCommandBuffer(indirectCompSecCmd);
+          }
+
+          vkCmdExecuteCommands(cmd, 1, &indirectCompSecCmd);
+
+          vkCmdBeginRenderPass(
+              cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
+              VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
+          VkCommandBuffer indirectDrawSecCmd = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+          {
+            vkBeginCommandBuffer(
+                indirectDrawSecCmd,
+                vkh::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+                                            vkh::CommandBufferInheritanceInfo(mainWindow->rp, 0)));
+
+            size_t offset = sizeof(uvec4);
+            uint32_t countDraws = 4;
+            uint32_t strideDraw = sizeof(uvec4);
+
+            vkCmdSetScissor(indirectDrawSecCmd, 0, 1, &mainWindow->scissor);
+            vkh::cmdBindDescriptorSets(indirectDrawSecCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                       descSetPipeLayout, 0, {descSet}, {});
+            vkh::cmdBindVertexBuffers(indirectDrawSecCmd, 0, {vb.buffer}, {0});
+            vkCmdBindIndexBuffer(indirectDrawSecCmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindPipeline(indirectDrawSecCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, descSetPipe);
+
+            setMarker(indirectDrawSecCmd, "DrawIndirect");
+            vkCmdSetViewport(indirectDrawSecCmd, 0, 1, &viewPort);
+            vkCmdDrawIndirect(indirectDrawSecCmd, indirectData.buffer, offset, countDraws,
+                              strideDraw);
+            NextTest();
+            offset += countDraws * strideDraw;
+
+            uint32_t countDrawIndexed = 3;
+            uint32_t strideDrawIndexed = 2 * sizeof(uvec4);
+            setMarker(indirectDrawSecCmd, "DrawIndexedIndirect");
+            vkCmdSetViewport(indirectDrawSecCmd, 0, 1, &viewPort);
+            vkCmdDrawIndexedIndirect(indirectDrawSecCmd, indirectData.buffer, offset,
+                                     countDrawIndexed, strideDrawIndexed);
+            NextTest();
+            vkEndCommandBuffer(indirectDrawSecCmd);
+          }
+          vkCmdExecuteCommands(cmd, 1, &indirectDrawSecCmd);
+
+          vkCmdEndRenderPass(cmd);
         }
         popMarker(cmd);
       }
