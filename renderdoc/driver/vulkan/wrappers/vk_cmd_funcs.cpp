@@ -5541,6 +5541,12 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           parentCmdBufInfo.debugMessages.back().eventId += parentCmdBufInfo.curEventID;
         }
 
+        for(size_t i = 0; i < cmdBufInfo.resourceUsage.size(); ++i)
+        {
+          parentCmdBufInfo.resourceUsage.push_back(cmdBufInfo.resourceUsage[i]);
+          parentCmdBufInfo.resourceUsage.back().second.eventId += parentCmdBufInfo.curEventID;
+        }
+
         // Record execution of the secondary command buffer in the parent's CommandBufferNode
         // Only primary command buffers can be submitted
         CommandBufferExecuteInfo execInfo;
