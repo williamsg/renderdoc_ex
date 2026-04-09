@@ -793,6 +793,28 @@ regions.
 )");
   virtual rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters) = 0;
 
+  DOCUMENT(R"(Retrieve per-event pixel statistics for all drawcall events in the capture.
+
+This uses GPU counters (SamplesPassed, PSInvocations, RasterizedPrimitives, EventGPUDuration)
+to gather statistics about each drawcall event. This is much faster than PixelHistory as it
+uses hardware queries rather than per-pixel replay.
+
+The ``pixelTouched`` field gives the number of pixels covered by each drawcall.
+The ``overdrawEstimate`` field gives the average overdraw ratio (PSInvocations / SamplesPassed).
+
+When ``overdrawDistribution`` is true, an additional stencil-based pass is performed for each
+drawcall event to compute the per-pixel overdraw distribution. This is slower but provides
+exact overdraw counts.
+
+:param int eventStart: The first event ID to include (0 for the beginning of the capture).
+:param int eventEnd: The last event ID to include (0 for the end of the capture).
+:param bool overdrawDistribution: If true, compute per-pixel overdraw distribution (slower).
+:return: The list of per-event pixel statistics.
+:rtype: List[PixelEventStats]
+)");
+  virtual rdcarray<PixelEventStats> FetchPixelStats(uint32_t eventStart, uint32_t eventEnd,
+                                                    bool overdrawDistribution) = 0;
+
   DOCUMENT(R"(Retrieve a list of which counters are available in the current capture analysis
 implementation.
 

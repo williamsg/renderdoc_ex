@@ -971,6 +971,26 @@ void DoSerialise(SerialiserType &ser, CounterValue &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, OverdrawBucket &el)
+{
+  SERIALISE_MEMBER(overdrawCount);
+  SERIALISE_MEMBER(pixelCount);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, PixelEventStats &el)
+{
+  SERIALISE_MEMBER(eventId);
+  SERIALISE_MEMBER(samplesPassed);
+  SERIALISE_MEMBER(psInvocations);
+  SERIALISE_MEMBER(rasterizedPrimitives);
+  SERIALISE_MEMBER(gpuDuration);
+  SERIALISE_MEMBER(pixelTouched);
+  SERIALISE_MEMBER(overdrawEstimate);
+  SERIALISE_MEMBER(overdrawDistribution);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GPUDevice &el)
 {
   SERIALISE_MEMBER(vendor);
@@ -2395,6 +2415,8 @@ INSTANTIATE_SERIALISE_TYPE(PixelModification)
 INSTANTIATE_SERIALISE_TYPE(EventUsage)
 INSTANTIATE_SERIALISE_TYPE(CounterResult)
 INSTANTIATE_SERIALISE_TYPE(CounterValue)
+INSTANTIATE_SERIALISE_TYPE(OverdrawBucket)
+INSTANTIATE_SERIALISE_TYPE(PixelEventStats)
 INSTANTIATE_SERIALISE_TYPE(GPUDevice)
 INSTANTIATE_SERIALISE_TYPE(ReplayOptions)
 INSTANTIATE_SERIALISE_TYPE(DebugPixelInputs)

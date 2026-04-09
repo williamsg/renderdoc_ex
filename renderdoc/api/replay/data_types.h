@@ -2509,6 +2509,112 @@ struct CounterResult
 
 DECLARE_REFLECTION_STRUCT(CounterResult);
 
+DOCUMENT("Overdraw distribution bucket: how many pixels have a specific overdraw count.");
+struct OverdrawBucket
+{
+  DOCUMENT("");
+  OverdrawBucket() = default;
+  OverdrawBucket(uint32_t count, uint64_t pixels) : overdrawCount(count), pixelCount(pixels) {}
+  OverdrawBucket(const OverdrawBucket &) = default;
+  OverdrawBucket &operator=(const OverdrawBucket &) = default;
+
+  DOCUMENT("Compares two ``OverdrawBucket`` objects for equality.");
+  bool operator==(const OverdrawBucket &o) const
+  {
+    return overdrawCount == o.overdrawCount && pixelCount == o.pixelCount;
+  }
+
+  DOCUMENT("Compares two ``OverdrawBucket`` objects for less-than.");
+  bool operator<(const OverdrawBucket &o) const
+  {
+    if(overdrawCount != o.overdrawCount)
+      return overdrawCount < o.overdrawCount;
+    return pixelCount < o.pixelCount;
+  }
+
+  DOCUMENT(R"(The overdraw count (1 means no overdraw, 2 means drawn twice, etc.).
+
+:type: int
+)");
+  uint32_t overdrawCount = 0;
+
+  DOCUMENT(R"(The number of pixels with this overdraw count.
+
+:type: int
+)");
+  uint64_t pixelCount = 0;
+};
+
+DECLARE_REFLECTION_STRUCT(OverdrawBucket);
+
+DOCUMENT("Per-event pixel statistics gathered from GPU counters.");
+struct PixelEventStats
+{
+  DOCUMENT("");
+  PixelEventStats() = default;
+  PixelEventStats(const PixelEventStats &) = default;
+  PixelEventStats &operator=(const PixelEventStats &) = default;
+
+  DOCUMENT("Compares two ``PixelEventStats`` objects for equality.");
+  bool operator==(const PixelEventStats &o) const { return eventId == o.eventId; }
+
+  DOCUMENT("Compares two ``PixelEventStats`` objects for less-than.");
+  bool operator<(const PixelEventStats &o) const { return eventId < o.eventId; }
+
+  DOCUMENT(R"(The :data:`eventId <APIEvent.eventId>` for this event.
+
+:type: int
+)");
+  uint32_t eventId = 0;
+
+  DOCUMENT(R"(The number of pixels that passed depth/stencil test (samples passed / pixels touched).
+
+:type: int
+)");
+  uint64_t samplesPassed = 0;
+
+  DOCUMENT(R"(The number of pixel shader invocations (includes all rasterized pixels before early-Z).
+
+:type: int
+)");
+  uint64_t psInvocations = 0;
+
+  DOCUMENT(R"(The number of primitives that were rasterized.
+
+:type: int
+)");
+  uint64_t rasterizedPrimitives = 0;
+
+  DOCUMENT(R"(The GPU duration of this event in seconds.
+
+:type: float
+)");
+  double gpuDuration = 0.0;
+
+  DOCUMENT(R"(The number of pixels touched/covered by this drawcall (alias for samplesPassed).
+
+:type: int
+)");
+  uint64_t pixelTouched = 0;
+
+  DOCUMENT(R"(The estimated average overdraw ratio for this event (psInvocations / samplesPassed).
+A value of 1.0 means no overdraw. Values > 1.0 indicate overdraw.
+
+:type: float
+)");
+  double overdrawEstimate = 0.0;
+
+  DOCUMENT(R"(The overdraw distribution for touched pixels of this event.
+Each entry describes how many pixels were drawn a specific number of times.
+Only available when FetchPixelStats is called with overdrawDistribution=true.
+
+:type: List[OverdrawBucket]
+)");
+  rdcarray<OverdrawBucket> overdrawDistribution;
+};
+
+DECLARE_REFLECTION_STRUCT(PixelEventStats);
+
 DOCUMENT("The contents of an RGBA pixel.");
 union PixelValue
 {

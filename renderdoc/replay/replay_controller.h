@@ -186,6 +186,8 @@ public:
   const rdcarray<ActionDescription> &GetRootActions();
   void AddFakeMarkers();
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
+  rdcarray<PixelEventStats> FetchPixelStats(uint32_t eventStart, uint32_t eventEnd,
+                                            bool overdrawDistribution);
   rdcarray<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
   const rdcarray<TextureDescription> &GetTextures();

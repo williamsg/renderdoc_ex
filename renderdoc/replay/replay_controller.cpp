@@ -460,6 +460,248 @@ rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounte
   return ret;
 }
 
+rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart, uint32_t eventEnd,
+                                                            bool overdrawDistribution)
+{
+  CHECK_REPLAY_THREAD();
+
+  RENDERDOC_PROFILEFUNCTION();
+
+  rdcarray<PixelEventStats> ret;
+
+  // Step 1: Fetch GPU counters for basic per-event statistics
+  rdcarray<GPUCounter> availableCounters = m_pDevice->EnumerateCounters();
+
+  rdcarray<GPUCounter> countersToFetch;
+
+  for(GPUCounter c : availableCounters)
+  {
+    if(c == GPUCounter::SamplesPassed || c == GPUCounter::PSInvocations ||
+       c == GPUCounter::RasterizedPrimitives || c == GPUCounter::EventGPUDuration)
+      countersToFetch.push_back(c);
+  }
+
+  if(countersToFetch.empty())
+  {
+    RDCERR("No relevant GPU counters available for FetchPixelStats");
+    return ret;
+  }
+
+  rdcarray<CounterResult> counterResults = m_pDevice->FetchCounters(countersToFetch);
+  FatalErrorCheck();
+
+  if(counterResults.empty())
+    return ret;
+
+  // Build a map from eventId -> PixelEventStats with counter data
+  std::map<uint32_t, PixelEventStats> statsMap;
+
+  for(const CounterResult &r : counterResults)
+  {
+    if(eventStart > 0 && r.eventId < eventStart)
+      continue;
+    if(eventEnd > 0 && r.eventId > eventEnd)
+      continue;
+
+    PixelEventStats &stats = statsMap[r.eventId];
+    stats.eventId = r.eventId;
+
+    GPUCounter counter = (GPUCounter)r.counter;
+
+    switch(counter)
+    {
+      case GPUCounter::SamplesPassed: stats.samplesPassed = r.value.u64; break;
+      case GPUCounter::PSInvocations: stats.psInvocations = r.value.u64; break;
+      case GPUCounter::RasterizedPrimitives: stats.rasterizedPrimitives = r.value.u64; break;
+      case GPUCounter::EventGPUDuration: stats.gpuDuration = r.value.d; break;
+      default: break;
+    }
+  }
+
+  // Step 2: Collect drawcall events that have pixel output
+  rdcarray<uint32_t> drawcallEventIds;
+  for(auto &kv : statsMap)
+  {
+    if(kv.second.psInvocations > 0 || kv.second.samplesPassed > 0)
+      drawcallEventIds.push_back(kv.first);
+  }
+
+  // Step 3: For each drawcall, use overlay rendering to get accurate pixel stats
+  // - Drawcall overlay: count unique pixels touched (not affected by instance count)
+  // - QuadOverdrawDraw overlay: get per-pixel overdraw distribution
+  for(uint32_t eid : drawcallEventIds)
+  {
+    auto it = statsMap.find(eid);
+    if(it == statsMap.end())
+      continue;
+
+    PixelEventStats &stats = it->second;
+
+    // Get the action description for this event
+    ActionDescription *action = GetActionByEID(eid);
+    if(!action || !(action->flags & ActionFlags::Drawcall))
+      continue;
+
+    // Find a valid render target ResourceId for this drawcall
+    ResourceId renderTargetId;
+    for(int i = 0; i < 8; i++)
+    {
+      if(action->outputs[i] != ResourceId())
+      {
+        renderTargetId = action->outputs[i];
+        break;
+      }
+    }
+    if(renderTargetId == ResourceId() && action->depthOut != ResourceId())
+      renderTargetId = action->depthOut;
+
+    if(renderTargetId == ResourceId())
+      continue;
+
+    // Replay to just before this event to set up the correct pipeline state
+    m_pDevice->ReplayLog(eid, eReplay_WithoutDraw);
+    FatalErrorCheck();
+
+    // --- Drawcall Overlay: count unique pixels touched ---
+    {
+      FloatVector clearCol(0.0f, 0.0f, 0.0f, 0.0f);
+      rdcarray<uint32_t> emptyPassEvents;
+
+      ResourceId overlayTexId =
+          m_pDevice->RenderOverlay(renderTargetId, clearCol, DebugOverlay::Drawcall, eid, emptyPassEvents);
+      FatalErrorCheck();
+
+      if(overlayTexId != ResourceId())
+      {
+        // Get the overlay texture description to know dimensions
+        TextureDescription overlayDesc = m_pDevice->GetTexture(overlayTexId);
+
+        // Read back the overlay texture data (R16G16B16A16_FLOAT format, 8 bytes per pixel)
+        bytebuf overlayData;
+        m_pDevice->GetTextureData(overlayTexId, Subresource(), GetTextureDataParams(), overlayData);
+        FatalErrorCheck();
+
+        uint32_t texWidth = overlayDesc.width;
+        uint32_t texHeight = overlayDesc.height;
+        size_t expectedSize = (size_t)texWidth * texHeight * 8;    // 4 x uint16 per pixel
+
+        if(overlayData.size() >= expectedSize)
+        {
+          uint64_t touchedCount = 0;
+          const uint16_t *pixels = (const uint16_t *)overlayData.data();
+
+          for(uint32_t y = 0; y < texHeight; y++)
+          {
+            for(uint32_t x = 0; x < texWidth; x++)
+            {
+              size_t idx = ((size_t)y * texWidth + x) * 4;    // 4 components per pixel
+              // Drawcall overlay: covered pixels have alpha = 1.0 (0x3C00 in half float)
+              // Background pixels have alpha = 0.5 or 0.0
+              // The drawcall overlay uses FixedColPS with (0.8, 0.1, 0.8, 1.0) for covered pixels
+              // and clears to (0.0, 0.0, 0.0, 0.5) for background
+              uint16_t alphaHalf = pixels[idx + 3];
+              float alpha = ConvertFromHalf(alphaHalf);
+              if(alpha > 0.9f)    // alpha == 1.0 means pixel was covered by the drawcall
+                touchedCount++;
+            }
+          }
+
+          stats.pixelTouched = touchedCount;
+        }
+      }
+    }
+
+    // Compute overdraw estimate from overlay-based pixelTouched
+    if(stats.pixelTouched > 0)
+      stats.overdrawEstimate = (double)stats.psInvocations / (double)stats.pixelTouched;
+    else if(stats.samplesPassed > 0)
+      stats.overdrawEstimate = (double)stats.psInvocations / (double)stats.samplesPassed;
+    else
+      stats.overdrawEstimate = 0.0;
+
+    // --- QuadOverdrawDraw Overlay: get per-pixel overdraw distribution ---
+    if(overdrawDistribution)
+    {
+      // Replay again to set up state before the draw
+      m_pDevice->ReplayLog(eid, eReplay_WithoutDraw);
+      FatalErrorCheck();
+
+      FloatVector clearCol(0.0f, 0.0f, 0.0f, 0.0f);
+      rdcarray<uint32_t> emptyPassEvents;
+
+      ResourceId overdrawTexId = m_pDevice->RenderOverlay(
+          renderTargetId, clearCol, DebugOverlay::QuadOverdrawDraw, eid, emptyPassEvents);
+      FatalErrorCheck();
+
+      if(overdrawTexId != ResourceId())
+      {
+        TextureDescription overdrawDesc = m_pDevice->GetTexture(overdrawTexId);
+
+        bytebuf overdrawData;
+        m_pDevice->GetTextureData(overdrawTexId, Subresource(), GetTextureDataParams(), overdrawData);
+        FatalErrorCheck();
+
+        uint32_t texWidth = overdrawDesc.width;
+        uint32_t texHeight = overdrawDesc.height;
+        size_t expectedSize = (size_t)texWidth * texHeight * 8;
+
+        if(overdrawData.size() >= expectedSize)
+        {
+          // Build overdraw distribution: count pixels at each overdraw level
+          std::map<uint32_t, uint64_t> overdrawBuckets;
+          const uint16_t *pixels = (const uint16_t *)overdrawData.data();
+
+          for(uint32_t y = 0; y < texHeight; y++)
+          {
+            for(uint32_t x = 0; x < texWidth; x++)
+            {
+              size_t idx = ((size_t)y * texWidth + x) * 4;
+              // QuadOverdrawDraw overlay: RGBA are all the same value = overdraw count
+              // The QOResolvePS writes float(overdraw).xxxx
+              float overdrawVal = ConvertFromHalf(pixels[idx]);
+
+              if(overdrawVal > 0.0f)
+              {
+                uint32_t overdrawCount = (uint32_t)(overdrawVal + 0.5f);    // round to nearest int
+                if(overdrawCount > 0)
+                  overdrawBuckets[overdrawCount]++;
+              }
+            }
+          }
+
+          // Convert map to sorted array of OverdrawBucket
+          for(auto &bucket : overdrawBuckets)
+          {
+            stats.overdrawDistribution.push_back(OverdrawBucket(bucket.first, bucket.second));
+          }
+        }
+      }
+    }
+  }
+
+  // For events without overlay data (non-drawcall events), use counter-based estimates
+  for(auto &kv : statsMap)
+  {
+    PixelEventStats &stats = kv.second;
+
+    // If pixelTouched was not set by overlay (non-drawcall events), fall back to samplesPassed
+    if(stats.pixelTouched == 0 && stats.samplesPassed > 0)
+    {
+      stats.pixelTouched = stats.samplesPassed;
+
+      if(stats.samplesPassed > 0)
+        stats.overdrawEstimate = (double)stats.psInvocations / (double)stats.samplesPassed;
+    }
+  }
+
+  // Convert map to sorted array
+  ret.reserve(statsMap.size());
+  for(auto &kv : statsMap)
+    ret.push_back(kv.second);
+
+  return ret;
+}
+
 rdcarray<GPUCounter> ReplayController::EnumerateCounters()
 {
   CHECK_REPLAY_THREAD();
