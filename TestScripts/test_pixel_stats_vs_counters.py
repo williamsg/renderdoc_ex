@@ -103,7 +103,7 @@ def main():
         # --- Step 2: Fetch FetchPixelStats ---
         print("\n=== Step 2: Fetching FetchPixelStats ===")
         t2 = time.time()
-        pixel_stats = controller.FetchPixelStats(0, 0, False)
+        pixel_stats = controller.FetchPixelStats(0, 0, True)
         t2_elapsed = time.time() - t2
         print("[INFO] FetchPixelStats: %d entries in %.2fs" % (len(pixel_stats), t2_elapsed))
 

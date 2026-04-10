@@ -467,31 +467,42 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
 
   RENDERDOC_PROFILEFUNCTION();
 
+  // overdrawDistribution parameter is kept for API compatibility but always treated as true.
+  (void)overdrawDistribution;
+
   rdcarray<PixelEventStats> ret;
 
   // Step 1: Fetch GPU counters for basic per-event statistics
   rdcarray<GPUCounter> availableCounters = m_pDevice->EnumerateCounters();
 
   rdcarray<GPUCounter> countersToFetch;
+  bool hasSamplesPassed = false;
+  bool hasPSInvocations = false;
 
   for(GPUCounter c : availableCounters)
   {
     if(c == GPUCounter::SamplesPassed || c == GPUCounter::PSInvocations ||
        c == GPUCounter::RasterizedPrimitives || c == GPUCounter::EventGPUDuration)
+    {
       countersToFetch.push_back(c);
+      if(c == GPUCounter::SamplesPassed)
+        hasSamplesPassed = true;
+      if(c == GPUCounter::PSInvocations)
+        hasPSInvocations = true;
+    }
   }
 
-  if(countersToFetch.empty())
+  // Fetch available counters (may be empty for GLES replays where no relevant counters exist)
+  rdcarray<CounterResult> counterResults;
+  if(!countersToFetch.empty())
   {
-    RDCERR("No relevant GPU counters available for FetchPixelStats");
-    return ret;
+    counterResults = m_pDevice->FetchCounters(countersToFetch);
+    FatalErrorCheck();
   }
-
-  rdcarray<CounterResult> counterResults = m_pDevice->FetchCounters(countersToFetch);
-  FatalErrorCheck();
-
-  if(counterResults.empty())
-    return ret;
+  else
+  {
+    RDCWARN("No relevant GPU counters available for FetchPixelStats, falling back to overlay-only mode");
+  }
 
   // Build a map from eventId -> PixelEventStats with counter data
   std::map<uint32_t, PixelEventStats> statsMap;
@@ -520,11 +531,46 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
 
   // Step 2: Collect drawcall events that have pixel output
   rdcarray<uint32_t> drawcallEventIds;
-  for(auto &kv : statsMap)
+
+  if(hasSamplesPassed || hasPSInvocations)
   {
-    if(kv.second.psInvocations > 0 || kv.second.samplesPassed > 0)
-      drawcallEventIds.push_back(kv.first);
+    // Fast path: use counter data to filter events with pixel output
+    for(auto &kv : statsMap)
+    {
+      if(kv.second.psInvocations > 0 || kv.second.samplesPassed > 0)
+        drawcallEventIds.push_back(kv.first);
+    }
   }
+  else
+  {
+    // Fallback path: SamplesPassed/PSInvocations counters not available (e.g. GLES replay).
+    // Iterate all actions in the action table to find drawcall events.
+    RDCLOG("SamplesPassed/PSInvocations counters unavailable, enumerating all drawcall actions for overlay rendering");
+    for(size_t eid = 0; eid < m_Actions.size(); eid++)
+    {
+      ActionDescription *action = m_Actions[eid];
+      if(!action)
+        continue;
+      if(!(action->flags & ActionFlags::Drawcall))
+        continue;
+      if(eventStart > 0 && action->eventId < eventStart)
+        continue;
+      if(eventEnd > 0 && action->eventId > eventEnd)
+        continue;
+
+      drawcallEventIds.push_back(action->eventId);
+
+      // Ensure a statsMap entry exists for this event
+      if(statsMap.find(action->eventId) == statsMap.end())
+      {
+        PixelEventStats &stats = statsMap[action->eventId];
+        stats.eventId = action->eventId;
+      }
+    }
+  }
+
+  RDCLOG("FetchPixelStats Step 3: processing %zu drawcall events for overlay rendering",
+         drawcallEventIds.size());
 
   // Step 3: For each drawcall, use overlay rendering to get accurate pixel stats
   // - Drawcall overlay: count unique pixels touched (not affected by instance count)
@@ -556,7 +602,13 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
       renderTargetId = action->depthOut;
 
     if(renderTargetId == ResourceId())
+    {
+      RDCLOG("FetchPixelStats: Event %u has no render target, skipping overlay", eid);
       continue;
+    }
+
+    RDCLOG("FetchPixelStats: Event %u - rendering Drawcall overlay (renderTarget=%s)",
+           eid, ToStr(renderTargetId).c_str());
 
     // Replay to just before this event to set up the correct pipeline state
     m_pDevice->ReplayLog(eid, eReplay_WithoutDraw);
@@ -571,6 +623,9 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
           m_pDevice->RenderOverlay(renderTargetId, clearCol, DebugOverlay::Drawcall, eid, emptyPassEvents);
       FatalErrorCheck();
 
+      RDCLOG("FetchPixelStats: Event %u - RenderOverlay returned %s",
+             eid, ToStr(overlayTexId).c_str());
+
       if(overlayTexId != ResourceId())
       {
         // Get the overlay texture description to know dimensions
@@ -584,6 +639,10 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
         uint32_t texWidth = overlayDesc.width;
         uint32_t texHeight = overlayDesc.height;
         size_t expectedSize = (size_t)texWidth * texHeight * 8;    // 4 x uint16 per pixel
+
+        RDCLOG("FetchPixelStats: Event %u - overlay tex %ux%u, format=%s, data size=%zu, expected=%zu",
+               eid, texWidth, texHeight, ToStr(overlayDesc.format.type).c_str(),
+               overlayData.size(), expectedSize);
 
         if(overlayData.size() >= expectedSize)
         {
@@ -607,6 +666,13 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
           }
 
           stats.pixelTouched = touchedCount;
+          RDCLOG("FetchPixelStats: Event %u - pixelTouched=%llu", eid,
+                 (unsigned long long)touchedCount);
+        }
+        else
+        {
+          RDCWARN("FetchPixelStats: Event %u - data size mismatch: got %zu, expected %zu",
+                  eid, overlayData.size(), expectedSize);
         }
       }
     }
@@ -620,7 +686,8 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
       stats.overdrawEstimate = 0.0;
 
     // --- QuadOverdrawDraw Overlay: get per-pixel overdraw distribution ---
-    if(overdrawDistribution)
+    // Always compute overdraw distribution for accurate per-pixel stats.
+    // The overdrawDistribution parameter is kept for API compatibility but ignored.
     {
       // Replay again to set up state before the draw
       m_pDevice->ReplayLog(eid, eReplay_WithoutDraw);
@@ -677,6 +744,7 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
         }
       }
     }
+
   }
 
   // For events without overlay data (non-drawcall events), use counter-based estimates

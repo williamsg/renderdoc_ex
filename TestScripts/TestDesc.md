@@ -56,7 +56,7 @@ python TestScripts\test_pixel_stats.py path\to\your_capture.rdc
 | `setup_venv.ps1` | **环境配置脚本（PowerShell）**。自动检测所需 Python 版本并创建匹配的 venv |
 | `setup_venv.bat` | **环境配置脚本（cmd.exe）**。功能同上，适用于 cmd 环境 |
 | `_rd_common.py` | 公共模块。处理 `renderdoc.pyd` 加载、Python 版本检测、Capture 打开/关闭、Action 树遍历等 |
-| `test_pixel_stats.py` | 测试 `FetchPixelStats` API，输出像素覆盖、overdraw、GPU 耗时等统计，并进行异常检测 |
+| `test_pixel_stats.py` | 测试 `FetchPixelStats` API，输出像素覆盖、overdraw 分布、GPU 耗时等统计，并进行异常检测 |
 | `test_gpu_counters.py` | 测试 GPU 计数器枚举与获取，输出 `SamplesPassed`、`PSInvocations`、`EventGPUDuration` 等 |
 | `test_basic_info.py` | 测试基础 API，提取 Actions 树、Textures、Buffers、Pipeline State 等信息 |
 | `test_pixel_stats_vs_counters.py` | **交叉验证**：对比 `FetchPixelStats` 与原始 GPU Counters 数据，找出不一致的地方 |
@@ -86,15 +86,13 @@ python TestScripts\test_pixel_stats.py path\to\your_capture.rdc
 # 基本用法
 python TestScripts/test_pixel_stats.py path/to/your_capture.rdc
 
-# 启用 overdraw 分布计算（更详细，但更慢）
-python TestScripts/test_pixel_stats.py path/to/your_capture.rdc --overdraw-dist
-
 # 指定输出路径
 python TestScripts/test_pixel_stats.py path/to/your_capture.rdc -o result_pixel_stats.json
 ```
 
 **输出内容**：
 - 每个事件的 `pixels_touched`、`samples_passed`、`ps_invocations`、`rasterized_primitives`、`gpu_duration`、`overdraw_estimate`
+- 每个事件的逐像素 overdraw 分布（`overdraw_distribution`）
 - Top 10 排行（按像素覆盖、overdraw、GPU 耗时）
 - **异常检测**（Sanity Checks）：自动标记可疑数据，例如：
   - `pixels_touched > ps_invocations`
@@ -157,7 +155,7 @@ python TestScripts/test_basic_info.py path/to/your_capture.rdc
   "api": "GraphicsAPI.D3D11",
   "total_drawcalls": 256,
   "fetch_time_seconds": 1.234,
-  "overdraw_distribution_enabled": false,
+  "overdraw_distribution_enabled": true,
   "pixel_stats": [
     {
       "event_id": 42,

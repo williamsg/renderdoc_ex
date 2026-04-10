@@ -98,7 +98,9 @@ Write-Host "`r                                                  " -NoNewline
 Write-Host ""
 
 $Duration = (Get-Date) - $StartTime
+$process.WaitForExit()
 $ExitCode = $process.ExitCode
+if ($null -eq $ExitCode) { $ExitCode = 0 }
 
 # Parse build summary from log
 $LogContent = Get-Content $LogFile -Tail 20 -ErrorAction SilentlyContinue
