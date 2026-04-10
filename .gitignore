@@ -49,3 +49,6 @@ qrenderdoc/3rdparty/pyside
 plugins-*/
 __pycache__
 *.log
+.venv/
+TestScripts/.venv/
+TestScripts/output/
