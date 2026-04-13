@@ -688,6 +688,13 @@ rdcarray<PixelEventStats> ReplayController::FetchPixelStats(uint32_t eventStart,
     // --- QuadOverdrawDraw Overlay: get per-pixel overdraw distribution ---
     // Always compute overdraw distribution for accurate per-pixel stats.
     // The overdrawDistribution parameter is kept for API compatibility but ignored.
+    //
+    // NOTE: QuadOverdrawDraw overlay uses [earlydepthstencil] in its pixel shader and
+    // preserves the original Depth Test (only disabling depth writes). This means only
+    // pixels that pass the Depth Test are counted in overdraw_distribution, which is
+    // consistent with RenderDoc's Quad Overdraw overlay in the Texture Viewer.
+    // As a result, sum(overdraw_distribution) may be less than pixels_touched, because
+    // pixels_touched is computed via the Drawcall overlay which disables Depth Test entirely.
     {
       // Replay again to set up state before the draw
       m_pDevice->ReplayLog(eid, eReplay_WithoutDraw);

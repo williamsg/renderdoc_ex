@@ -92,7 +92,7 @@ python TestScripts/test_pixel_stats.py path/to/your_capture.rdc -o result_pixel_
 
 **输出内容**：
 - 每个事件的 `pixels_touched`、`samples_passed`、`ps_invocations`、`rasterized_primitives`、`gpu_duration`、`overdraw_estimate`
-- 每个事件的逐像素 overdraw 分布（`overdraw_distribution`）
+- 每个事件的逐像素 overdraw 分布（`overdraw_distribution`），仅统计通过 Depth Test 的像素（与 RenderDoc 的 Quad Overdraw overlay 行为一致）
 - Top 10 排行（按像素覆盖、overdraw、GPU 耗时）
 - **异常检测**（Sanity Checks）：自动标记可疑数据，例如：
   - `pixels_touched > ps_invocations`
@@ -147,6 +147,18 @@ python TestScripts/test_basic_info.py path/to/your_capture.rdc
 - 可通过 `-o` 参数指定自定义输出路径
 - 所有输出均为格式化的 JSON（`indent=2`），方便阅读和后续处理
 
+### 字段说明
+
+| 字段 | 说明 |
+|------|------|
+| `pixels_touched` | 该 drawcall 光栅化覆盖的**所有**唯一像素数（禁用 Depth Test 统计） |
+| `overdraw_distribution` | 逐像素 overdraw 分布，仅统计**通过 Depth Test** 的像素。与 RenderDoc 的 Quad Overdraw overlay 行为一致，使用 `[earlydepthstencil]` 属性进行 early-Z 剔除 |
+| `overdraw_estimate` | overdraw 估算值 = `samples_passed / pixels_touched` |
+| `samples_passed` | 通过 Depth/Stencil Test 的采样数（来自 GPU Counter） |
+| `ps_invocations` | Pixel Shader 调用次数（来自 GPU Counter） |
+
+> **注意**：`pixels_touched` 可能大于 `overdraw_distribution` 中所有像素数的累加值。这是因为 `pixels_touched` 统计时禁用了 Depth Test（统计所有光栅化像素），而 `overdraw_distribution` 仅统计通过 Depth Test 的像素（与 RenderDoc 的 Quad Overdraw overlay 保持一致）。
+
 ### 输出 JSON 示例（test_pixel_stats.py）
 
 ```json
@@ -164,7 +176,11 @@ python TestScripts/test_basic_info.py path/to/your_capture.rdc
       "ps_invocations": 1843200,
       "rasterized_primitives": 5000,
       "gpu_duration_ms": 0.1234,
-      "overdraw_estimate": 2.0
+      "overdraw_estimate": 2.0,
+      "overdraw_distribution": {
+        "1": 460800,
+        "2": 230400
+      }
     }
   ],
   "anomalies": []

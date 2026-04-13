@@ -86,6 +86,10 @@ def main():
             }
 
             # Overdraw distribution
+            # NOTE: overdraw_distribution only counts pixels that passed the Depth Test,
+            # consistent with RenderDoc's Quad Overdraw overlay (which uses [earlydepthstencil]).
+            # This means sum(overdraw_distribution values) may be less than pixels_touched,
+            # because pixels_touched is counted with Depth Test disabled.
             if s.overdrawDistribution:
                 dist = {}
                 for bucket in s.overdrawDistribution:
